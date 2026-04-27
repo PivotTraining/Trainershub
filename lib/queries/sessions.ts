@@ -4,21 +4,40 @@ import {
   scheduleSessionReminder,
 } from '../notifications';
 import { supabase } from '../supabase';
-import type { Session, SessionStatus } from '../types';
+import type { Session, SessionStatus, SessionWithClient } from '../types';
 import type { SessionCreateInput, SessionUpdateInput } from '../validators/session';
+
+const SESSION_WITH_CLIENT_SELECT =
+  '*, client:clients!client_id(goals, profile:profiles!user_id(full_name, email))' as const;
+
+type SessionClientRow = Session & {
+  client: {
+    goals: string | null;
+    profile: { full_name: string | null; email: string } | null;
+  } | null;
+};
+
+function rowToSessionWithClient(row: unknown): SessionWithClient {
+  const r = row as SessionClientRow;
+  return {
+    ...r,
+    clientName: r.client?.profile?.full_name ?? null,
+    clientEmail: r.client?.profile?.email ?? null,
+  };
+}
 
 export function useSession(id: string | undefined) {
   return useQuery({
     enabled: !!id,
     queryKey: ['session', id],
-    queryFn: async (): Promise<Session | null> => {
+    queryFn: async (): Promise<SessionWithClient | null> => {
       const { data, error } = await supabase
         .from('sessions')
-        .select('*')
+        .select(SESSION_WITH_CLIENT_SELECT)
         .eq('id', id!)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return (data as Session | null) ?? null;
+      return data ? rowToSessionWithClient(data) : null;
     },
   });
 }
@@ -27,14 +46,14 @@ export function useTrainerSessions(trainerId: string | undefined) {
   return useQuery({
     enabled: !!trainerId,
     queryKey: ['sessions', 'trainer', trainerId],
-    queryFn: async (): Promise<Session[]> => {
+    queryFn: async (): Promise<SessionWithClient[]> => {
       const { data, error } = await supabase
         .from('sessions')
-        .select('*')
+        .select(SESSION_WITH_CLIENT_SELECT)
         .eq('trainer_id', trainerId!)
         .order('starts_at', { ascending: true });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Session[];
+      return (data ?? []).map(rowToSessionWithClient);
     },
   });
 }
@@ -43,7 +62,7 @@ export function useClientSessions(userId: string | undefined) {
   return useQuery({
     enabled: !!userId,
     queryKey: ['sessions', 'client', userId],
-    queryFn: async (): Promise<Session[]> => {
+    queryFn: async (): Promise<SessionWithClient[]> => {
       const { data: clientRows, error: cErr } = await supabase
         .from('clients')
         .select('id')
@@ -53,11 +72,11 @@ export function useClientSessions(userId: string | undefined) {
       if (ids.length === 0) return [];
       const { data, error } = await supabase
         .from('sessions')
-        .select('*')
+        .select(SESSION_WITH_CLIENT_SELECT)
         .in('client_id', ids)
         .order('starts_at', { ascending: true });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Session[];
+      return (data ?? []).map(rowToSessionWithClient);
     },
   });
 }

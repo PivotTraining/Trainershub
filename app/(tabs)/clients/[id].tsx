@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
-import { useClient, useUpdateClient } from '@/lib/queries/clients';
+import { useClient, useDeleteClient, useUpdateClient } from '@/lib/queries/clients';
 import {
   useAssignProgram,
   useClientAssignedPrograms,
@@ -30,7 +30,9 @@ export default function ClientDetail() {
   const allPrograms = useTrainerPrograms(trainerId);
   const assignMut = useAssignProgram();
 
+  const router = useRouter();
   const navigation = useNavigation();
+  const deleteClient = useDeleteClient(trainerId);
   const [editing, setEditing] = useState(false);
   const [goals, setGoals] = useState('');
   const [notes, setNotes] = useState('');
@@ -96,6 +98,28 @@ export default function ClientDetail() {
     setGoals(clientQuery.data?.goals ?? '');
     setNotes(clientQuery.data?.notes ?? '');
     setEditing(false);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Remove client?',
+      'This removes the client relationship and all their sessions with you. Cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteClient.mutateAsync(clientQuery.data!.id);
+              router.back();
+            } catch (err: unknown) {
+              Alert.alert('Failed', err instanceof Error ? err.message : 'Unknown error');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleAssign = async (programId: string) => {
@@ -207,6 +231,17 @@ export default function ClientDetail() {
           ))}
         </>
       )}
+
+      {/* ── Danger zone ──────────────────────────────────────────── */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={handleDelete}
+        disabled={deleteClient.isPending}
+      >
+        {deleteClient.isPending
+          ? <ActivityIndicator color="#c33" />
+          : <Text style={styles.deleteText}>Remove client</Text>}
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -255,4 +290,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   assignLink: { color: '#0a7', fontWeight: '600' },
+  deleteButton: {
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: '#c33',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  deleteText: { color: '#c33', fontWeight: '600' },
 });

@@ -42,6 +42,12 @@ export interface Program {
   created_at: string;
 }
 
+/** Session row with the joined client + profile name */
+export interface SessionWithClient extends Session {
+  clientName: string | null;
+  clientEmail: string | null;
+}
+
 export interface ProgramAssignment {
   id: string;
   program_id: string;

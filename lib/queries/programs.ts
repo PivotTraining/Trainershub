@@ -45,6 +45,22 @@ export function useCreateProgram(trainerId: string) {
   });
 }
 
+export function useDeleteProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      // program_assignments are cascade-deleted via FK on delete cascade in schema
+      const { error } = await supabase.from('programs').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_v, id) => {
+      qc.removeQueries({ queryKey: ['program', id] });
+      qc.removeQueries({ queryKey: ['program_assignments', 'program', id] });
+      qc.invalidateQueries({ queryKey: ['programs'] });
+    },
+  });
+}
+
 export function useUpdateProgram() {
   const qc = useQueryClient();
   return useMutation({

@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import {
+  useDeleteProgram,
   useProgram,
   useProgramClients,
   useUnassignProgram,
@@ -22,7 +23,9 @@ import { programUpdateSchema } from '@/lib/validators/program';
 export default function ProgramDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
+  const router = useRouter();
   const programQuery = useProgram(id);
+  const deleteProgram = useDeleteProgram();
   const clientsQuery = useProgramClients(id);
   const updateProgram = useUpdateProgram();
   const unassign = useUnassignProgram();
@@ -63,6 +66,27 @@ export default function ProgramDetail() {
     setTitle(programQuery.data?.title ?? '');
     setDescription(programQuery.data?.description ?? '');
     setEditing(false);
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete program?',
+      'All client assignments will be removed. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteProgram.mutateAsync(id!);
+              router.back();
+            } catch (err: unknown) {
+              Alert.alert('Failed', err instanceof Error ? err.message : 'Unknown error');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleUnassign = (assignmentId: string, clientId: string) => {
@@ -179,6 +203,17 @@ export default function ProgramDetail() {
           </View>
         ))
       )}
+
+      {/* ── Danger zone ──────────────────────────────────────────── */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={handleDelete}
+        disabled={deleteProgram.isPending}
+      >
+        {deleteProgram.isPending
+          ? <ActivityIndicator color="#c33" />
+          : <Text style={styles.deleteText}>Delete program</Text>}
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -229,4 +264,14 @@ const styles = StyleSheet.create({
     borderColor: '#c33',
   },
   removeText: { color: '#c33', fontWeight: '600', fontSize: 13 },
+  deleteButton: {
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: '#c33',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  deleteText: { color: '#c33', fontWeight: '600' },
 });

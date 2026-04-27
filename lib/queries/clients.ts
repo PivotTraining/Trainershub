@@ -84,6 +84,20 @@ export function useCreateClient(trainerId: string) {
   });
 }
 
+export function useDeleteClient(trainerId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from('clients').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_v, id) => {
+      qc.removeQueries({ queryKey: ['client', id] });
+      qc.invalidateQueries({ queryKey: ['clients', trainerId] });
+    },
+  });
+}
+
 export function useUpdateClient(trainerId: string) {
   const qc = useQueryClient();
   return useMutation({

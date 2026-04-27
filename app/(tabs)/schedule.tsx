@@ -14,7 +14,7 @@ import {
 import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
-import type { Session } from '@/lib/types';
+import type { Session, SessionWithClient } from '@/lib/types';
 import { useRealtimeSessions } from '@/lib/useRealtimeSessions';
 
 const STATUS_ICON: Record<Session['status'], React.ComponentProps<typeof Ionicons>['name']> = {
@@ -28,8 +28,8 @@ const STATUS_COLOR: Record<Session['status'], string> = {
   canceled: '#c33',
 };
 
-function groupByDay(sessions: Session[]): { title: string; data: Session[] }[] {
-  const buckets = new Map<string, Session[]>();
+function groupByDay(sessions: SessionWithClient[]): { title: string; data: SessionWithClient[] }[] {
+  const buckets = new Map<string, SessionWithClient[]>();
   for (const s of sessions) {
     const key = new Date(s.starts_at).toLocaleDateString(undefined, {
       weekday: 'short',
@@ -103,7 +103,14 @@ export default function Schedule() {
                   minute: '2-digit',
                 })}
               </Text>
-              <Text style={styles.rowMeta}>{item.duration_min} min</Text>
+              <Text style={styles.rowMeta}>
+                {item.duration_min} min
+                {isTrainer && item.clientName
+                  ? `  ·  ${item.clientName}`
+                  : item.clientEmail
+                  ? `  ·  ${item.clientEmail}`
+                  : ''}
+              </Text>
               {item.notes ? (
                 <Text style={styles.rowNotes} numberOfLines={1}>
                   {item.notes}

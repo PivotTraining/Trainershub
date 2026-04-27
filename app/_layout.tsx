@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
 import { requestNotificationPermission } from '@/lib/notifications';
 
@@ -23,6 +24,7 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <ErrorBoundary label="App root">
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -43,5 +45,6 @@ export default function RootLayout() {
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
