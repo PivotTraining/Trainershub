@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import type { Client } from '../types';
-import type { ClientCreateInput } from '../validators/client';
+import type { ClientCreateInput, ClientUpdateInput } from '../validators/client';
 
 export function useClients(trainerId: string | undefined) {
   return useQuery({
@@ -66,6 +66,27 @@ export function useCreateClient(trainerId: string) {
       return data as Client;
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clients', trainerId] });
+    },
+  });
+}
+
+export function useUpdateClient(trainerId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string } & ClientUpdateInput): Promise<Client> => {
+      const { id, ...patch } = args;
+      const { data, error } = await supabase
+        .from('clients')
+        .update(patch)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Client;
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData(['client', updated.id], updated);
       qc.invalidateQueries({ queryKey: ['clients', trainerId] });
     },
   });

@@ -78,6 +78,77 @@ export function useClientAssignedPrograms(clientId: string | undefined) {
   });
 }
 
+export function useProgram(id: string | undefined) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ['program', id],
+    queryFn: async (): Promise<Program | null> => {
+      const { data, error } = await supabase
+        .from('programs')
+        .select('*')
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data as Program | null) ?? null;
+    },
+  });
+}
+
+interface ProgramClient {
+  assignmentId: string;
+  clientId: string;
+  userId: string;
+  goals: string | null;
+  notes: string | null;
+}
+
+export function useProgramClients(programId: string | undefined) {
+  return useQuery({
+    enabled: !!programId,
+    queryKey: ['program_assignments', 'program', programId],
+    queryFn: async (): Promise<ProgramClient[]> => {
+      const { data, error } = await supabase
+        .from('program_assignments')
+        .select('id, client_id, clients(user_id, goals, notes)')
+        .eq('program_id', programId!);
+      if (error) throw new Error(error.message);
+      type Row = {
+        id: string;
+        client_id: string;
+        clients: { user_id: string; goals: string | null; notes: string | null } | null;
+      };
+      return ((data ?? []) as unknown as Row[]).map((row) => ({
+        assignmentId: row.id,
+        clientId: row.client_id,
+        userId: row.clients?.user_id ?? '',
+        goals: row.clients?.goals ?? null,
+        notes: row.clients?.notes ?? null,
+      }));
+    },
+  });
+}
+
+export function useUnassignProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      assignmentId: string;
+      programId: string;
+      clientId: string;
+    }): Promise<void> => {
+      const { error } = await supabase
+        .from('program_assignments')
+        .delete()
+        .eq('id', args.assignmentId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_void, args) => {
+      qc.invalidateQueries({ queryKey: ['program_assignments', 'program', args.programId] });
+      qc.invalidateQueries({ queryKey: ['program_assignments', 'client', args.clientId] });
+    },
+  });
+}
+
 export function useClientPrograms(userId: string | undefined) {
   return useQuery({
     enabled: !!userId,

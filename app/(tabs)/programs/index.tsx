@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +18,7 @@ import { useClientPrograms, useCreateProgram, useTrainerPrograms } from '@/lib/q
 import { programCreateSchema } from '@/lib/validators/program';
 
 export default function Programs() {
+  const router = useRouter();
   const { session, profile } = useAuth();
   const userId = session?.user.id;
   const isTrainer = profile?.role === 'trainer';
@@ -64,10 +66,16 @@ export default function Programs() {
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={<Text style={styles.empty}>No programs yet.</Text>}
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() =>
+              router.push({ pathname: '/(tabs)/programs/[id]', params: { id: item.id } })
+            }
+          >
             <Text style={styles.rowTitle}>{item.title}</Text>
             {item.description ? <Text style={styles.rowSub}>{item.description}</Text> : null}
-          </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
         )}
       />
       {isTrainer && (
@@ -114,8 +122,9 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     marginBottom: 8,
   },
-  rowTitle: { fontSize: 16, fontWeight: '600' },
+  rowTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   rowSub: { color: '#666', marginTop: 4 },
+  chevron: { fontSize: 20, color: '#bbb', alignSelf: 'center' },
   composer: {
     padding: 16,
     backgroundColor: '#fff',

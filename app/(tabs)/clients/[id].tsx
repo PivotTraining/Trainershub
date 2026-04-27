@@ -1,17 +1,18 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
-import { useClient } from '@/lib/queries/clients';
+import { useClient, useUpdateClient } from '@/lib/queries/clients';
 import {
   useAssignProgram,
   useClientAssignedPrograms,
@@ -21,11 +22,25 @@ import {
 export default function ClientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
-  const trainerId = session?.user.id;
+  const trainerId = session?.user.id ?? '';
+
   const clientQuery = useClient(id);
+  const updateClient = useUpdateClient(trainerId);
   const assigned = useClientAssignedPrograms(id);
   const allPrograms = useTrainerPrograms(trainerId);
   const assignMut = useAssignProgram();
+
+  const [editing, setEditing] = useState(false);
+  const [goals, setGoals] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Seed form whenever the remote data arrives or changes
+  useEffect(() => {
+    if (clientQuery.data) {
+      setGoals(clientQuery.data.goals ?? '');
+      setNotes(clientQuery.data.notes ?? '');
+    }
+  }, [clientQuery.data]);
 
   const assignedIds = useMemo(
     () => new Set((assigned.data ?? []).map((p) => p.id)),
@@ -57,28 +72,96 @@ export default function ClientDetail() {
       </View>
     );
   }
-  const data = clientQuery.data;
+
+  const handleSave = async () => {
+    try {
+      await updateClient.mutateAsync({
+        id: clientQuery.data!.id,
+        goals: goals.trim() || null,
+        notes: notes.trim() || null,
+      });
+      setEditing(false);
+    } catch (err: unknown) {
+      Alert.alert('Save failed', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const handleCancel = () => {
+    setGoals(clientQuery.data?.goals ?? '');
+    setNotes(clientQuery.data?.notes ?? '');
+    setEditing(false);
+  };
 
   const handleAssign = async (programId: string) => {
     try {
-      await assignMut.mutateAsync({ program_id: programId, client_id: data.id });
-    } catch (error: unknown) {
-      Alert.alert('Assign failed', error instanceof Error ? error.message : 'Unknown error');
+      await assignMut.mutateAsync({ program_id: programId, client_id: clientQuery.data!.id });
+    } catch (err: unknown) {
+      Alert.alert('Assign failed', err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
-      <Text style={styles.label}>Goals</Text>
-      <Text style={styles.value}>{data.goals ?? '—'}</Text>
-      <Text style={styles.label}>Notes</Text>
-      <Text style={styles.value}>{data.notes ?? '—'}</Text>
-      <Text style={styles.label}>Added</Text>
-      <Text style={styles.value}>{new Date(data.created_at).toLocaleDateString()}</Text>
+      {/* ── Header row ───────────────────────────────────────────── */}
+      <View style={styles.headerRow}>
+        <Text style={styles.sectionTitle}>Client info</Text>
+        {!editing ? (
+          <TouchableOpacity onPress={() => setEditing(true)}>
+            <Text style={styles.editLink}>Edit</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.editActions}>
+            <TouchableOpacity onPress={handleCancel} disabled={updateClient.isPending}>
+              <Text style={styles.cancelLink}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSave} disabled={updateClient.isPending}>
+              {updateClient.isPending ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <Text style={styles.saveLink}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
 
-      <Text style={[styles.label, { marginTop: 32 }]}>Assigned programs</Text>
+      {/* ── Goals ────────────────────────────────────────────────── */}
+      <Text style={styles.label}>Goals</Text>
+      {editing ? (
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={goals}
+          onChangeText={setGoals}
+          multiline
+          placeholder="What is the client working toward?"
+        />
+      ) : (
+        <Text style={styles.value}>{clientQuery.data.goals || '—'}</Text>
+      )}
+
+      {/* ── Notes ────────────────────────────────────────────────── */}
+      <Text style={styles.label}>Notes</Text>
+      {editing ? (
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={notes}
+          onChangeText={setNotes}
+          multiline
+          placeholder="Private trainer notes"
+        />
+      ) : (
+        <Text style={styles.value}>{clientQuery.data.notes || '—'}</Text>
+      )}
+
+      <Text style={styles.label}>Added</Text>
+      <Text style={styles.value}>
+        {new Date(clientQuery.data.created_at).toLocaleDateString()}
+      </Text>
+
+      {/* ── Assigned programs ────────────────────────────────────── */}
+      <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Assigned programs</Text>
       {assigned.isLoading ? (
-        <ActivityIndicator />
+        <ActivityIndicator style={{ marginTop: 8 }} />
       ) : (assigned.data ?? []).length === 0 ? (
         <Text style={styles.muted}>None yet.</Text>
       ) : (
@@ -90,6 +173,7 @@ export default function ClientDetail() {
         ))
       )}
 
+      {/* ── Assign from unassigned ───────────────────────────────── */}
       {unassigned.length > 0 && (
         <>
           <Text style={[styles.label, { marginTop: 24 }]}>Assign a program</Text>
@@ -101,7 +185,7 @@ export default function ClientDetail() {
               disabled={assignMut.isPending}
             >
               <Text style={styles.programTitle}>{p.title}</Text>
-              <Text style={styles.assignLink}>Assign</Text>
+              <Text style={styles.assignLink}>+ Assign</Text>
             </TouchableOpacity>
           ))}
         </>
@@ -113,10 +197,30 @@ export default function ClientDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  editActions: { flexDirection: 'row', gap: 16 },
+  sectionTitle: { fontSize: 17, fontWeight: '700' },
+  editLink: { color: '#0a7', fontWeight: '600' },
+  cancelLink: { color: '#888' },
+  saveLink: { color: '#0a7', fontWeight: '600' },
   label: { fontSize: 13, color: '#888', marginTop: 16, marginBottom: 4 },
   value: { fontSize: 16 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  multiline: { minHeight: 80, textAlignVertical: 'top' },
   error: { color: '#c00' },
-  muted: { color: '#666' },
+  muted: { color: '#666', marginTop: 4 },
   programRow: {
     paddingVertical: 10,
     borderBottomWidth: 1,
