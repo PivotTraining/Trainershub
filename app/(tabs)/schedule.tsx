@@ -104,6 +104,11 @@ export default function Schedule() {
                 })}
               </Text>
               <Text style={styles.rowMeta}>{item.duration_min} min</Text>
+              {item.notes ? (
+                <Text style={styles.rowNotes} numberOfLines={1}>
+                  {item.notes}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.rowRight}>
               <Ionicons
@@ -157,6 +162,7 @@ const styles = StyleSheet.create({
   rowLeft: { flex: 1 },
   rowTime: { fontSize: 16, fontWeight: '600' },
   rowMeta: { fontSize: 12, color: '#666', marginTop: 2 },
+  rowNotes: { fontSize: 12, color: '#aaa', marginTop: 2, fontStyle: 'italic' },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   rowStatus: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
   chevron: { fontSize: 20, color: '#bbb' },

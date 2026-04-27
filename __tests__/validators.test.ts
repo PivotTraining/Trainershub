@@ -5,27 +5,27 @@ import { sessionCreateSchema, sessionUpdateSchema } from '@/lib/validators/sessi
 // ── clientCreateSchema ────────────────────────────────────────────────────────
 
 describe('clientCreateSchema', () => {
-  it('accepts a valid client', () => {
+  it('accepts a valid client with email and goals', () => {
     expect(
-      clientCreateSchema.safeParse({ email: 'jane@example.com', full_name: 'Jane Doe', goals: 'Run a 5k' }).success,
+      clientCreateSchema.safeParse({ email: 'jane@example.com', goals: 'Run a 5k' }).success,
     ).toBe(true);
   });
 
-  it('accepts a client without optional fields', () => {
-    expect(clientCreateSchema.safeParse({ email: 'a@b.com', full_name: 'A' }).success).toBe(true);
+  it('accepts a client with email only', () => {
+    expect(clientCreateSchema.safeParse({ email: 'a@b.com' }).success).toBe(true);
   });
 
   it('rejects invalid email', () => {
-    expect(clientCreateSchema.safeParse({ email: 'not-an-email', full_name: 'Jane' }).success).toBe(false);
+    expect(clientCreateSchema.safeParse({ email: 'not-an-email' }).success).toBe(false);
   });
 
-  it('rejects empty name', () => {
-    expect(clientCreateSchema.safeParse({ email: 'jane@example.com', full_name: '' }).success).toBe(false);
+  it('rejects missing email', () => {
+    expect(clientCreateSchema.safeParse({ goals: 'Be fit' }).success).toBe(false);
   });
 
   it('rejects goals exceeding 2000 chars', () => {
     expect(
-      clientCreateSchema.safeParse({ email: 'a@b.com', full_name: 'A', goals: 'x'.repeat(2001) }).success,
+      clientCreateSchema.safeParse({ email: 'a@b.com', goals: 'x'.repeat(2001) }).success,
     ).toBe(false);
   });
 });

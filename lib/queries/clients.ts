@@ -56,29 +56,27 @@ export function useCreateClient(trainerId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: ClientCreateInput): Promise<Client> => {
-      const { data: profile, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', input.email)
-        .maybeSingle();
-      if (lookupError) throw new Error(lookupError.message);
-      if (!profile) {
-        throw new Error(
-          'No user with that email yet. Have them sign up first, then add them here.',
-        );
-      }
-      const { data, error } = await supabase
-        .from('clients')
-        .insert({
-          user_id: profile.id,
-          trainer_id: trainerId,
+      // Delegate to the invite-client Edge Function which handles both
+      // existing users and new invites via Supabase Auth admin.
+      const { data, error } = await supabase.functions.invoke('invite-client', {
+        body: {
+          email: input.email,
           goals: input.goals ?? null,
           notes: input.notes ?? null,
-        })
-        .select('*')
-        .single();
+        },
+      });
       if (error) throw new Error(error.message);
-      return data as Client;
+
+      const { clientId } = data as { clientId: string };
+
+      // Fetch the full row so callers get a typed Client back
+      const { data: row, error: rowError } = await supabase
+        .from('clients')
+        .select(CLIENT_WITH_PROFILE_SELECT)
+        .eq('id', clientId)
+        .single();
+      if (rowError) throw new Error(rowError.message);
+      return rowToClientWithProfile(row) as unknown as Client;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['clients', trainerId] });

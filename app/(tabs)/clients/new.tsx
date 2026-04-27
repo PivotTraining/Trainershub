@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
@@ -20,13 +21,11 @@ export default function NewClient() {
   const { session } = useAuth();
   const create = useCreateClient(session?.user.id ?? '');
   const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
   const [goals, setGoals] = useState('');
 
   const handleSubmit = async () => {
     const parsed = clientCreateSchema.safeParse({
       email: email.trim().toLowerCase(),
-      full_name: fullName.trim(),
       goals: goals.trim() || undefined,
     });
     if (!parsed.success) {
@@ -46,23 +45,33 @@ export default function NewClient() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>
+          If this email isn't registered yet, they'll receive an invitation link. Either way
+          they'll appear in your client list once added.
+        </Text>
+      </View>
+
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
         autoCapitalize="none"
         keyboardType="email-address"
+        autoComplete="email"
         value={email}
         onChangeText={setEmail}
+        placeholder="client@example.com"
       />
-      <Text style={styles.label}>Full name</Text>
-      <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
+
       <Text style={styles.label}>Goals (optional)</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
         value={goals}
         onChangeText={setGoals}
         multiline
+        placeholder="What is this client working toward?"
       />
+
       <TouchableOpacity
         style={[styles.button, create.isPending && styles.buttonDisabled]}
         onPress={handleSubmit}
@@ -71,7 +80,7 @@ export default function NewClient() {
         {create.isPending ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Add client</Text>
+          <Text style={styles.buttonText}>Invite client</Text>
         )}
       </TouchableOpacity>
     </KeyboardAvoidingView>
@@ -80,7 +89,14 @@ export default function NewClient() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#fff' },
-  label: { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 12 },
+  infoBox: {
+    backgroundColor: '#f0f7ff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  infoText: { fontSize: 13, color: '#446', lineHeight: 18 },
+  label: { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 16 },
   input: {
     borderWidth: 1,
     borderColor: '#d0d0d0',
@@ -95,7 +111,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 28,
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },

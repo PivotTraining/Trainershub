@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Type-check + unit tests ──────────────────────────────────────────────
+  test:
+    name: Typecheck & Jest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Jest
+        run: npm test -- --ci --coverage --coverageThreshold='{"global":{"lines":80}}'
+
+  # ── EAS preview build ────────────────────────────────────────────────────
+  build-preview:
+    name: EAS preview build (iOS simulator)
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build
+        run: eas build --platform ios --profile preview --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+  # ── Maestro E2E (iOS simulator) ──────────────────────────────────────────
+  e2e:
+    name: Maestro E2E
+    runs-on: macos-latest
+    needs: build-preview
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Maestro
+        run: curl -Ls "https://get.maestro.mobile.dev" | bash
+
+      - name: Boot iOS simulator
+        run: |
+          xcrun simctl boot "iPhone 16" || true
+          xcrun simctl bootstatus "iPhone 16"
+
+      - name: Install app on simulator
+        run: |
+          # Download the .app from the EAS build artifact (adapt URL as needed)
+          # For now install from a local build for speed
+          npx expo run:ios --no-bundler --simulator "iPhone 16"
+
+      - name: Seed OTP via Supabase Admin
+        id: seed-otp
+        run: |
+          # Generate OTP by triggering sign-in and reading from Supabase auth.mfa_factors
+          # In practice: call Supabase Admin API to fetch the latest OTP token
+          OTP=$(curl -s -X POST \
+            "${{ secrets.SUPABASE_URL }}/auth/v1/otp" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"${{ secrets.E2E_TRAINER_EMAIL }}\"}" \
+            | jq -r '.message_id // empty')
+          # Read OTP from the DB (email_otps table — Supabase stores them for testing)
+          OTP_CODE=$(curl -s \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/get_otp_for_email" \
+            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"p_email\":\"${{ secrets.E2E_TRAINER_EMAIL }}\"}" \
+            | jq -r '.')
+          echo "otp=$OTP_CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Run Maestro flow
+        env:
+          TRAINER_EMAIL: ${{ secrets.E2E_TRAINER_EMAIL }}
+          MAESTRO_OTP: ${{ steps.seed-otp.outputs.otp }}
+          CLIENT_EMAIL: ${{ secrets.E2E_CLIENT_EMAIL }}
+        run: ~/.maestro/bin/maestro test .maestro/sign-in-create-client.yml
+
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-results
+          path: ~/.maestro/tests/

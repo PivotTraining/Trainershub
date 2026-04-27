@@ -1,11 +1,36 @@
 appId: com.trainerhub.app
 ---
-- launchApp
+# ── Step 1: Launch and land on sign-in ──────────────────────────────────────
+- launchApp:
+    clearState: true
 - assertVisible: "TrainerHub"
-- tapOn:
-    id: "email-input"
-    optional: true
-- inputText: "trainer@example.com"
+- assertVisible: "Sign in with your email."
+
+# ── Step 2: Enter trainer email ──────────────────────────────────────────────
+- tapOn: "you@example.com"
+- inputText: ${TRAINER_EMAIL}
 - tapOn: "Send code"
-- assertVisible: "Enter the 6-digit code"
-# In CI we'd seed the OTP via Supabase admin API; for now leave a manual hand-off.
+- assertVisible: "Enter the 6-digit code we sent."
+
+# ── Step 3: Enter OTP (injected by CI via MAESTRO_OTP env var) ───────────────
+- tapOn: "123456"
+- inputText: ${MAESTRO_OTP}
+- tapOn: "Verify"
+
+# ── Step 4: Land on home tab ─────────────────────────────────────────────────
+- assertVisible: "Hi"
+
+# ── Step 5: Navigate to Clients ──────────────────────────────────────────────
+- tapOn: "Clients"
+
+# ── Step 6: Open Add client modal ────────────────────────────────────────────
+- tapOn: "+ Add client"
+- assertVisible: "Invite client"
+
+# ── Step 7: Fill in client email ─────────────────────────────────────────────
+- tapOn: "client@example.com"
+- inputText: ${CLIENT_EMAIL}
+- tapOn: "Invite client"
+
+# ── Step 8: Confirm client appears in list ───────────────────────────────────
+- assertVisible: ${CLIENT_EMAIL}
