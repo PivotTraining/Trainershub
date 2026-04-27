@@ -2,10 +2,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProvider } from '@/lib/auth';
+import { requestNotificationPermission } from '@/lib/notifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,6 +17,11 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  useEffect(() => {
+    requestNotificationPermission().catch(() => null);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

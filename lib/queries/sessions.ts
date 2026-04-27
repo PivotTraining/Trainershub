@@ -1,4 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  cancelSessionReminder,
+  scheduleSessionReminder,
+} from '../notifications';
 import { supabase } from '../supabase';
 import type { Session, SessionStatus } from '../types';
 import type { SessionCreateInput, SessionUpdateInput } from '../validators/session';
@@ -76,9 +80,24 @@ export function useCreateSession(trainerId: string) {
       if (error) throw new Error(error.message);
       return data as Session;
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ['sessions'] });
-      qc.invalidateQueries({ queryKey: ['session'] });
+      scheduleSessionReminder(created).catch(() => null);
+    },
+  });
+}
+
+export function useDeleteSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await supabase.from('sessions').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: (_v, id) => {
+      cancelSessionReminder(id).catch(() => null);
+      qc.removeQueries({ queryKey: ['session', id] });
+      qc.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 }
@@ -100,6 +119,7 @@ export function useUpdateSession() {
     onSuccess: (updated) => {
       qc.setQueryData(['session', updated.id], updated);
       qc.invalidateQueries({ queryKey: ['sessions'] });
+      scheduleSessionReminder(updated).catch(() => null);
     },
   });
 }
@@ -120,6 +140,9 @@ export function useUpdateSessionStatus() {
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['sessions'] });
       qc.invalidateQueries({ queryKey: ['session', data.id] });
+      if (data.status === 'canceled') {
+        cancelSessionReminder(data.id).catch(() => null);
+      }
     },
   });
 }

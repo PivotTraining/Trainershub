@@ -1,13 +1,69 @@
-import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-import { useProgram, useProgramClients, useUnassignProgram } from '@/lib/queries/programs';
+import {
+  useProgram,
+  useProgramClients,
+  useUnassignProgram,
+  useUpdateProgram,
+} from '@/lib/queries/programs';
+import { programUpdateSchema } from '@/lib/validators/program';
 
 export default function ProgramDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const programQuery = useProgram(id);
   const clientsQuery = useProgramClients(id);
+  const updateProgram = useUpdateProgram();
   const unassign = useUnassignProgram();
+
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [seeded, setSeeded] = useState(false);
+
+  useEffect(() => {
+    if (programQuery.data && !seeded) {
+      setTitle(programQuery.data.title);
+      setDescription(programQuery.data.description ?? '');
+      setSeeded(true);
+      navigation.setOptions({ title: programQuery.data.title });
+    }
+  }, [programQuery.data, seeded, navigation]);
+
+  const handleSave = async () => {
+    const parsed = programUpdateSchema.safeParse({
+      title: title.trim(),
+      description: description.trim() || null,
+    });
+    if (!parsed.success) {
+      Alert.alert('Check inputs', parsed.error.issues[0]?.message ?? 'Invalid input');
+      return;
+    }
+    try {
+      const updated = await updateProgram.mutateAsync({ id: id!, ...parsed.data });
+      navigation.setOptions({ title: updated.title });
+      setEditing(false);
+    } catch (err: unknown) {
+      Alert.alert('Save failed', err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const handleCancel = () => {
+    setTitle(programQuery.data?.title ?? '');
+    setDescription(programQuery.data?.description ?? '');
+    setEditing(false);
+  };
 
   const handleUnassign = (assignmentId: string, clientId: string) => {
     Alert.alert('Remove client?', 'This will unassign the client from this program.', [
@@ -33,17 +89,12 @@ export default function ProgramDetail() {
       </View>
     );
   }
-  if (programQuery.error) {
+  if (programQuery.error || !programQuery.data) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{(programQuery.error as Error).message}</Text>
-      </View>
-    );
-  }
-  if (!programQuery.data) {
-    return (
-      <View style={styles.center}>
-        <Text>Program not found.</Text>
+        <Text style={styles.error}>
+          {programQuery.error ? (programQuery.error as Error).message : 'Program not found.'}
+        </Text>
       </View>
     );
   }
@@ -52,13 +103,57 @@ export default function ProgramDetail() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
-      <Text style={styles.title}>{program.title}</Text>
-      {program.description ? (
-        <Text style={styles.description}>{program.description}</Text>
-      ) : null}
+      {/* ── Header row ───────────────────────────────────────────── */}
+      <View style={styles.headerRow}>
+        <Text style={styles.sectionTitle}>Details</Text>
+        {!editing ? (
+          <TouchableOpacity onPress={() => setEditing(true)}>
+            <Text style={styles.editLink}>Edit</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.editActions}>
+            <TouchableOpacity onPress={handleCancel} disabled={updateProgram.isPending}>
+              <Text style={styles.cancelLink}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleSave} disabled={updateProgram.isPending}>
+              {updateProgram.isPending ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <Text style={styles.saveLink}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* ── Title ────────────────────────────────────────────────── */}
+      <Text style={styles.label}>Title</Text>
+      {editing ? (
+        <TextInput style={styles.input} value={title} onChangeText={setTitle} />
+      ) : (
+        <Text style={styles.title}>{program.title}</Text>
+      )}
+
+      {/* ── Description ──────────────────────────────────────────── */}
+      <Text style={styles.label}>Description</Text>
+      {editing ? (
+        <TextInput
+          style={[styles.input, styles.multiline]}
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          placeholder="Optional description…"
+        />
+      ) : (
+        <Text style={[styles.value, !program.description && styles.muted]}>
+          {program.description || 'No description.'}
+        </Text>
+      )}
+
       <Text style={styles.label}>Created</Text>
       <Text style={styles.value}>{new Date(program.created_at).toLocaleDateString()}</Text>
 
+      {/* ── Assigned clients ─────────────────────────────────────── */}
       <Text style={[styles.sectionTitle, { marginTop: 32 }]}>
         Assigned clients ({clientsQuery.data?.length ?? '…'})
       </Text>
@@ -91,13 +186,31 @@ export default function ProgramDetail() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 22, fontWeight: '700' },
-  description: { fontSize: 15, color: '#555', marginTop: 6 },
-  label: { fontSize: 13, color: '#888', marginTop: 16, marginBottom: 4 },
-  value: { fontSize: 15 },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  editActions: { flexDirection: 'row', gap: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700' },
-  muted: { color: '#666', marginTop: 8 },
+  editLink: { color: '#0a7', fontWeight: '600' },
+  cancelLink: { color: '#888' },
+  saveLink: { color: '#0a7', fontWeight: '600' },
+  label: { fontSize: 13, color: '#888', marginTop: 16, marginBottom: 4 },
+  title: { fontSize: 20, fontWeight: '700' },
+  value: { fontSize: 15 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  multiline: { minHeight: 80, textAlignVertical: 'top' },
   error: { color: '#c00' },
+  muted: { color: '#666', marginTop: 4 },
   clientRow: {
     flexDirection: 'row',
     alignItems: 'center',

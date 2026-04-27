@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
-import { useSession, useUpdateSessionStatus } from '@/lib/queries/sessions';
+import { useDeleteSession, useSession, useUpdateSessionStatus } from '@/lib/queries/sessions';
 import type { SessionStatus } from '@/lib/types';
 
 const STATUS_OPTIONS: { value: SessionStatus; label: string; color: string }[] = [
@@ -25,6 +25,7 @@ export default function SessionDetail() {
   const { profile } = useAuth();
   const { data, isLoading, error } = useSession(id);
   const update = useUpdateSessionStatus();
+  const del = useDeleteSession();
   const isTrainer = profile?.role === 'trainer';
 
   if (isLoading) {
@@ -48,6 +49,24 @@ export default function SessionDetail() {
       </View>
     );
   }
+
+  const handleDelete = () => {
+    Alert.alert('Delete session?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await del.mutateAsync(data!.id);
+            router.back();
+          } catch (err: unknown) {
+            Alert.alert('Delete failed', err instanceof Error ? err.message : 'Unknown error');
+          }
+        },
+      },
+    ]);
+  };
 
   const setStatus = async (status: SessionStatus) => {
     try {
@@ -85,6 +104,20 @@ export default function SessionDetail() {
           <Text style={styles.value}>{data.notes}</Text>
         </>
       ) : null}
+
+      {isTrainer && (
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          disabled={del.isPending}
+        >
+          {del.isPending ? (
+            <ActivityIndicator color="#c33" />
+          ) : (
+            <Text style={styles.deleteText}>Delete session</Text>
+          )}
+        </TouchableOpacity>
+      )}
 
       {isTrainer && (
         <View style={styles.actions}>
@@ -145,4 +178,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   editButtonText: { color: '#333', fontWeight: '600' },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: '#c33',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  deleteText: { color: '#c33', fontWeight: '600' },
 });

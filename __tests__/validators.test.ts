@@ -1,44 +1,31 @@
 import { clientCreateSchema, clientUpdateSchema } from '@/lib/validators/client';
-import { programCreateSchema } from '@/lib/validators/program';
+import { programCreateSchema, programUpdateSchema } from '@/lib/validators/program';
 import { sessionCreateSchema, sessionUpdateSchema } from '@/lib/validators/session';
 
 // ── clientCreateSchema ────────────────────────────────────────────────────────
 
 describe('clientCreateSchema', () => {
   it('accepts a valid client', () => {
-    const result = clientCreateSchema.safeParse({
-      email: 'jane@example.com',
-      full_name: 'Jane Doe',
-      goals: 'Run a 5k',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts a client without optional fields', () => {
     expect(
-      clientCreateSchema.safeParse({ email: 'a@b.com', full_name: 'A' }).success,
+      clientCreateSchema.safeParse({ email: 'jane@example.com', full_name: 'Jane Doe', goals: 'Run a 5k' }).success,
     ).toBe(true);
   });
 
+  it('accepts a client without optional fields', () => {
+    expect(clientCreateSchema.safeParse({ email: 'a@b.com', full_name: 'A' }).success).toBe(true);
+  });
+
   it('rejects invalid email', () => {
-    expect(
-      clientCreateSchema.safeParse({ email: 'not-an-email', full_name: 'Jane' }).success,
-    ).toBe(false);
+    expect(clientCreateSchema.safeParse({ email: 'not-an-email', full_name: 'Jane' }).success).toBe(false);
   });
 
   it('rejects empty name', () => {
-    expect(
-      clientCreateSchema.safeParse({ email: 'jane@example.com', full_name: '' }).success,
-    ).toBe(false);
+    expect(clientCreateSchema.safeParse({ email: 'jane@example.com', full_name: '' }).success).toBe(false);
   });
 
   it('rejects goals exceeding 2000 chars', () => {
     expect(
-      clientCreateSchema.safeParse({
-        email: 'a@b.com',
-        full_name: 'A',
-        goals: 'x'.repeat(2001),
-      }).success,
+      clientCreateSchema.safeParse({ email: 'a@b.com', full_name: 'A', goals: 'x'.repeat(2001) }).success,
     ).toBe(false);
   });
 });
@@ -59,63 +46,42 @@ describe('clientUpdateSchema', () => {
   });
 
   it('rejects notes exceeding 2000 chars', () => {
-    expect(
-      clientUpdateSchema.safeParse({ notes: 'y'.repeat(2001) }).success,
-    ).toBe(false);
+    expect(clientUpdateSchema.safeParse({ notes: 'y'.repeat(2001) }).success).toBe(false);
   });
 });
 
 // ── sessionCreateSchema ───────────────────────────────────────────────────────
 
 describe('sessionCreateSchema', () => {
+  const validId = '00000000-0000-0000-0000-000000000001';
+
   it('accepts a valid session', () => {
     expect(
-      sessionCreateSchema.safeParse({
-        client_id: '00000000-0000-0000-0000-000000000001',
-        starts_at: new Date().toISOString(),
-        duration_min: 60,
-      }).success,
+      sessionCreateSchema.safeParse({ client_id: validId, starts_at: new Date().toISOString(), duration_min: 60 }).success,
     ).toBe(true);
   });
 
   it('accepts a session with notes', () => {
     expect(
-      sessionCreateSchema.safeParse({
-        client_id: '00000000-0000-0000-0000-000000000001',
-        starts_at: new Date().toISOString(),
-        duration_min: 45,
-        notes: 'Focus on form',
-      }).success,
+      sessionCreateSchema.safeParse({ client_id: validId, starts_at: new Date().toISOString(), duration_min: 45, notes: 'Focus on form' }).success,
     ).toBe(true);
   });
 
   it('rejects non-uuid client_id', () => {
     expect(
-      sessionCreateSchema.safeParse({
-        client_id: 'abc',
-        starts_at: new Date().toISOString(),
-        duration_min: 60,
-      }).success,
+      sessionCreateSchema.safeParse({ client_id: 'abc', starts_at: new Date().toISOString(), duration_min: 60 }).success,
     ).toBe(false);
   });
 
   it('rejects too-short duration', () => {
     expect(
-      sessionCreateSchema.safeParse({
-        client_id: '00000000-0000-0000-0000-000000000001',
-        starts_at: new Date().toISOString(),
-        duration_min: 1,
-      }).success,
+      sessionCreateSchema.safeParse({ client_id: validId, starts_at: new Date().toISOString(), duration_min: 1 }).success,
     ).toBe(false);
   });
 
   it('rejects too-long duration', () => {
     expect(
-      sessionCreateSchema.safeParse({
-        client_id: '00000000-0000-0000-0000-000000000001',
-        starts_at: new Date().toISOString(),
-        duration_min: 999,
-      }).success,
+      sessionCreateSchema.safeParse({ client_id: validId, starts_at: new Date().toISOString(), duration_min: 999 }).success,
     ).toBe(false);
   });
 });
@@ -144,9 +110,7 @@ describe('programCreateSchema', () => {
   });
 
   it('accepts a program with description', () => {
-    expect(
-      programCreateSchema.safeParse({ title: 'Mobility', description: 'Daily stretching' }).success,
-    ).toBe(true);
+    expect(programCreateSchema.safeParse({ title: 'Mobility', description: 'Daily stretching' }).success).toBe(true);
   });
 
   it('rejects empty title', () => {
@@ -158,8 +122,30 @@ describe('programCreateSchema', () => {
   });
 
   it('rejects description over 4000 chars', () => {
-    expect(
-      programCreateSchema.safeParse({ title: 'Valid', description: 'x'.repeat(4001) }).success,
-    ).toBe(false);
+    expect(programCreateSchema.safeParse({ title: 'Valid', description: 'x'.repeat(4001) }).success).toBe(false);
+  });
+});
+
+// ── programUpdateSchema ───────────────────────────────────────────────────────
+
+describe('programUpdateSchema', () => {
+  it('accepts a partial title-only update', () => {
+    expect(programUpdateSchema.safeParse({ title: 'New name' }).success).toBe(true);
+  });
+
+  it('accepts null description to clear it', () => {
+    expect(programUpdateSchema.safeParse({ description: null }).success).toBe(true);
+  });
+
+  it('accepts an empty object', () => {
+    expect(programUpdateSchema.safeParse({}).success).toBe(true);
+  });
+
+  it('rejects empty string title', () => {
+    expect(programUpdateSchema.safeParse({ title: '' }).success).toBe(false);
+  });
+
+  it('rejects description over 4000 chars', () => {
+    expect(programUpdateSchema.safeParse({ description: 'x'.repeat(4001) }).success).toBe(false);
   });
 });

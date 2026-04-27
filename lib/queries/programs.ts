@@ -1,7 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import type { Program, ProgramAssignment } from '../types';
-import type { ProgramAssignmentInput, ProgramCreateInput } from '../validators/program';
+import type {
+  ProgramAssignmentInput,
+  ProgramCreateInput,
+  ProgramUpdateInput,
+} from '../validators/program';
 
 export function useTrainerPrograms(trainerId: string | undefined) {
   return useQuery({
@@ -37,6 +41,27 @@ export function useCreateProgram(trainerId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['programs', trainerId] });
+    },
+  });
+}
+
+export function useUpdateProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string } & ProgramUpdateInput): Promise<Program> => {
+      const { id, ...patch } = args;
+      const { data, error } = await supabase
+        .from('programs')
+        .update(patch)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Program;
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData(['program', updated.id], updated);
+      qc.invalidateQueries({ queryKey: ['programs', updated.trainer_id] });
     },
   });
 }

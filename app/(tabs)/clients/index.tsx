@@ -5,6 +5,7 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -12,11 +13,13 @@ import {
 import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClients } from '@/lib/queries/clients';
+import { useFilteredClients } from '@/lib/useFilteredClients';
 
 export default function ClientsList() {
   const router = useRouter();
   const { session } = useAuth();
   const { data, isLoading, error, isFetching, refetch } = useClients(session?.user.id);
+  const { query, setQuery, results } = useFilteredClients(data ?? []);
 
   if (isLoading) {
     return (
@@ -33,23 +36,47 @@ export default function ClientsList() {
     );
   }
 
+  const isEmpty = (data ?? []).length === 0;
+
   return (
     <View style={styles.container}>
+      {!isEmpty && (
+        <View style={styles.searchWrap}>
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search clients…"
+            clearButtonMode="while-editing"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+      )}
+
       <FlatList
-        data={data ?? []}
+        data={results}
         keyExtractor={(c) => c.id}
-        contentContainerStyle={[{ padding: 16 }, (data ?? []).length === 0 && { flex: 1 }]}
+        contentContainerStyle={[{ padding: 16 }, results.length === 0 && { flex: 1 }]}
         refreshControl={
           <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} />
         }
         ListEmptyComponent={
-          <EmptyState
-            icon="people-outline"
-            title="No clients yet"
-            subtitle="Add your first client and start scheduling sessions."
-            actionLabel="Add client"
-            onAction={() => router.push('/(tabs)/clients/new')}
-          />
+          query ? (
+            <EmptyState
+              icon="search-outline"
+              title="No matches"
+              subtitle={`No clients match "${query}".`}
+            />
+          ) : (
+            <EmptyState
+              icon="people-outline"
+              title="No clients yet"
+              subtitle="Add your first client and start scheduling sessions."
+              actionLabel="Add client"
+              onAction={() => router.push('/(tabs)/clients/new')}
+            />
+          )
         }
         renderItem={({ item }) => (
           <Link
@@ -79,7 +106,8 @@ export default function ClientsList() {
           </Link>
         )}
       />
-      {(data ?? []).length > 0 && (
+
+      {!isEmpty && (
         <Link href="/(tabs)/clients/new" asChild>
           <TouchableOpacity style={styles.fab}>
             <Text style={styles.fabText}>+ Add client</Text>
@@ -94,6 +122,20 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   error: { color: '#c00' },
+  searchWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  searchInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

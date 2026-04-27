@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
 import type { Session } from '@/lib/types';
+import { useRealtimeSessions } from '@/lib/useRealtimeSessions';
 
 const STATUS_ICON: Record<Session['status'], React.ComponentProps<typeof Ionicons>['name']> = {
   scheduled: 'time-outline',
@@ -49,6 +50,9 @@ export default function Schedule() {
   const trainer = useTrainerSessions(isTrainer ? userId : undefined);
   const client = useClientSessions(!isTrainer ? userId : undefined);
   const query = isTrainer ? trainer : client;
+
+  // Live updates: trainer receives realtime patches without pulling
+  useRealtimeSessions(isTrainer ? userId : undefined);
   const sections = useMemo(() => groupByDay(query.data ?? []), [query.data]);
 
   if (query.isLoading) {
