@@ -1,0 +1,11 @@
+appId: com.trainerhub.app
+---
+- launchApp
+- assertVisible: "TrainerHub"
+- tapOn:
+    id: "email-input"
+    optional: true
+- inputText: "trainer@example.com"
+- tapOn: "Send code"
+- assertVisible: "Enter the 6-digit code"
+# In CI we'd seed the OTP via Supabase admin API; for now leave a manual hand-off.
