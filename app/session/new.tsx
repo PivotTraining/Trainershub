@@ -1,9 +1,11 @@
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +18,13 @@ import { useClients } from '@/lib/queries/clients';
 import { useCreateSession } from '@/lib/queries/sessions';
 import { sessionCreateSchema } from '@/lib/validators/session';
 
+function defaultStart(): Date {
+  const d = new Date();
+  d.setMinutes(0, 0, 0);
+  d.setHours(d.getHours() + 1);
+  return d;
+}
+
 export default function NewSession() {
   const router = useRouter();
   const { session } = useAuth();
@@ -24,19 +33,21 @@ export default function NewSession() {
   const create = useCreateSession(trainerId);
 
   const [clientId, setClientId] = useState<string | null>(null);
-  const [startsAt, setStartsAt] = useState(() => {
-    const d = new Date();
-    d.setMinutes(0, 0, 0);
-    d.setHours(d.getHours() + 1);
-    return d.toISOString();
-  });
+  const [startsAt, setStartsAt] = useState<Date>(defaultStart);
   const [duration, setDuration] = useState('60');
   const [notes, setNotes] = useState('');
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
+
+  const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS === 'android') setPickerMode(null);
+    if (event.type === 'dismissed' || !selected) return;
+    setStartsAt(selected);
+  };
 
   const handleSubmit = async () => {
     const parsed = sessionCreateSchema.safeParse({
       client_id: clientId,
-      starts_at: startsAt,
+      starts_at: startsAt.toISOString(),
       duration_min: Number(duration),
       notes: notes.trim() || undefined,
     });
@@ -59,6 +70,7 @@ export default function NewSession() {
         data={clients.data ?? []}
         keyExtractor={(c) => c.id}
         horizontal
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingVertical: 8 }}
         renderItem={({ item }) => {
           const selected = item.id === clientId;
@@ -76,8 +88,31 @@ export default function NewSession() {
         ListEmptyComponent={<Text style={styles.empty}>Add a client first.</Text>}
       />
 
-      <Text style={styles.label}>Starts at (ISO)</Text>
-      <TextInput style={styles.input} value={startsAt} onChangeText={setStartsAt} />
+      <Text style={styles.label}>Date & time</Text>
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={styles.pickerButton}
+          onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
+        >
+          <Text style={styles.pickerButtonText}>{startsAt.toLocaleDateString()}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.pickerButton}
+          onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
+        >
+          <Text style={styles.pickerButtonText}>
+            {startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {pickerMode && (
+        <DateTimePicker
+          value={startsAt}
+          mode={pickerMode}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handlePickerChange}
+        />
+      )}
 
       <Text style={styles.label}>Duration (minutes)</Text>
       <TextInput
@@ -113,6 +148,7 @@ export default function NewSession() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24, backgroundColor: '#fff' },
   label: { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 12 },
+  row: { flexDirection: 'row', gap: 8 },
   input: {
     borderWidth: 1,
     borderColor: '#d0d0d0',
@@ -134,6 +170,16 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: '#111', borderColor: '#111' },
   chipText: { color: '#333' },
   chipTextSelected: { color: '#fff' },
+  pickerButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  pickerButtonText: { fontSize: 16 },
   button: {
     backgroundColor: '#111',
     borderRadius: 8,

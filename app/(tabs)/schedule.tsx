@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -28,6 +28,7 @@ function groupByDay(sessions: Session[]): { title: string; data: Session[] }[] {
 }
 
 export default function Schedule() {
+  const router = useRouter();
   const { session, profile } = useAuth();
   const isTrainer = profile?.role === 'trainer';
   const userId = session?.user.id;
@@ -55,7 +56,10 @@ export default function Schedule() {
           <Text style={styles.section}>{section.title}</Text>
         )}
         renderItem={({ item }) => (
-          <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => router.push({ pathname: '/session/[id]', params: { id: item.id } })}
+          >
             <Text style={styles.rowTime}>
               {new Date(item.starts_at).toLocaleTimeString([], {
                 hour: 'numeric',
@@ -65,7 +69,7 @@ export default function Schedule() {
             <Text style={styles.rowMeta}>
               {item.duration_min} min · {item.status}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
       />
       {isTrainer && (

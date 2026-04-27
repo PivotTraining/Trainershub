@@ -3,6 +3,22 @@ import { supabase } from '../supabase';
 import type { Session, SessionStatus } from '../types';
 import type { SessionCreateInput } from '../validators/session';
 
+export function useSession(id: string | undefined) {
+  return useQuery({
+    enabled: !!id,
+    queryKey: ['session', id],
+    queryFn: async (): Promise<Session | null> => {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', id!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data as Session | null) ?? null;
+    },
+  });
+}
+
 export function useTrainerSessions(trainerId: string | undefined) {
   return useQuery({
     enabled: !!trainerId,
@@ -62,6 +78,7 @@ export function useCreateSession(trainerId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sessions'] });
+      qc.invalidateQueries({ queryKey: ['session'] });
     },
   });
 }
@@ -79,8 +96,9 @@ export function useUpdateSessionStatus() {
       if (error) throw new Error(error.message);
       return data as Session;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['sessions'] });
+      qc.invalidateQueries({ queryKey: ['session', data.id] });
     },
   });
 }

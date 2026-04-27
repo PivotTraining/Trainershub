@@ -53,9 +53,27 @@ export function useAssignProgram() {
       if (error) throw new Error(error.message);
       return data as ProgramAssignment;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['programs'] });
-      qc.invalidateQueries({ queryKey: ['program_assignments'] });
+      qc.invalidateQueries({ queryKey: ['program_assignments', 'client', data.client_id] });
+    },
+  });
+}
+
+export function useClientAssignedPrograms(clientId: string | undefined) {
+  return useQuery({
+    enabled: !!clientId,
+    queryKey: ['program_assignments', 'client', clientId],
+    queryFn: async (): Promise<Program[]> => {
+      const { data, error } = await supabase
+        .from('program_assignments')
+        .select('program:programs(*)')
+        .eq('client_id', clientId!);
+      if (error) throw new Error(error.message);
+      type Row = { program: Program | Program[] | null };
+      return ((data ?? []) as unknown as Row[])
+        .map((row) => (Array.isArray(row.program) ? row.program[0] : row.program))
+        .filter((p): p is Program => !!p);
     },
   });
 }
