@@ -19,6 +19,9 @@ import {
   useUpdateProfile,
   useUpsertTrainerProfile,
 } from '@/lib/queries/profile';
+import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
+import { useClientSessions } from '@/lib/queries/sessions';
+import { colors, spacing, typography } from '@/lib/theme';
 
 export default function Profile() {
   const { session, profile } = useAuth();
@@ -28,6 +31,12 @@ export default function Profile() {
   const updateProfile = useUpdateProfile();
   const trainerQuery = useTrainerProfile(isTrainer ? userId : undefined);
   const upsertTrainer = useUpsertTrainerProfile();
+
+  // ── client-only queries ───────────────────────────────────────────────────
+  const clientSessionsQuery = useClientSessions(!isTrainer ? userId : undefined);
+  const clientProgramsQuery = useClientAssignedProgramsByUserId(
+    !isTrainer ? userId : undefined,
+  );
 
   // ── base profile state ────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false);
@@ -220,6 +229,58 @@ export default function Profile() {
             </>
           )}
 
+          {/* ── Client: upcoming sessions + assigned programs ───────── */}
+          {!isTrainer && (
+            <>
+              <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>
+                Upcoming sessions
+              </Text>
+              {clientSessionsQuery.isLoading ? (
+                <ActivityIndicator style={{ marginTop: 8 }} />
+              ) : (() => {
+                const upcoming = (clientSessionsQuery.data ?? []).filter(
+                  (s) => s.status === 'scheduled' && new Date(s.starts_at) > new Date(),
+                );
+                if (upcoming.length === 0) {
+                  return <Text style={styles.muted}>No upcoming sessions.</Text>;
+                }
+                const next = upcoming[0];
+                return (
+                  <View style={styles.infoCard}>
+                    <Text style={styles.infoCardTitle}>
+                      {new Date(next.starts_at).toLocaleString([], {
+                        weekday: 'short', month: 'short', day: 'numeric',
+                        hour: 'numeric', minute: '2-digit',
+                      })}
+                    </Text>
+                    <Text style={styles.infoCardSub}>
+                      {next.duration_min} min
+                      {upcoming.length > 1 ? `  ·  +${upcoming.length - 1} more` : ''}
+                    </Text>
+                  </View>
+                );
+              })()}
+
+              <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>
+                My programs
+              </Text>
+              {clientProgramsQuery.isLoading ? (
+                <ActivityIndicator style={{ marginTop: 8 }} />
+              ) : (clientProgramsQuery.data ?? []).length === 0 ? (
+                <Text style={styles.muted}>No programs assigned yet.</Text>
+              ) : (
+                (clientProgramsQuery.data ?? []).map((p) => (
+                  <View key={p.id} style={styles.infoCard}>
+                    <Text style={styles.infoCardTitle}>{p.title}</Text>
+                    {p.description ? (
+                      <Text style={styles.infoCardSub}>{p.description}</Text>
+                    ) : null}
+                  </View>
+                ))
+              )}
+            </>
+          )}
+
           {/* ── Sign out ────────────────────────────────────────────── */}
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign out</Text>
@@ -267,13 +328,23 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   chipText: { fontSize: 13, color: '#333' },
+  infoCard: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceCard,
+  },
+  infoCardTitle: { fontSize: typography.md, fontWeight: '600' },
+  infoCardSub: { fontSize: typography.sm, color: colors.muted, marginTop: 2 },
   signOutButton: {
     marginTop: 40,
     borderWidth: 1,
-    borderColor: '#c33',
+    borderColor: colors.danger,
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  signOutText: { color: '#c33', fontWeight: '600' },
+  signOutText: { color: colors.danger, fontWeight: '600' },
 });

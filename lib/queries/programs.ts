@@ -119,6 +119,38 @@ export function useClientAssignedPrograms(clientId: string | undefined) {
   });
 }
 
+/**
+ * Like useClientAssignedPrograms but accepts a user_id (auth uid).
+ * Looks up the client row first, then fetches assigned programs.
+ * Used on the profile screen where only userId is available.
+ */
+export function useClientAssignedProgramsByUserId(userId: string | undefined) {
+  return useQuery({
+    enabled: !!userId,
+    queryKey: ['program_assignments', 'user', userId],
+    queryFn: async (): Promise<Program[]> => {
+      // Resolve user_id → client row id(s)
+      const { data: clientRows, error: cErr } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', userId!);
+      if (cErr) throw new Error(cErr.message);
+      const clientIds = (clientRows ?? []).map((r) => r.id as string);
+      if (clientIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('program_assignments')
+        .select('program:programs(*)')
+        .in('client_id', clientIds);
+      if (error) throw new Error(error.message);
+      type Row = { program: Program | Program[] | null };
+      return ((data ?? []) as unknown as Row[])
+        .map((row) => (Array.isArray(row.program) ? row.program[0] : row.program))
+        .filter((p): p is Program => !!p);
+    },
+  });
+}
+
 export function useProgram(id: string | undefined) {
   return useQuery({
     enabled: !!id,

@@ -2,26 +2,39 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
-import { requestNotificationPermission } from '@/lib/notifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1 },
+    queries: {
+      // Data stays fresh for 5 minutes — avoids redundant refetches on tab
+      // switches and short background/foreground cycles.
+      staleTime: 5 * 60 * 1000,
+      // Keep unused cache entries for 10 minutes so navigating back to a list
+      // shows stale data instantly rather than a blank loading state.
+      gcTime: 10 * 60 * 1000,
+      // Retry once with a 2-second backoff before surfacing an error.
+      retry: 1,
+      retryDelay: 2_000,
+      // Show stale data while a background refetch is running (no flash to empty).
+      placeholderData: (prev: unknown) => prev,
+    },
+    mutations: {
+      // Mutations should always attempt to run — even if the network looks
+      // flaky. TanStack Query will queue them internally.
+      networkMode: 'always',
+      retry: 1,
+      retryDelay: 2_000,
+    },
   },
 });
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-
-  useEffect(() => {
-    requestNotificationPermission().catch(() => null);
-  }, []);
 
   return (
     <ErrorBoundary label="App root">

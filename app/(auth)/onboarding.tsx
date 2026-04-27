@@ -19,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
+import { requestNotificationPermission } from '@/lib/notifications';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, typography } from '@/lib/theme';
@@ -52,6 +53,9 @@ export default function Onboarding() {
       }
 
       await updateProfile.mutateAsync({ id: session.user.id, full_name: name.trim() });
+      // Ask for notification permission right after onboarding — better context
+      // than a cold prompt at app launch.
+      await requestNotificationPermission().catch(() => null);
       router.replace('/(tabs)');
     } catch (err: unknown) {
       Alert.alert('Setup failed', err instanceof Error ? err.message : 'Unknown error');
