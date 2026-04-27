@@ -27,6 +27,10 @@ export default function RootLayout() {
               options={{ presentation: 'modal', title: 'New session' }}
             />
             <Stack.Screen name="session/[id]" options={{ title: 'Session' }} />
+            <Stack.Screen
+              name="session/edit/[id]"
+              options={{ presentation: 'modal', title: 'Edit session' }}
+            />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

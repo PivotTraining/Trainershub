@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -30,17 +30,23 @@ export default function ClientDetail() {
   const allPrograms = useTrainerPrograms(trainerId);
   const assignMut = useAssignProgram();
 
+  const navigation = useNavigation();
   const [editing, setEditing] = useState(false);
   const [goals, setGoals] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Seed form whenever the remote data arrives or changes
+  // Seed form + nav title whenever the remote data arrives or changes
   useEffect(() => {
     if (clientQuery.data) {
       setGoals(clientQuery.data.goals ?? '');
       setNotes(clientQuery.data.notes ?? '');
+      const name =
+        clientQuery.data.profile?.full_name ??
+        clientQuery.data.profile?.email ??
+        'Client';
+      navigation.setOptions({ title: name });
     }
-  }, [clientQuery.data]);
+  }, [clientQuery.data, navigation]);
 
   const assignedIds = useMemo(
     () => new Set((assigned.data ?? []).map((p) => p.id)),
@@ -100,10 +106,21 @@ export default function ClientDetail() {
     }
   };
 
+  const displayName =
+    clientQuery.data.profile?.full_name ??
+    clientQuery.data.profile?.email ??
+    'Client';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
+      {/* ── Name + email ─────────────────────────────────────────── */}
+      <Text style={styles.clientName}>{displayName}</Text>
+      {clientQuery.data.profile?.email ? (
+        <Text style={styles.clientEmail}>{clientQuery.data.profile.email}</Text>
+      ) : null}
+
       {/* ── Header row ───────────────────────────────────────────── */}
-      <View style={styles.headerRow}>
+      <View style={[styles.headerRow, { marginTop: 24 }]}>
         <Text style={styles.sectionTitle}>Client info</Text>
         {!editing ? (
           <TouchableOpacity onPress={() => setEditing(true)}>
@@ -219,6 +236,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
+  clientName: { fontSize: 22, fontWeight: '700' },
+  clientEmail: { fontSize: 14, color: '#888', marginTop: 2 },
   error: { color: '#c00' },
   muted: { color: '#666', marginTop: 4 },
   programRow: {

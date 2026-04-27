@@ -6,6 +6,7 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientPrograms, useCreateProgram, useTrainerPrograms } from '@/lib/queries/programs';
 import { programCreateSchema } from '@/lib/validators/program';
@@ -63,8 +65,24 @@ export default function Programs() {
       <FlatList
         data={list.data ?? []}
         keyExtractor={(p) => p.id}
-        contentContainerStyle={{ padding: 16 }}
-        ListEmptyComponent={<Text style={styles.empty}>No programs yet.</Text>}
+        contentContainerStyle={[{ padding: 16 }, (list.data ?? []).length === 0 && { flex: 1 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={list.isFetching && !list.isLoading}
+            onRefresh={list.refetch}
+          />
+        }
+        ListEmptyComponent={
+          <EmptyState
+            icon="barbell-outline"
+            title="No programs yet"
+            subtitle={
+              isTrainer
+                ? 'Create a program below and assign it to clients.'
+                : 'Your trainer will assign programs here.'
+            }
+          />
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.row}
@@ -113,7 +131,6 @@ export default function Programs() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { color: '#666', textAlign: 'center', marginTop: 32 },
   row: {
     backgroundColor: '#fff',
     padding: 14,

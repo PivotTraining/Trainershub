@@ -1,20 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
-import type { Client } from '../types';
+import type { Client, ClientWithProfile } from '../types';
 import type { ClientCreateInput, ClientUpdateInput } from '../validators/client';
+
+const CLIENT_WITH_PROFILE_SELECT = '*, profile:profiles!user_id(full_name, email)' as const;
+
+function rowToClientWithProfile(row: unknown): ClientWithProfile {
+  const r = row as Client & {
+    profile: { full_name: string | null; email: string } | null;
+  };
+  return {
+    id: r.id,
+    user_id: r.user_id,
+    trainer_id: r.trainer_id,
+    goals: r.goals,
+    notes: r.notes,
+    created_at: r.created_at,
+    profile: r.profile ?? null,
+  };
+}
 
 export function useClients(trainerId: string | undefined) {
   return useQuery({
     enabled: !!trainerId,
     queryKey: ['clients', trainerId],
-    queryFn: async (): Promise<Client[]> => {
+    queryFn: async (): Promise<ClientWithProfile[]> => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(CLIENT_WITH_PROFILE_SELECT)
         .eq('trainer_id', trainerId!)
         .order('created_at', { ascending: false });
       if (error) throw new Error(error.message);
-      return (data ?? []) as Client[];
+      return (data ?? []).map(rowToClientWithProfile);
     },
   });
 }
@@ -23,14 +40,14 @@ export function useClient(id: string | undefined) {
   return useQuery({
     enabled: !!id,
     queryKey: ['client', id],
-    queryFn: async (): Promise<Client | null> => {
+    queryFn: async (): Promise<ClientWithProfile | null> => {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(CLIENT_WITH_PROFILE_SELECT)
         .eq('id', id!)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return (data as Client | null) ?? null;
+      return data ? rowToClientWithProfile(data) : null;
     },
   });
 }
@@ -39,8 +56,6 @@ export function useCreateClient(trainerId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: ClientCreateInput): Promise<Client> => {
-      // Step 1: invite the client user via auth (admin call requires server). For MVP we
-      // assume the user record exists or is created out-of-band; we link by email lookup.
       const { data: profile, error: lookupError } = await supabase
         .from('profiles')
         .select('id')
@@ -74,16 +89,16 @@ export function useCreateClient(trainerId: string) {
 export function useUpdateClient(trainerId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { id: string } & ClientUpdateInput): Promise<Client> => {
+    mutationFn: async (args: { id: string } & ClientUpdateInput): Promise<ClientWithProfile> => {
       const { id, ...patch } = args;
       const { data, error } = await supabase
         .from('clients')
         .update(patch)
         .eq('id', id)
-        .select('*')
+        .select(CLIENT_WITH_PROFILE_SELECT)
         .single();
       if (error) throw new Error(error.message);
-      return data as Client;
+      return rowToClientWithProfile(data);
     },
     onSuccess: (updated) => {
       qc.setQueryData(['client', updated.id], updated);

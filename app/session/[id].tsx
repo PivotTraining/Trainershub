@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   ActivityIndicator,
   Alert,
@@ -21,6 +21,7 @@ const STATUS_OPTIONS: { value: SessionStatus; label: string; color: string }[] =
 
 export default function SessionDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { profile } = useAuth();
   const { data, isLoading, error } = useSession(id);
   const update = useUpdateSessionStatus();
@@ -58,6 +59,17 @@ export default function SessionDetail() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
+      {isTrainer && data.status === 'scheduled' && (
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() =>
+            router.push({ pathname: '/session/edit/[id]', params: { id: data.id } })
+          }
+        >
+          <Text style={styles.editButtonText}>Edit time & duration</Text>
+        </TouchableOpacity>
+      )}
+
       <Text style={styles.label}>When</Text>
       <Text style={styles.value}>{new Date(data.starts_at).toLocaleString()}</Text>
 
@@ -124,4 +136,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   statusButtonText: { fontWeight: '600' },
+  editButton: {
+    borderWidth: 1,
+    borderColor: '#d0d0d0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  editButtonText: { color: '#333', fontWeight: '600' },
 });

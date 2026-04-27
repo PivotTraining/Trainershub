@@ -18,6 +18,11 @@ export interface Client {
   created_at: string;
 }
 
+/** Client row with the joined profile fields */
+export interface ClientWithProfile extends Client {
+  profile: Pick<Profile, 'full_name' | 'email'> | null;
+}
+
 export interface Session {
   id: string;
   trainer_id: string;

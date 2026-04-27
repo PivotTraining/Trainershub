@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import type { Session, SessionStatus } from '../types';
-import type { SessionCreateInput } from '../validators/session';
+import type { SessionCreateInput, SessionUpdateInput } from '../validators/session';
 
 export function useSession(id: string | undefined) {
   return useQuery({
@@ -79,6 +79,27 @@ export function useCreateSession(trainerId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sessions'] });
       qc.invalidateQueries({ queryKey: ['session'] });
+    },
+  });
+}
+
+export function useUpdateSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { id: string } & SessionUpdateInput): Promise<Session> => {
+      const { id, ...patch } = args;
+      const { data, error } = await supabase
+        .from('sessions')
+        .update(patch)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw new Error(error.message);
+      return data as Session;
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData(['session', updated.id], updated);
+      qc.invalidateQueries({ queryKey: ['sessions'] });
     },
   });
 }
