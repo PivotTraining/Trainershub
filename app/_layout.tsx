@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
+import { PreferencesProvider } from '@/lib/preferences';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary label="App root">
     <QueryClientProvider client={queryClient}>
+      <PreferencesProvider>
       <AuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
@@ -57,6 +59,7 @@ export default function RootLayout() {
           <StatusBar style="auto" />
         </ThemeProvider>
       </AuthProvider>
+      </PreferencesProvider>
     </QueryClientProvider>
     </ErrorBoundary>
   );

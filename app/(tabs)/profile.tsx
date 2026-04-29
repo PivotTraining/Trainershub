@@ -13,7 +13,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Switch } from 'react-native';
+
 import { signOut, useAuth } from '@/lib/auth';
+import {
+  ACCENT_COLORS,
+  usePreferences,
+  type AccentKey,
+  type DarkModePreference,
+} from '@/lib/preferences';
 import {
   useTrainerProfile,
   useUpdateProfile,
@@ -21,12 +29,15 @@ import {
 } from '@/lib/queries/profile';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions } from '@/lib/queries/sessions';
-import { colors, spacing, typography } from '@/lib/theme';
+import { colors, radius, spacing, typography } from '@/lib/theme';
+import { useTheme } from '@/lib/useTheme';
 
 export default function Profile() {
   const { session, profile } = useAuth();
   const isTrainer = profile?.role === 'trainer';
   const userId = session?.user.id ?? '';
+  const { colors: themeColors, accent, isDark } = useTheme();
+  const { darkMode, showEmoji, accentColor, setDarkMode, setShowEmoji, setAccentColor } = usePreferences();
 
   const updateProfile = useUpdateProfile();
   const trainerQuery = useTrainerProfile(isTrainer ? userId : undefined);
@@ -281,6 +292,76 @@ export default function Profile() {
             </>
           )}
 
+          {/* ── Preferences ─────────────────────────────────────────── */}
+          <Text style={[styles.sectionTitle, { marginTop: spacing.xl, color: themeColors.ink }]}>
+            Preferences
+          </Text>
+
+          {/* Emoji toggle */}
+          <View style={[styles.prefRow, { borderColor: themeColors.border }]}>
+            <View style={styles.prefLabel}>
+              <Text style={[styles.prefTitle, { color: themeColors.ink }]}>Show emoji</Text>
+              <Text style={[styles.prefSub, { color: themeColors.muted }]}>
+                Decorative emoji in greetings and labels
+              </Text>
+            </View>
+            <Switch
+              value={showEmoji}
+              onValueChange={setShowEmoji}
+              trackColor={{ true: accent }}
+              thumbColor="#fff"
+            />
+          </View>
+
+          {/* Dark mode */}
+          <View style={[styles.prefRow, { borderColor: themeColors.border }]}>
+            <Text style={[styles.prefTitle, { color: themeColors.ink }]}>Appearance</Text>
+            <View style={styles.segmentRow}>
+              {(['light', 'system', 'dark'] as DarkModePreference[]).map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[
+                    styles.segment,
+                    { borderColor: themeColors.borderInput },
+                    darkMode === opt && { backgroundColor: accent, borderColor: accent },
+                  ]}
+                  onPress={() => setDarkMode(opt)}
+                >
+                  <Text style={[
+                    styles.segmentText,
+                    { color: themeColors.muted },
+                    darkMode === opt && { color: '#fff' },
+                  ]}>
+                    {opt === 'system' ? '⚙ Auto' : opt === 'light' ? '☀ Light' : '🌙 Dark'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Accent colour */}
+          <View style={[styles.prefRow, { borderColor: themeColors.border, flexDirection: 'column', alignItems: 'flex-start', gap: 12 }]}>
+            <Text style={[styles.prefTitle, { color: themeColors.ink }]}>Accent colour</Text>
+            <View style={styles.swatchRow}>
+              {(Object.entries(ACCENT_COLORS) as [AccentKey, { label: string; value: string }][]).map(([key, { label, value }]) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.swatch,
+                    { backgroundColor: value },
+                    accentColor === key && styles.swatchSelected,
+                  ]}
+                  onPress={() => setAccentColor(key)}
+                  accessibilityLabel={label}
+                >
+                  {accentColor === key && (
+                    <Text style={styles.swatchCheck}>✓</Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* ── Sign out ────────────────────────────────────────────── */}
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutText}>Sign out</Text>
@@ -338,6 +419,40 @@ const styles = StyleSheet.create({
   },
   infoCardTitle: { fontSize: typography.md, fontWeight: '600' },
   infoCardSub: { fontSize: typography.sm, color: colors.muted, marginTop: 2 },
+  // preferences
+  prefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    gap: 12,
+  },
+  prefLabel: { flex: 1 },
+  prefTitle: { fontSize: typography.md, fontWeight: '600' },
+  prefSub:   { fontSize: typography.xs, marginTop: 2 },
+  segmentRow: { flexDirection: 'row', gap: 6 },
+  segment: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  segmentText: { fontSize: typography.xs, fontWeight: '600' },
+  swatchRow:  { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  swatch: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  swatchSelected: {
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3, shadowRadius: 4, elevation: 3,
+    transform: [{ scale: 1.15 }],
+  },
+  swatchCheck: { color: '#fff', fontWeight: '800', fontSize: 16 },
+
   signOutButton: {
     marginTop: 40,
     borderWidth: 1,

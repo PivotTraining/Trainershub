@@ -6,12 +6,17 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
-  throw new Error(
-    'Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Copy .env.example to .env and fill in.',
+  console.warn(
+    '[TrainerHub] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. ' +
+    'Copy .env.example to .env and fill in your project values.',
   );
 }
 
-export const supabase = createClient(url, anonKey, {
+// Fall back to placeholder values so the app renders (auth calls will fail gracefully).
+const resolvedUrl = url ?? 'https://placeholder.supabase.co';
+const resolvedKey = anonKey ?? 'placeholder-anon-key';
+
+export const supabase = createClient(resolvedUrl, resolvedKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,

@@ -21,9 +21,15 @@
     },
     {
       "name": "Expo Web",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "web"],
-      "port": 19006
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web", "--port", "8082"],
+      "port": 8082
+    },
+    {
+      "name": "Screen Preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-l", "8083", "."],
+      "port": 8083
     }
   ]
 }
