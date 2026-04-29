@@ -14,8 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import * as WebBrowser from 'expo-web-browser';
+
 import { PerformanceDashboard } from '@/components/PerformanceDashboard';
 import { signOut, useAuth } from '@/lib/auth';
+import { useStartStripeOnboarding } from '@/lib/queries/stripe';
 import {
   ACCENT_COLORS,
   usePreferences,
@@ -52,6 +55,7 @@ export default function Profile() {
   const updateProfile = useUpdateProfile();
   const trainerQuery = useTrainerProfile(isTrainer ? userId : undefined);
   const upsertTrainer = useUpsertTrainerProfile();
+  const startStripeOnboarding = useStartStripeOnboarding();
 
   // ── client-only queries ───────────────────────────────────────────────────
   const clientSessionsQuery = useClientSessions(!isTrainer ? userId : undefined);
@@ -189,6 +193,15 @@ export default function Profile() {
         },
       ],
     );
+  };
+
+  const handleStripeOnboarding = async () => {
+    try {
+      const { url } = await startStripeOnboarding.mutateAsync();
+      await WebBrowser.openBrowserAsync(url);
+    } catch (err: unknown) {
+      Alert.alert('Stripe setup failed', err instanceof Error ? err.message : 'Unknown error');
+    }
   };
 
   const toggleSessionType = (type: string) => {
@@ -517,6 +530,40 @@ export default function Profile() {
             </>
           )}
 
+          {/* ── Stripe Connect (trainer only) ───────────────────────── */}
+          {isTrainer && (
+            <View style={[styles.stripeCard, { borderColor: themeColors.border, backgroundColor: themeColors.surfaceCard }]}>
+              <View style={styles.stripeCardHeader}>
+                <Text style={[styles.stripeTitle, { color: themeColors.ink }]}>
+                  💳 Payments
+                </Text>
+                {trainerQuery.data?.stripe_onboarded && (
+                  <View style={[styles.stripeBadge, { backgroundColor: themeColors.successBg }]}>
+                    <Text style={[styles.stripeBadgeText, { color: themeColors.success }]}>Connected</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.stripeSub, { color: themeColors.muted }]}>
+                {trainerQuery.data?.stripe_onboarded
+                  ? 'Your Stripe account is connected. Clients can pay you directly through the app.'
+                  : 'Connect Stripe to accept payments from clients. TrainerHub takes a 4% platform fee.'}
+              </Text>
+              <TouchableOpacity
+                style={[styles.stripeButton, { backgroundColor: trainerQuery.data?.stripe_onboarded ? themeColors.surfaceRaised : '#635BFF' }]}
+                onPress={handleStripeOnboarding}
+                disabled={startStripeOnboarding.isPending}
+              >
+                {startStripeOnboarding.isPending ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={[styles.stripeButtonText, { color: trainerQuery.data?.stripe_onboarded ? themeColors.ink : '#fff' }]}>
+                    {trainerQuery.data?.stripe_onboarded ? 'Manage Stripe Account' : 'Set Up Payments'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* ── Performance dashboard (trainer only) ────────────────── */}
           {isTrainer && (
             <PerformanceDashboard
@@ -716,4 +763,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   deleteAccountText: { color: colors.danger, fontWeight: '600' },
+
+  stripeCard: {
+    marginTop: spacing.xl,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  stripeCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  stripeTitle: { fontSize: typography.md, fontWeight: '700' },
+  stripeBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  stripeBadgeText: { fontSize: typography.xs, fontWeight: '600' },
+  stripeSub: { fontSize: typography.sm, lineHeight: 20, marginBottom: spacing.md },
+  stripeButton: {
+    borderRadius: radius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  stripeButtonText: { fontWeight: '600', fontSize: typography.sm },
 });

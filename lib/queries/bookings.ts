@@ -48,7 +48,7 @@ export function useMyBookingsAsTrainer(trainerId: string | undefined) {
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<Booking, 'id' | 'status' | 'created_at'>): Promise<Booking> => {
+    mutationFn: async (input: Omit<Booking, 'id' | 'status' | 'created_at' | 'payment_intent_id' | 'payment_status'>): Promise<Booking> => {
       const { data, error } = await supabase
         .from('bookings')
         .insert({ ...input, status: 'pending' })

@@ -77,6 +77,8 @@ export interface TrainerProfileFull {
   avg_rating: number;
   review_count: number;
   is_verified: boolean;
+  stripe_account_id: string | null;
+  stripe_onboarded: boolean;
 }
 
 export interface TrainerListing extends TrainerProfileFull {
@@ -138,6 +140,8 @@ export interface Booking {
   package_purchase_id: string | null;
   notes: string | null;
   created_at: string;
+  payment_intent_id: string | null;
+  payment_status: 'unpaid' | 'paid' | 'failed' | 'refunded';
 }
 
 export interface Favorite {

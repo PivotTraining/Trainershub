@@ -4,10 +4,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
+import { StripeProvider } from '@stripe/stripe-react-native';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
 import { PreferencesProvider } from '@/lib/preferences';
+
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +42,7 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary label="App root">
+    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
     <QueryClientProvider client={queryClient}>
       <PreferencesProvider>
       <AuthProvider>
@@ -61,6 +65,7 @@ export default function RootLayout() {
       </AuthProvider>
       </PreferencesProvider>
     </QueryClientProvider>
+    </StripeProvider>
     </ErrorBoundary>
   );
 }

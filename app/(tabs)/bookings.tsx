@@ -13,10 +13,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useStripe } from '@stripe/stripe-react-native';
 
 import { useAuth } from '@/lib/auth';
 import { useMyBookingsAsClient, useUpdateBookingStatus } from '@/lib/queries/bookings';
 import { useCreateReview } from '@/lib/queries/reviews';
+import { useCreatePaymentIntent } from '@/lib/queries/stripe';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { BookingWithNames, BookingStatus } from '@/lib/types';
@@ -114,9 +116,11 @@ interface BookingCardProps {
   booking: BookingWithNames;
   onCancel: (id: string) => void;
   onReview: (booking: BookingWithNames) => void;
+  onPay: (booking: BookingWithNames) => void;
+  isPayingThisCard?: boolean;
 }
 
-function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
+function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: BookingCardProps) {
   const { colors } = useTheme();
   const now = new Date();
   const bookingDate = new Date(booking.starts_at);
@@ -124,6 +128,11 @@ function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
   const statusStyle = STATUS_COLORS[booking.status];
   const canCancel = booking.status === 'pending' && !isPast;
   const canReview = booking.status === 'confirmed' && isPast;
+  const canPay =
+    booking.status === 'confirmed' &&
+    !isPast &&
+    booking.payment_status === 'unpaid' &&
+    !booking.package_purchase_id;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
@@ -158,8 +167,21 @@ function BookingCard({ booking, onCancel, onReview }: BookingCardProps) {
           </View>
         </View>
       </View>
-      {(canCancel || canReview) && (
+      {(canCancel || canReview || canPay) && (
         <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+          {canPay && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.payBtn]}
+              onPress={() => onPay(booking)}
+              disabled={isPayingThisCard}
+            >
+              {isPayingThisCard ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay Now</Text>
+              )}
+            </TouchableOpacity>
+          )}
           {canCancel && (
             <TouchableOpacity
               style={[styles.actionBtn, { borderColor: colors.danger }]}
@@ -186,11 +208,43 @@ export default function Bookings() {
   const { session } = useAuth();
   const userId = session?.user.id ?? '';
   const { colors } = useTheme();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const bookingsQuery = useMyBookingsAsClient(userId);
   const updateStatus = useUpdateBookingStatus(userId);
+  const createPaymentIntent = useCreatePaymentIntent();
 
   const [reviewBooking, setReviewBooking] = useState<BookingWithNames | null>(null);
+  const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
+
+  const handlePay = async (booking: BookingWithNames) => {
+    setPayingBookingId(booking.id);
+    try {
+      const clientSecret = await createPaymentIntent.mutateAsync(booking.id);
+
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'TrainerHub',
+        allowsDelayedPaymentMethods: false,
+      });
+      if (initError) throw new Error(initError.message);
+
+      const { error: presentError } = await presentPaymentSheet();
+      if (presentError) {
+        if (presentError.code !== 'Canceled') {
+          throw new Error(presentError.message);
+        }
+        return; // User dismissed — no alert needed
+      }
+
+      Alert.alert('Payment successful!', 'Your session is confirmed and paid.');
+      bookingsQuery.refetch();
+    } catch (err: unknown) {
+      Alert.alert('Payment failed', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setPayingBookingId(null);
+    }
+  };
 
   const allBookings = bookingsQuery.data ?? [];
   const now = new Date();
@@ -257,6 +311,8 @@ export default function Bookings() {
                   booking={b}
                   onCancel={handleCancel}
                   onReview={setReviewBooking}
+                  onPay={handlePay}
+                  isPayingThisCard={payingBookingId === b.id}
                 />
               ))
             )}
@@ -270,6 +326,7 @@ export default function Bookings() {
                   booking={b}
                   onCancel={handleCancel}
                   onReview={setReviewBooking}
+                  onPay={handlePay}
                 />
               ))
             )}
@@ -334,6 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionBtnText: { fontSize: typography.sm, fontWeight: '600' },
+  payBtn: { backgroundColor: '#635BFF', borderColor: '#635BFF' },
   // Modal
   modalSafe: { flex: 1 },
   modalHeader: {
