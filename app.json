@@ -10,13 +10,19 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.trainerhub.app",
+      "buildNumber": "1",
       "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your sessions."
+        "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your sessions.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.trainerhub.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#111111",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

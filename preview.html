@@ -1,672 +1,311 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TrainerHub — Screen Preview</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TrainerHub — Iteration 9 Preview</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #f0f0f0;
-    min-height: 100vh;
-    padding: 40px 24px 60px;
+  :root {
+    --bg: #f3f4f6;
+    --ink: #111;
+    --muted: #888;
+    --border: #eee;
   }
-
-  h1 {
-    text-align: center;
-    font-size: 22px;
-    font-weight: 700;
-    color: #111;
-    margin-bottom: 8px;
-  }
-  .subtitle {
-    text-align: center;
-    font-size: 14px;
-    color: #888;
-    margin-bottom: 48px;
-  }
-
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--ink); }
+  h1.page-title { text-align: center; font-size: 28px; margin: 32px 0 4px; }
+  p.page-sub { text-align: center; color: var(--muted); margin: 0 0 24px; font-size: 15px; }
   .grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 40px;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 32px;
+    padding: 24px 32px 64px;
+    max-width: 1500px;
+    margin: 0 auto;
   }
-
-  .screen-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-  }
-  .screen-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-
-  /* Phone shell */
-  .phone {
-    width: 320px;
-    height: 620px;
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .label { font-size: 11px; letter-spacing: 1.4px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .frame {
+    width: 360px; height: 740px;
     background: #fff;
-    border-radius: 40px;
-    box-shadow: 0 0 0 10px #222, 0 24px 60px rgba(0,0,0,0.25);
+    border: 10px solid #1a1a1a;
+    border-radius: 44px;
     overflow: hidden;
     position: relative;
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
   }
-  .phone::before {
-    content: '';
-    display: block;
-    width: 90px;
-    height: 22px;
-    background: #222;
-    border-radius: 0 0 14px 14px;
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
+  .frame.dark { background: #111; color: #f2f2f7; }
+  .frame .notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 130px; height: 26px; background: #1a1a1a;
+    border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;
+    z-index: 5;
   }
-  .screen {
-    flex: 1;
-    overflow: hidden;
-    padding-top: 28px;
-    display: flex;
-    flex-direction: column;
+  .status { display: flex; justify-content: space-between; align-items: center; padding: 12px 22px 0; font-size: 13px; font-weight: 600; }
+  .scroll { padding: 8px 22px 22px; height: calc(100% - 30px); overflow: hidden; }
+
+  h2.greet { font-size: 26px; font-weight: 800; margin: 14px 0 2px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .frame.dark .subtitle { color: #8e8e93; }
+  .section-title { font-size: 14px; font-weight: 700; margin: 18px 0 10px; }
+
+  .stats { display: flex; gap: 8px; margin-bottom: 16px; }
+  .stat-card { flex: 1; border: 1px solid var(--border); border-radius: 12px; padding: 12px 6px; text-align: center; background: #fff; }
+  .frame.dark .stat-card { background: #2c2c2e; border-color: #3a3a3c; }
+  .stat-val { font-size: 22px; font-weight: 800; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .frame.dark .stat-label { color: #8e8e93; }
+
+  .next-card {
+    background: var(--accent); color: #fff;
+    border-radius: 16px; padding: 16px; margin-bottom: 18px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    display: flex; gap: 12px; align-items: center;
   }
 
-  /* ── status bar ── */
-  .status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 20px;
-    height: 28px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #111;
-    flex-shrink: 0;
-  }
-
-  /* ── nav header ── */
-  .nav-header {
-    padding: 10px 20px 12px;
-    font-size: 17px;
-    font-weight: 700;
-    color: #111;
-    border-bottom: 1px solid #eee;
-    flex-shrink: 0;
-  }
-
-  /* ── scroll area ── */
-  .scroll-area {
-    flex: 1;
-    overflow: hidden;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  /* ── bottom tab bar ── */
-  .tab-bar {
-    height: 60px;
-    border-top: 1px solid #eee;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    background: #fff;
-    flex-shrink: 0;
-  }
-  .tab-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    flex: 1;
-  }
-  .tab-icon { font-size: 20px; }
-  .tab-label { font-size: 9px; color: #888; font-weight: 500; }
-  .tab-item.active .tab-label { color: #111; font-weight: 700; }
-  .tab-item.active .tab-icon { filter: none; }
-
-  /* ── reusable elements ── */
-  .label { font-size: 11px; color: #888; margin-top: 8px; margin-bottom: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
-  .value { font-size: 15px; color: #111; }
-  .muted { color: #aaa; font-size: 13px; }
-  .section-title { font-size: 15px; font-weight: 700; color: #111; margin-top: 8px; }
-
-  .btn {
-    background: #111;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 13px 0;
-    font-size: 15px;
-    font-weight: 600;
-    text-align: center;
-    width: 100%;
-    margin-top: 8px;
-    cursor: default;
-  }
-  .btn-outline {
-    background: transparent;
-    color: #111;
-    border: 1px solid #d0d0d0;
-    border-radius: 8px;
-    padding: 10px 0;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    width: 100%;
-    cursor: default;
-  }
-  .btn-danger {
-    background: transparent;
-    color: #c33;
-    border: 1px solid #c33;
-    border-radius: 8px;
-    padding: 12px 0;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    width: 100%;
-    margin-top: 16px;
-    cursor: default;
-  }
-  .input-field {
-    border: 1px solid #d0d0d0;
-    border-radius: 8px;
-    padding: 11px 12px;
-    font-size: 14px;
-    color: #111;
-    width: 100%;
-    background: #fff;
-  }
-  .input-placeholder { color: #aaa; }
-
-  /* cards */
-  .session-card {
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .session-card-left { flex: 1; }
-  .session-card-time { font-size: 15px; font-weight: 600; color: #111; }
-  .session-card-meta { font-size: 11px; color: #666; margin-top: 2px; }
-  .session-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-  .badge { font-size: 11px; font-weight: 600; }
-  .badge-scheduled { color: #00875A; }
-  .badge-completed { color: #0052CC; }
-  .badge-canceled  { color: #c33; }
-  .chevron { color: #bbb; font-size: 18px; margin-left: 4px; }
-
-  .section-header { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; margin-bottom: 4px; }
-
-  .client-card {
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 12px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
   .avatar {
-    width: 38px; height: 38px; border-radius: 19px;
-    background: #111;
-    color: #fff;
+    width: 44px; height: 44px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 700;
-    flex-shrink: 0;
+    font-weight: 700; font-size: 18px; flex-shrink: 0;
   }
-  .client-card-info { flex: 1; }
-  .client-name { font-size: 14px; font-weight: 600; color: #111; }
-  .client-sub  { font-size: 11px; color: #888; margin-top: 1px; }
+  .av-blue   { background: #DBEAFE; color: #1D4ED8; }
+  .av-green  { background: #D1FAE5; color: #065F46; }
+  .av-orange { background: #FFEDD5; color: #9A3412; }
+  .av-purple { background: #EDE9FE; color: #5B21B6; }
+  .av-pink   { background: #FCE7F3; color: #9D174D; }
+  .av-yellow { background: #FEF3C7; color: #92400E; }
 
-  .program-card {
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
-  .program-title { font-size: 14px; font-weight: 600; color: #111; }
-  .program-sub   { font-size: 11px; color: #888; margin-top: 2px; }
-  .program-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: #aaa; }
+  .next-time { font-weight: 700; font-size: 14px; }
+  .next-name { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  .next-dur  { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+  .countdown { background: rgba(255,255,255,0.22); padding: 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; }
 
-  /* onboarding */
-  .role-row { display: flex; gap: 12px; margin-top: 8px; }
-  .role-card {
-    flex: 1;
-    border: 2px solid #eee;
-    border-radius: 12px;
-    padding: 14px 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: default;
-  }
-  .role-card.selected { border-color: #111; background: #f5f5f5; }
-  .role-emoji { font-size: 26px; }
-  .role-name { font-size: 14px; font-weight: 700; color: #111; }
-  .role-desc { font-size: 11px; color: #aaa; text-align: center; margin-top: 2px; }
+  .row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 6px; background: #fff; }
+  .frame.dark .row { background: #2c2c2e; border-color: #3a3a3c; }
+  .row .av { width: 34px; height: 34px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 14px; flex-shrink:0; }
+  .row .name { font-size: 13px; font-weight: 600; }
+  .row .when { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .frame.dark .row .when { color: #8e8e93; }
+  .chev { color: #ccc; font-size: 18px; }
 
-  /* sign-in */
-  .sign-in-logo { font-size: 26px; font-weight: 800; color: #111; margin-bottom: 4px; }
-  .sign-in-tagline { font-size: 13px; color: #888; margin-bottom: 32px; }
+  .pref-row { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; background: #fff; }
+  .frame.dark .pref-row { background: #2c2c2e; border-color: #3a3a3c; }
+  .pref-title { font-size: 14px; font-weight: 600; }
+  .pref-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .frame.dark .pref-sub { color: #8e8e93; }
+  .switch { width: 46px; height: 28px; background: var(--accent); border-radius: 14px; position: relative; }
+  .switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+  .switch.off { background: #d1d5db; }
+  .switch.off::after { right: auto; left: 3px; }
 
-  /* profile chips */
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-  .chip { background: #f0f0f0; border-radius: 14px; padding: 4px 12px; font-size: 12px; color: #333; }
+  .seg-row { display: flex; gap: 6px; }
+  .seg { border: 1px solid #d0d0d0; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: #888; }
+  .seg.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .frame.dark .seg { border-color: #48484a; color: #8e8e93; }
 
-  /* stats row on home */
-  .stats-row { display: flex; gap: 10px; }
-  .stat-card { flex: 1; background: #f8f8f8; border-radius: 10px; padding: 14px 12px; }
-  .stat-val { font-size: 22px; font-weight: 800; color: #111; }
-  .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+  .swatch-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; }
+  .swatch.sel { transform: scale(1.15); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 
-  /* empty state */
-  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; padding: 24px; gap: 8px; }
-  .empty-icon { font-size: 36px; opacity: 0.3; }
-  .empty-title { font-size: 15px; font-weight: 700; color: #333; }
-  .empty-sub { font-size: 12px; color: #aaa; text-align: center; }
-  .empty-btn { margin-top: 8px; background: #111; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: default; }
+  .signin-center { display: flex; flex-direction: column; height: 100%; justify-content: center; padding: 0 8px; }
+  .brand { font-size: 32px; font-weight: 800; text-align: center; }
+  .tagline { color: var(--muted); text-align: center; margin: 8px 0 32px; }
+  .frame.dark .tagline { color: #8e8e93; }
+  .input-label { font-size: 11px; letter-spacing: 1.2px; color: var(--muted); font-weight: 700; }
+  .input { border: 1px solid #d0d0d0; border-radius: 8px; padding: 12px; font-size: 14px; color: #aaa; margin-top: 6px; margin-bottom: 16px; }
+  .frame.dark .input { border-color: #48484a; background: #1c1c1e; }
+  .btn { background: var(--accent); color: #fff; padding: 14px; border-radius: 10px; text-align: center; font-weight: 700; }
 
-  /* divider */
-  .divider { height: 1px; background: #f0f0f0; margin: 4px 0; }
-
-  /* session detail */
-  .client-header { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #eee; margin-bottom: 4px; }
-  .avatar-lg { width: 48px; height: 48px; border-radius: 24px; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
-  .status-pill { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-  .status-pill.scheduled { border: 1px solid #00875A; color: #00875A; }
-  .status-pill.completed { border: 1px solid #0052CC; color: #0052CC; background: #0052CC; color: #fff; }
-
-  .notes-header { display: flex; justify-content: space-between; align-items: center; }
-  .edit-link { font-size: 12px; color: #00875A; font-weight: 600; }
-
-  /* info card */
-  .info-card { border: 1px solid #eee; border-radius: 10px; padding: 12px; margin-top: 6px; }
-  .info-card-title { font-size: 14px; font-weight: 600; }
-  .info-card-sub { font-size: 12px; color: #888; margin-top: 2px; }
+  .caption { font-size: 12px; color: var(--muted); text-align: center; max-width: 540px; margin: 0 auto 48px; }
 </style>
 </head>
 <body>
 
-<h1>TrainerHub</h1>
-<p class="subtitle">React Native / Expo MVP — screen previews</p>
+<h1 class="page-title">TrainerHub — Iteration 9</h1>
+<p class="page-sub">Personality, accent colors, dark mode, colorful avatars</p>
 
 <div class="grid">
 
-  <!-- ══ Sign In ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Sign In</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="scroll-area" style="justify-content:center">
-          <div style="text-align:center;padding-bottom:8px">
-            <div class="sign-in-logo">TrainerHub</div>
-            <div class="sign-in-tagline">Train smarter, together.</div>
+  <div class="frame-wrap">
+    <span class="label">Home — Trainer · Light · Ocean</span>
+    <div class="frame" style="--accent:#0052CC;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll">
+        <h2 class="greet">Hey, Sarah 👋</h2>
+        <p class="subtitle">Your training dashboard</p>
+        <div class="stats">
+          <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">👥 Clients</div></div>
+          <div class="stat-card"><div class="stat-val">8</div><div class="stat-label">📅 This week</div></div>
+          <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">✅ Done</div></div>
+        </div>
+        <div class="section-title">⏰ Next session</div>
+        <div class="next-card">
+          <div class="avatar av-blue">M</div>
+          <div style="flex:1">
+            <div class="next-time">Tue, Apr 30 · 2:00 PM</div>
+            <div class="next-name">Marcus Chen</div>
+            <div class="next-dur">60 min</div>
           </div>
-          <div class="label">Email address</div>
-          <div class="input-field input-placeholder">you@example.com</div>
-          <div class="btn" style="margin-top:16px">Send magic link</div>
-          <div class="muted" style="text-align:center;margin-top:16px;font-size:12px">We'll email you a one-time sign-in link.<br/>No password needed.</div>
+          <div class="countdown">2h 15m</div>
+        </div>
+        <div class="section-title">📋 Up next</div>
+        <div class="row"><div class="av av-green">J</div><div style="flex:1"><div class="name">Jamie Rivera</div><div class="when">Wed, May 1 · 10:00 AM · 45 min</div></div><span class="chev">›</span></div>
+        <div class="row"><div class="av av-purple">A</div><div style="flex:1"><div class="name">Alex Park</div><div class="when">Wed, May 1 · 4:30 PM · 60 min</div></div><span class="chev">›</span></div>
+        <div class="row"><div class="av av-orange">R</div><div style="flex:1"><div class="name">Riley Stone</div><div class="when">Thu, May 2 · 8:00 AM · 30 min</div></div><span class="chev">›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <span class="label">Home — Trainer · Dark · Ember</span>
+    <div class="frame dark" style="--accent:#D45A00;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll">
+        <h2 class="greet">Hey, Sarah 👋</h2>
+        <p class="subtitle">Your training dashboard</p>
+        <div class="stats">
+          <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">👥 Clients</div></div>
+          <div class="stat-card"><div class="stat-val">8</div><div class="stat-label">📅 This week</div></div>
+          <div class="stat-card"><div class="stat-val">47</div><div class="stat-label">✅ Done</div></div>
+        </div>
+        <div class="section-title">⏰ Next session</div>
+        <div class="next-card">
+          <div class="avatar av-blue">M</div>
+          <div style="flex:1">
+            <div class="next-time">Tue, Apr 30 · 2:00 PM</div>
+            <div class="next-name">Marcus Chen</div>
+            <div class="next-dur">60 min</div>
+          </div>
+          <div class="countdown">2h 15m</div>
+        </div>
+        <div class="section-title">📋 Up next</div>
+        <div class="row"><div class="av av-green">J</div><div style="flex:1"><div class="name">Jamie Rivera</div><div class="when">Wed, May 1 · 10:00 AM</div></div><span class="chev">›</span></div>
+        <div class="row"><div class="av av-purple">A</div><div style="flex:1"><div class="name">Alex Park</div><div class="when">Wed, May 1 · 4:30 PM</div></div><span class="chev">›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <span class="label">Home — Client · Berry · No emoji</span>
+    <div class="frame" style="--accent:#6B21A8;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll">
+        <h2 class="greet">Hey, Marcus</h2>
+        <p class="subtitle">Your fitness journey</p>
+        <div class="section-title">Next session</div>
+        <div class="next-card">
+          <div style="flex:1">
+            <div class="next-time">Tue, Apr 30 · 2:00 PM</div>
+            <div class="next-dur">60 min</div>
+          </div>
+          <div class="countdown">2h 15m</div>
+        </div>
+        <div class="section-title">My programs</div>
+        <div class="row"><div style="flex:1"><div class="name">Spring Strength Block</div><div class="when">3-day split · Push / Pull / Legs</div></div></div>
+        <div class="row"><div style="flex:1"><div class="name">Mobility &amp; Recovery</div><div class="when">15-min daily routines</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-wrap">
+    <span class="label">Profile — Light · Ocean</span>
+    <div class="frame" style="--accent:#0052CC;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll">
+        <div class="section-title" style="font-size:17px; margin-top:8px;">Preferences</div>
+        <div class="pref-row">
+          <div>
+            <div class="pref-title">Show emoji</div>
+            <div class="pref-sub">Decorative emoji in greetings and labels</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="pref-row" style="flex-direction:column; align-items:stretch; gap:10px;">
+          <div class="pref-title">Appearance</div>
+          <div class="seg-row">
+            <div class="seg">☀ Light</div>
+            <div class="seg active">⚙ Auto</div>
+            <div class="seg">🌙 Dark</div>
+          </div>
+        </div>
+        <div class="pref-row" style="flex-direction:column; align-items:stretch;">
+          <div class="pref-title">Accent colour</div>
+          <div class="swatch-row">
+            <div class="swatch" style="background:#111111;"></div>
+            <div class="swatch sel" style="background:#0052CC;">✓</div>
+            <div class="swatch" style="background:#00875A;"></div>
+            <div class="swatch" style="background:#D45A00;"></div>
+            <div class="swatch" style="background:#6B21A8;"></div>
+            <div class="swatch" style="background:#B91C1C;"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ══ Onboarding ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Onboarding</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="scroll-area" style="justify-content:center">
-          <div style="font-size:22px;font-weight:800;color:#111;margin-bottom:4px">Welcome to TrainerHub</div>
-          <div class="muted" style="margin-bottom:24px;font-size:13px">Just a couple of things to get you started.</div>
-          <div class="label">Your name</div>
-          <div class="input-field">Alex Johnson</div>
-          <div class="label" style="margin-top:16px">I am a…</div>
-          <div class="role-row">
-            <div class="role-card selected">
-              <div class="role-emoji">🏋️</div>
-              <div class="role-name">Trainer</div>
-              <div class="role-desc">I manage clients &amp; sessions</div>
-            </div>
-            <div class="role-card">
-              <div class="role-emoji">🧑‍💼</div>
-              <div class="role-name">Client</div>
-              <div class="role-desc">I train with a coach</div>
-            </div>
+  <div class="frame-wrap">
+    <span class="label">Profile — Dark · Forest</span>
+    <div class="frame dark" style="--accent:#00875A;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll">
+        <div class="section-title" style="font-size:17px; margin-top:8px;">Preferences</div>
+        <div class="pref-row">
+          <div>
+            <div class="pref-title">Show emoji</div>
+            <div class="pref-sub">Decorative emoji in greetings</div>
           </div>
-          <div class="btn" style="margin-top:24px">Get started</div>
+          <div class="switch off"></div>
+        </div>
+        <div class="pref-row" style="flex-direction:column; align-items:stretch; gap:10px;">
+          <div class="pref-title">Appearance</div>
+          <div class="seg-row">
+            <div class="seg">☀ Light</div>
+            <div class="seg">⚙ Auto</div>
+            <div class="seg active">🌙 Dark</div>
+          </div>
+        </div>
+        <div class="pref-row" style="flex-direction:column; align-items:stretch;">
+          <div class="pref-title">Accent colour</div>
+          <div class="swatch-row">
+            <div class="swatch" style="background:#111111;"></div>
+            <div class="swatch" style="background:#0052CC;"></div>
+            <div class="swatch sel" style="background:#00875A;">✓</div>
+            <div class="swatch" style="background:#D45A00;"></div>
+            <div class="swatch" style="background:#6B21A8;"></div>
+            <div class="swatch" style="background:#B91C1C;"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ══ Schedule (Trainer) ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Schedule — Trainer</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header">Schedule</div>
-        <div class="scroll-area">
-          <div class="section-header">Mon, Apr 28</div>
-          <div class="session-card">
-            <div class="session-card-left">
-              <div class="session-card-time">9:00 AM</div>
-              <div class="session-card-meta">60 min · Alice Johnson</div>
-            </div>
-            <div class="session-card-right">
-              <span class="badge badge-scheduled">scheduled</span>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div class="session-card">
-            <div class="session-card-left">
-              <div class="session-card-time">2:30 PM</div>
-              <div class="session-card-meta">45 min · Bob Smith</div>
-              <div class="muted" style="font-size:10px;font-style:italic;margin-top:2px">Focus on deadlifts today</div>
-            </div>
-            <div class="session-card-right">
-              <span class="badge badge-scheduled">scheduled</span>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div class="section-header" style="margin-top:4px">Tue, Apr 29</div>
-          <div class="session-card">
-            <div class="session-card-left">
-              <div class="session-card-time">11:00 AM</div>
-              <div class="session-card-meta">60 min · Carol Davis</div>
-            </div>
-            <div class="session-card-right">
-              <span class="badge badge-scheduled">scheduled</span>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div class="session-card" style="opacity:0.6">
-            <div class="session-card-left">
-              <div class="session-card-time">3:00 PM</div>
-              <div class="session-card-meta">30 min · Dan Lee</div>
-            </div>
-            <div class="session-card-right">
-              <span class="badge badge-canceled">canceled</span>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-        </div>
-        <div style="position:absolute;right:16px;bottom:70px;background:#111;padding:10px 16px;border-radius:30px;font-size:13px;color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,0.2)">+ New session</div>
-        <div class="tab-bar">
-          <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
-          <div class="tab-item"><div class="tab-icon">👥</div><div class="tab-label">Clients</div></div>
-          <div class="tab-item active"><div class="tab-icon">📅</div><div class="tab-label">Schedule</div></div>
-          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">Programs</div></div>
-          <div class="tab-item"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
-        </div>
+  <div class="frame-wrap">
+    <span class="label">Sign in — Dark</span>
+    <div class="frame dark" style="--accent:#0052CC;">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="scroll signin-center">
+        <div class="brand">TrainerHub</div>
+        <div class="tagline">Train smarter, together.</div>
+        <div class="input-label">EMAIL ADDRESS</div>
+        <div class="input">you@example.com</div>
+        <div class="input-label">PASSWORD</div>
+        <div class="input">••••••••</div>
+        <div class="btn">Sign in</div>
       </div>
     </div>
   </div>
 
-  <!-- ══ Session Detail ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Session Detail</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header" style="display:flex;align-items:center;gap:8px">
-          <span style="color:#888;font-weight:400;font-size:15px">‹</span> Session
-        </div>
-        <div class="scroll-area">
-          <div class="client-header">
-            <div class="avatar-lg">A</div>
-            <div>
-              <div style="font-size:16px;font-weight:700">Alice Johnson</div>
-              <div style="font-size:12px;color:#888">alice@example.com</div>
-            </div>
-          </div>
-          <div class="btn-outline" style="margin-bottom:8px">Edit time &amp; duration</div>
-          <div class="label">When</div>
-          <div class="value">Mon, Apr 28 · 9:00 AM</div>
-          <div class="label">Duration</div>
-          <div class="value">60 min</div>
-          <div class="label">Status</div>
-          <div class="value" style="color:#00875A;font-weight:600;text-transform:capitalize">scheduled</div>
-          <div class="notes-header" style="margin-top:12px">
-            <div class="label" style="margin:0">Notes</div>
-            <div class="edit-link">Add</div>
-          </div>
-          <div class="muted" style="font-size:13px">No notes.</div>
-          <div class="label" style="margin-top:16px">Set status</div>
-          <div style="display:flex;gap:8px;margin-top:4px">
-            <div style="border:1px solid #00875A;background:#00875A;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;color:#fff">Scheduled</div>
-            <div style="border:1px solid #0052CC;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;color:#0052CC">Completed</div>
-            <div style="border:1px solid #c33;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;color:#c33">Canceled</div>
-          </div>
-          <div class="btn-danger">Delete session</div>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 
-  <!-- ══ Clients List ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Clients List</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header">Clients</div>
-        <div class="scroll-area">
-          <div class="input-field input-placeholder" style="margin-bottom:4px">🔍  Search clients…</div>
-          <div class="client-card">
-            <div class="avatar">A</div>
-            <div class="client-card-info">
-              <div class="client-name">Alice Johnson</div>
-              <div class="client-sub">Run a marathon · alice@example.com</div>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div class="client-card">
-            <div class="avatar">B</div>
-            <div class="client-card-info">
-              <div class="client-name">Bob Smith</div>
-              <div class="client-sub">Lose 20 lbs · bob@example.com</div>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div class="client-card">
-            <div class="avatar">C</div>
-            <div class="client-card-info">
-              <div class="client-name">Carol Davis</div>
-              <div class="client-sub">Build strength · carol@example.com</div>
-            </div>
-            <span class="chevron">›</span>
-          </div>
-          <div style="text-align:center;margin-top:8px">
-            <div style="display:inline-block;border:1px solid #d0d0d0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;color:#333">+ Invite client</div>
-          </div>
-        </div>
-        <div class="tab-bar">
-          <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
-          <div class="tab-item active"><div class="tab-icon">👥</div><div class="tab-label">Clients</div></div>
-          <div class="tab-item"><div class="tab-icon">📅</div><div class="tab-label">Schedule</div></div>
-          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">Programs</div></div>
-          <div class="tab-item"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
+<p class="caption">
+  Each frame is a static iteration-9 mockup. The real app uses the same tokens — accent colour and dark/light palette swap live via Profile → Preferences.
+</p>
 
-  <!-- ══ Client Detail ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Client Detail</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header" style="display:flex;align-items:center;gap:8px">
-          <span style="color:#888;font-weight:400;font-size:15px">‹</span> Alice Johnson
-        </div>
-        <div class="scroll-area">
-          <div style="font-size:20px;font-weight:700">Alice Johnson</div>
-          <div style="font-size:13px;color:#888;margin-top:2px">alice@example.com</div>
-          <div class="label" style="margin-top:16px">Goals</div>
-          <div class="value">Run a marathon by December</div>
-          <div class="label">Notes</div>
-          <div class="value" style="color:#aaa">—</div>
-          <div class="label">Added</div>
-          <div class="value">Apr 1, 2025</div>
-          <div class="section-title" style="margin-top:16px">Assigned programs</div>
-          <div class="divider"></div>
-          <div style="padding:10px 0;border-bottom:1px solid #f0f0f0">
-            <div class="program-title">12-Week Marathon Prep</div>
-          </div>
-          <div class="label" style="margin-top:12px">Assign a program</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">
-            <div class="program-title">Strength Foundations</div>
-            <div style="color:#00875A;font-weight:600;font-size:13px">+ Assign</div>
-          </div>
-          <div class="btn-danger" style="margin-top:24px">Remove client</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Programs ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Programs</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header">Programs</div>
-        <div class="scroll-area">
-          <div class="program-card">
-            <div class="program-title">12-Week Marathon Prep</div>
-            <div class="program-sub">Progressive endurance and pace training</div>
-            <div class="program-footer"><span>2 clients</span><span>›</span></div>
-          </div>
-          <div class="program-card">
-            <div class="program-title">Strength Foundations</div>
-            <div class="program-sub">Barbell fundamentals for beginners</div>
-            <div class="program-footer"><span>1 client</span><span>›</span></div>
-          </div>
-          <div class="program-card">
-            <div class="program-title">HIIT &amp; Conditioning</div>
-            <div class="program-sub"></div>
-            <div class="program-footer"><span>0 clients</span><span>›</span></div>
-          </div>
-          <div style="text-align:center;margin-top:4px">
-            <div style="display:inline-block;border:1px solid #d0d0d0;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;color:#333">+ New program</div>
-          </div>
-        </div>
-        <div class="tab-bar">
-          <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
-          <div class="tab-item"><div class="tab-icon">👥</div><div class="tab-label">Clients</div></div>
-          <div class="tab-item"><div class="tab-icon">📅</div><div class="tab-label">Schedule</div></div>
-          <div class="tab-item active"><div class="tab-icon">🏋️</div><div class="tab-label">Programs</div></div>
-          <div class="tab-item"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Profile — Trainer ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Profile — Trainer</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header">Profile</div>
-        <div class="scroll-area">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div class="section-title">My profile</div>
-            <div class="edit-link">Edit</div>
-          </div>
-          <div class="label">Email</div>
-          <div class="value">alex@trainerhub.app</div>
-          <div class="label">Display name</div>
-          <div class="value">Alex Johnson</div>
-          <div class="label">Role</div>
-          <div class="value" style="font-weight:600;text-transform:capitalize">Trainer</div>
-          <div class="section-title" style="margin-top:20px">Trainer details</div>
-          <div class="label">Bio</div>
-          <div class="value" style="font-size:13px">NASM-certified trainer with 8 years helping clients reach their goals through evidence-based programming.</div>
-          <div class="label">Specialties</div>
-          <div class="chips">
-            <div class="chip">Strength</div>
-            <div class="chip">Marathon</div>
-            <div class="chip">HIIT</div>
-          </div>
-          <div class="label">Hourly rate</div>
-          <div class="value">$85.00 / hr</div>
-          <div class="btn-danger">Sign out</div>
-        </div>
-        <div class="tab-bar">
-          <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
-          <div class="tab-item"><div class="tab-icon">👥</div><div class="tab-label">Clients</div></div>
-          <div class="tab-item"><div class="tab-icon">📅</div><div class="tab-label">Schedule</div></div>
-          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">Programs</div></div>
-          <div class="tab-item active"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ Profile — Client ══ -->
-  <div class="screen-wrap">
-    <div class="screen-label">Profile — Client</div>
-    <div class="phone">
-      <div class="screen">
-        <div class="status-bar"><span>9:41</span><span>●●●</span></div>
-        <div class="nav-header">Profile</div>
-        <div class="scroll-area">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div class="section-title">My profile</div>
-            <div class="edit-link">Edit</div>
-          </div>
-          <div class="label">Email</div>
-          <div class="value">alice@example.com</div>
-          <div class="label">Display name</div>
-          <div class="value">Alice Johnson</div>
-          <div class="label">Role</div>
-          <div class="value" style="font-weight:600;text-transform:capitalize">Client</div>
-          <div class="section-title" style="margin-top:20px">Upcoming sessions</div>
-          <div class="info-card">
-            <div class="info-card-title">Mon, Apr 28 · 9:00 AM</div>
-            <div class="info-card-sub">60 min  ·  +2 more</div>
-          </div>
-          <div class="section-title" style="margin-top:20px">My programs</div>
-          <div class="info-card">
-            <div class="info-card-title">12-Week Marathon Prep</div>
-            <div class="info-card-sub">Progressive endurance and pace training</div>
-          </div>
-          <div class="btn-danger">Sign out</div>
-        </div>
-        <div class="tab-bar">
-          <div class="tab-item"><div class="tab-icon">🏠</div><div class="tab-label">Home</div></div>
-          <div class="tab-item"><div class="tab-icon">📅</div><div class="tab-label">Schedule</div></div>
-          <div class="tab-item"><div class="tab-icon">🏋️</div><div class="tab-label">Programs</div></div>
-          <div class="tab-item active"><div class="tab-icon">👤</div><div class="tab-label">Profile</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /grid -->
 </body>
 </html>
