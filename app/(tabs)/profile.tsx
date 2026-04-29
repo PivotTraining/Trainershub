@@ -29,8 +29,18 @@ import {
 } from '@/lib/queries/profile';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions } from '@/lib/queries/sessions';
+import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
+
+const VIBE_TAGS = [
+  { key: 'motivator', label: 'Motivator', emoji: '🔥' },
+  { key: 'disciplinarian', label: 'Disciplinarian', emoji: '💪' },
+  { key: 'gentle', label: 'Gentle', emoji: '🌿' },
+  { key: 'high-energy', label: 'High-Energy', emoji: '⚡' },
+  { key: 'spiritual', label: 'Spiritual', emoji: '🧘' },
+  { key: 'data-driven', label: 'Data-Driven', emoji: '📊' },
+] as const;
 
 export default function Profile() {
   const { session, profile } = useAuth();
@@ -57,6 +67,11 @@ export default function Profile() {
   const [bio, setBio] = useState('');
   const [specialtiesRaw, setSpecialtiesRaw] = useState(''); // comma-separated
   const [rateStr, setRateStr] = useState(''); // displayed as dollars
+  const [location, setLocation] = useState('');
+  const [sessionTypes, setSessionTypes] = useState<string[]>(['in-person']);
+  const [languages, setLanguages] = useState(''); // comma-separated display
+  const [vibeTags, setVibeTags] = useState<string[]>([]);
+  const [instantBook, setInstantBook] = useState(false);
 
   // seed once the data arrives
   useEffect(() => {
@@ -71,6 +86,11 @@ export default function Profile() {
       setSpecialtiesRaw(trainerQuery.data.specialties.join(', '));
       const cents = trainerQuery.data.hourly_rate_cents;
       setRateStr(cents != null ? String(Math.round(cents / 100)) : '');
+      setLocation(trainerQuery.data.location ?? '');
+      setSessionTypes(trainerQuery.data.session_types ?? ['in-person']);
+      setLanguages((trainerQuery.data.languages ?? ['English']).join(', '));
+      setVibeTags(trainerQuery.data.vibe_tags ?? []);
+      setInstantBook(trainerQuery.data.instant_book ?? false);
     }
   }, [trainerQuery.data]);
 
@@ -81,6 +101,11 @@ export default function Profile() {
       setSpecialtiesRaw(trainerQuery.data.specialties.join(', '));
       const cents = trainerQuery.data.hourly_rate_cents;
       setRateStr(cents != null ? String(Math.round(cents / 100)) : '');
+      setLocation(trainerQuery.data.location ?? '');
+      setSessionTypes(trainerQuery.data.session_types ?? ['in-person']);
+      setLanguages((trainerQuery.data.languages ?? ['English']).join(', '));
+      setVibeTags(trainerQuery.data.vibe_tags ?? []);
+      setInstantBook(trainerQuery.data.instant_book ?? false);
     }
     setEditing(false);
   };
@@ -106,6 +131,12 @@ export default function Profile() {
           bio: bio.trim() || null,
           specialties,
           hourly_rate_cents,
+          location: location.trim() || null,
+          session_types: sessionTypes as ('in-person' | 'virtual')[],
+          languages: languages.split(',').map((l) => l.trim()).filter(Boolean),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          vibe_tags: vibeTags as any,
+          instant_book: instantBook,
         });
       }
 
@@ -123,6 +154,53 @@ export default function Profile() {
     } catch (err: unknown) {
       Alert.alert('Sign out failed', err instanceof Error ? err.message : 'Unknown error');
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'This will permanently delete your account and all your data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase.functions.invoke('delete-account', {
+                body: { userId },
+              });
+              if (error) {
+                throw error;
+              }
+              // Auth listener will redirect automatically when session is invalidated
+            } catch {
+              try {
+                await signOut();
+              } catch {
+                // ignore sign-out error
+              }
+              Alert.alert(
+                'Account flagged for deletion',
+                'Your account has been flagged for deletion. Contact support if not processed within 24 hours.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const toggleSessionType = (type: string) => {
+    setSessionTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  };
+
+  const toggleVibeTag = (tag: string) => {
+    setVibeTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
   };
 
   return (
@@ -238,6 +316,151 @@ export default function Profile() {
                     ? `$${(trainerQuery.data.hourly_rate_cents / 100).toFixed(2)} / hr`
                     : '—'}
                 </Text>
+              )}
+
+              {/* ── Location ──────────────────────────────────────── */}
+              <Text style={styles.label}>Location</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.input}
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="e.g. New York, NY"
+                  autoCapitalize="words"
+                />
+              ) : (
+                <Text style={[styles.value, !location && styles.muted]}>
+                  {location || '—'}
+                </Text>
+              )}
+
+              {/* ── Session types ────────────────────────────────── */}
+              <Text style={styles.label}>Session Types</Text>
+              {editing ? (
+                <View style={styles.chips}>
+                  {(['in-person', 'virtual'] as const).map((type) => {
+                    const selected = sessionTypes.includes(type);
+                    return (
+                      <TouchableOpacity
+                        key={type}
+                        style={[
+                          styles.chip,
+                          styles.toggleChip,
+                          selected
+                            ? { backgroundColor: accent, borderColor: accent }
+                            : { backgroundColor: 'transparent', borderColor: themeColors.borderInput },
+                        ]}
+                        onPress={() => toggleSessionType(type)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            selected ? { color: '#fff' } : { color: themeColors.muted },
+                          ]}
+                        >
+                          {type === 'in-person' ? 'In-Person' : 'Virtual'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.chips}>
+                  {sessionTypes.length ? (
+                    sessionTypes.map((t) => (
+                      <View key={t} style={styles.chip}>
+                        <Text style={styles.chipText}>
+                          {t === 'in-person' ? 'In-Person' : 'Virtual'}
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.muted}>None set.</Text>
+                  )}
+                </View>
+              )}
+
+              {/* ── Languages ────────────────────────────────────── */}
+              <Text style={styles.label}>Languages</Text>
+              {editing ? (
+                <TextInput
+                  style={styles.input}
+                  value={languages}
+                  onChangeText={setLanguages}
+                  placeholder="e.g. English, Spanish"
+                  autoCapitalize="words"
+                />
+              ) : (
+                <Text style={[styles.value, !languages && styles.muted]}>
+                  {languages || '—'}
+                </Text>
+              )}
+
+              {/* ── Vibe tags ────────────────────────────────────── */}
+              <Text style={styles.label}>Vibe</Text>
+              {editing ? (
+                <View style={styles.chips}>
+                  {VIBE_TAGS.map(({ key, label, emoji }) => {
+                    const selected = vibeTags.includes(key);
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        style={[
+                          styles.chip,
+                          styles.toggleChip,
+                          selected
+                            ? { backgroundColor: accent, borderColor: accent }
+                            : { backgroundColor: 'transparent', borderColor: themeColors.borderInput },
+                        ]}
+                        onPress={() => toggleVibeTag(key)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            selected ? { color: '#fff' } : { color: themeColors.muted },
+                          ]}
+                        >
+                          {emoji} {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.chips}>
+                  {vibeTags.length ? (
+                    vibeTags.map((tag) => {
+                      const meta = VIBE_TAGS.find((v) => v.key === tag);
+                      return (
+                        <View key={tag} style={styles.chip}>
+                          <Text style={styles.chipText}>
+                            {meta ? `${meta.emoji} ${meta.label}` : tag}
+                          </Text>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text style={styles.muted}>None set.</Text>
+                  )}
+                </View>
+              )}
+
+              {/* ── Instant Book ─────────────────────────────────── */}
+              <Text style={styles.label}>Instant Book</Text>
+              {editing ? (
+                <View style={styles.switchRow}>
+                  <Switch
+                    value={instantBook}
+                    onValueChange={setInstantBook}
+                    trackColor={{ true: accent }}
+                    thumbColor="#fff"
+                  />
+                  <Text style={[styles.value, { marginLeft: 8 }]}>
+                    {instantBook ? 'Yes' : 'No'}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.value}>{instantBook ? 'Yes' : 'No'}</Text>
               )}
             </>
           )}
@@ -377,6 +600,11 @@ export default function Profile() {
             <Text style={styles.signOutText}>Sign out</Text>
           </TouchableOpacity>
 
+          {/* ── Delete account ──────────────────────────────────────── */}
+          <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
+            <Text style={styles.deleteAccountText}>Delete Account</Text>
+          </TouchableOpacity>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -418,7 +646,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
   },
+  toggleChip: {
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+  },
   chipText: { fontSize: 13, color: '#333' },
+  switchRow: { flexDirection: 'row', alignItems: 'center' },
   infoCard: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -472,4 +705,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signOutText: { color: colors.danger, fontWeight: '600' },
+
+  deleteAccountButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  deleteAccountText: { color: colors.danger, fontWeight: '600' },
 });

@@ -12,6 +12,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs screenOptions={{ tabBarActiveTintColor: '#111' }}>
+      {/* ── Shared: Home ─────────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"
         options={{
@@ -59,7 +60,8 @@ export default function TabsLayout() {
         name="clients"
         options={{
           title: 'Clients',
-          href: isTrainer ? '/(tabs)/clients' : null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: (isTrainer ? '/(tabs)/clients' : null) as any,
           tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} />,
         }}
       />
@@ -84,41 +86,38 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Shared: Programs ─────────────────────────────────────────── */}
-      <Tabs.Screen
-        name="programs"
-        options={{
-          title: 'Programs',
-          tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} />,
-        }}
-      />
-
-      {/* ── Shared: Packages ─────────────────────────────────────────── */}
-      <Tabs.Screen
-        name="packages"
-        options={{
-          title: 'Packages',
-          tabBarIcon: ({ color, size }) => <Ionicons name="pricetag-outline" color={color} size={size} />,
-        }}
-      />
-
-      {/* ── Trainer: Availability ────────────────────────────────────── */}
-      <Tabs.Screen
-        name="availability"
-        options={{
-          title: 'Availability',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (isTrainer ? '/(tabs)/availability' : null) as any,
-          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" color={color} size={size} />,
-        }}
-      />
-
-      {/* ── Profile ──────────────────────────────────────────────────── */}
+      {/* ── Shared: Profile ──────────────────────────────────────────── */}
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+        }}
+      />
+
+      {/* ── Hidden routes (routing works, not shown in tab bar) ──────── */}
+      <Tabs.Screen
+        name="programs"
+        options={{
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: null as any,
+          title: 'Programs',
+        }}
+      />
+      <Tabs.Screen
+        name="packages"
+        options={{
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: null as any,
+          title: 'Packages',
+        }}
+      />
+      <Tabs.Screen
+        name="availability"
+        options={{
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: null as any,
+          title: 'Availability',
         }}
       />
     </Tabs>

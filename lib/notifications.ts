@@ -68,3 +68,56 @@ export async function cancelSessionReminder(sessionId: string): Promise<void> {
     // Ignore — notification may not exist
   }
 }
+
+/**
+ * Register and store the current device's push token in the user's profile.
+ * Call this once after sign-in when notification permission is granted.
+ */
+export async function registerPushToken(userId: string): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const granted = await requestNotificationPermission();
+  if (!granted) return;
+
+  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const token = tokenData.data;
+
+  // Import inline to avoid circular deps
+  const { supabase } = await import('./supabase');
+  const { error } = await supabase
+    .from('profiles')
+    .update({ expo_push_token: token })
+    .eq('id', userId);
+  if (error) console.warn('Failed to store push token:', error.message);
+}
+
+/**
+ * Send a push notification to a user via the Expo Push API.
+ * Fetches their token from the profiles table, then POSTs to Expo.
+ * Fire-and-forget — errors are logged, not thrown.
+ */
+export async function sendPushToUser(
+  recipientUserId: string,
+  title: string,
+  body: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: row } = await supabase
+      .from('profiles')
+      .select('expo_push_token')
+      .eq('id', recipientUserId)
+      .maybeSingle();
+
+    const token = (row as any)?.expo_push_token;
+    if (!token) return;
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: token, title, body, data: data ?? {} }),
+    });
+  } catch (err) {
+    console.warn('Push notification failed:', err);
+  }
+}

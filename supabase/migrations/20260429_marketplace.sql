@@ -154,3 +154,7 @@ DROP TRIGGER IF EXISTS trg_decrement_package_sessions ON bookings;
 CREATE TRIGGER trg_decrement_package_sessions
   AFTER UPDATE ON bookings
   FOR EACH ROW EXECUTE FUNCTION decrement_package_sessions();
+
+-- Store Expo push tokens for push notifications
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS expo_push_token TEXT;

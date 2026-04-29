@@ -314,7 +314,7 @@ export default function Packages() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: colors.placeholder }]}>
-              Browse trainers to purchase session packages.
+              Your trainer can set up session packages for you. Ask them during your next session.
             </Text>
           </View>
         }

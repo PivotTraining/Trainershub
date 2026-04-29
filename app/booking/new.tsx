@@ -206,7 +206,7 @@ export default function BookingNew() {
                 onPress={() => setSelectedPurchaseId(null)}
               >
                 <Text style={[styles.packageOptionText, { color: colors.ink }]}>
-                  Pay individually
+                  Single session
                 </Text>
                 {selectedPurchaseId === null && (
                   <Text style={{ color: accent, fontWeight: '600' }}>✓</Text>
@@ -252,7 +252,7 @@ export default function BookingNew() {
           {/* Price estimate */}
           {estimatedLabel && !selectedPurchaseId && (
             <View style={[styles.priceRow, { backgroundColor: colors.surfaceRaised, borderRadius: radius.md }]}>
-              <Text style={[styles.priceLabel, { color: colors.muted }]}>Estimated total</Text>
+              <Text style={[styles.priceLabel, { color: colors.muted }]}>Trainer charges approx.</Text>
               <Text style={[styles.priceValue, { color: colors.ink }]}>{estimatedLabel}</Text>
             </View>
           )}

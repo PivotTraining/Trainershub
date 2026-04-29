@@ -57,8 +57,22 @@ export function useCreateBooking() {
       if (error) throw new Error(error.message);
       return data as Booking;
     },
-    onSuccess: (b) => {
+    onSuccess: (b, input) => {
       qc.invalidateQueries({ queryKey: ['bookings', 'client', b.client_id] });
+
+      // Notify trainer of new booking request (fire-and-forget)
+      import('../notifications').then(({ sendPushToUser }) => {
+        const startsLabel = new Date(input.starts_at).toLocaleString([], {
+          weekday: 'short', month: 'short', day: 'numeric',
+          hour: 'numeric', minute: '2-digit',
+        });
+        sendPushToUser(
+          input.trainer_id,
+          'New booking request',
+          `You have a new session request for ${startsLabel}`,
+          { bookingId: b.id },
+        ).catch(() => null);
+      }).catch(() => null);
     },
   });
 }

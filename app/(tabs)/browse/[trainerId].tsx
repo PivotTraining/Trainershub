@@ -1,17 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
 import { StarRating } from '@/components/StarRating';
@@ -22,10 +19,9 @@ import {
   useTrainerReviewsPublic,
 } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
-import { usePurchasePackage } from '@/lib/queries/packages';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
-import type { Package, VibeTag } from '@/lib/types';
+import type { VibeTag } from '@/lib/types';
 
 // ── Vibe tag config ────────────────────────────────────────────────────────────
 
@@ -38,100 +34,6 @@ const VIBE_CONFIG: Record<VibeTag, { emoji: string; label: string }> = {
   'data-driven':  { emoji: '📊', label: 'Data-Driven' },
 };
 
-// ── Buy Package modal ──────────────────────────────────────────────────────────
-
-interface BuyPackageModalProps {
-  pkg: Package;
-  trainerId: string;
-  clientId: string;
-  onClose: () => void;
-}
-
-function BuyPackageModal({ pkg, trainerId, clientId, onClose }: BuyPackageModalProps) {
-  const { colors, accent } = useTheme();
-  const purchase = usePurchasePackage();
-  const totalPrice = (pkg.price_cents / 100).toFixed(2);
-  const perSession = pkg.session_count > 0
-    ? (pkg.price_cents / pkg.session_count / 100).toFixed(2)
-    : '—';
-
-  const handleConfirm = async () => {
-    try {
-      await purchase.mutateAsync({
-        package_id: pkg.id,
-        client_id: clientId,
-        trainer_id: trainerId,
-        sessions_remaining: pkg.session_count,
-      });
-      Alert.alert(
-        'Package purchased! 🎉',
-        `You now have ${pkg.session_count} sessions to book with this trainer.`,
-        [{ text: 'OK', onPress: onClose }],
-      );
-    } catch (err: unknown) {
-      Alert.alert('Purchase failed', err instanceof Error ? err.message : 'Unknown error');
-    }
-  };
-
-  return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.modalSafe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        {/* Header */}
-        <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: colors.ink }]}>Confirm Purchase</Text>
-          <View style={{ width: 56 }} />
-        </View>
-
-        <ScrollView contentContainerStyle={styles.modalBody}>
-          {/* Package summary */}
-          <View style={[styles.summaryCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-            <Text style={[styles.summaryTitle, { color: colors.ink }]}>{pkg.title}</Text>
-            {pkg.description ? (
-              <Text style={[styles.summaryDesc, { color: colors.inkSoft }]}>{pkg.description}</Text>
-            ) : null}
-            <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.muted }]}>Sessions</Text>
-              <Text style={[styles.summaryValue, { color: colors.ink }]}>{pkg.session_count}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: colors.muted }]}>Per session</Text>
-              <Text style={[styles.summaryValue, { color: colors.ink }]}>${perSession}</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.summaryTotalRow]}>
-              <Text style={[styles.summaryLabel, { color: colors.ink, fontWeight: '700' }]}>Total</Text>
-              <Text style={[styles.summaryTotal, { color: colors.ink }]}>${totalPrice}</Text>
-            </View>
-          </View>
-
-          {/* Payment note */}
-          <View style={[styles.paymentNote, { backgroundColor: colors.infoBg, borderColor: colors.info }]}>
-            <Ionicons name="card-outline" size={16} color={colors.info} />
-            <Text style={[styles.paymentNoteText, { color: colors.info }]}>
-              Payment processing coming soon. This purchase is recorded and your trainer will be notified.
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.confirmBtn, { backgroundColor: accent }, purchase.isPending && { opacity: 0.6 }]}
-            onPress={handleConfirm}
-            disabled={purchase.isPending}
-          >
-            {purchase.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.confirmBtnText}>Buy for ${totalPrice}</Text>
-            )}
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    </Modal>
-  );
-}
-
 // ── Screen ─────────────────────────────────────────────────────────────────────
 
 export default function TrainerProfile() {
@@ -140,8 +42,6 @@ export default function TrainerProfile() {
   const { colors, spacing, radius, typography } = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
-
-  const [buyingPkg, setBuyingPkg] = useState<Package | null>(null);
 
   const { data: trainer, isLoading: loadingProfile } = usePublicTrainerProfile(trainerId);
   const { data: reviews = [], isLoading: loadingReviews } = useTrainerReviewsPublic(trainerId);
@@ -335,16 +235,8 @@ export default function TrainerProfile() {
                   ? (pkg.price_cents / pkg.session_count / 100).toFixed(2)
                   : '—';
                 return (
-                  <TouchableOpacity
+                  <View
                     key={pkg.id}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      if (!userId) {
-                        Alert.alert('Sign in required', 'Please sign in to purchase packages.');
-                        return;
-                      }
-                      setBuyingPkg(pkg);
-                    }}
                     style={[
                       styles.packageCard,
                       {
@@ -371,10 +263,7 @@ export default function TrainerProfile() {
                     <Text style={[styles.packagePrice, { color: colors.ink, fontSize: typography.lg }]}>
                       ${Math.round(pkg.price_cents / 100)}
                     </Text>
-                    <View style={[styles.buyBtn, { backgroundColor: colors.ink }]}>
-                      <Text style={styles.buyBtnText}>Buy</Text>
-                    </View>
-                  </TouchableOpacity>
+                  </View>
                 );
               })}
             </ScrollView>
@@ -462,16 +351,6 @@ export default function TrainerProfile() {
           />
         </TouchableOpacity>
       </View>
-
-      {/* ── Buy package modal ── */}
-      {buyingPkg && userId && (
-        <BuyPackageModal
-          pkg={buyingPkg}
-          trainerId={trainerId}
-          clientId={userId}
-          onClose={() => setBuyingPkg(null)}
-        />
-      )}
     </View>
   );
 }
@@ -544,57 +423,6 @@ const styles = StyleSheet.create({
   packageSessions: {},
   packageDesc: { lineHeight: 18 },
   packagePrice: { fontWeight: '700', marginTop: 4 },
-  buyBtn: {
-    marginTop: 8,
-    borderRadius: 8,
-    paddingVertical: 7,
-    alignItems: 'center',
-  },
-  buyBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-
-  // Buy package modal
-  modalSafe: { flex: 1 },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-  },
-  modalTitle: { fontWeight: '700', fontSize: typography.md },
-  modalCancel: { fontSize: typography.md },
-  modalBody: { padding: spacing.lg, gap: spacing.md },
-  summaryCard: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  summaryTitle: { fontSize: typography.lg, fontWeight: '700' },
-  summaryDesc: { fontSize: typography.sm, lineHeight: 20 },
-  summaryDivider: { height: 1, marginVertical: 4 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  summaryTotalRow: { marginTop: 4 },
-  summaryLabel: { fontSize: typography.sm },
-  summaryValue: { fontSize: typography.sm, fontWeight: '500' },
-  summaryTotal: { fontSize: typography.xl, fontWeight: '700' },
-  paymentNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-  },
-  paymentNoteText: { flex: 1, fontSize: typography.xs, lineHeight: 18 },
-  confirmBtn: {
-    borderRadius: radius.md,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  confirmBtnText: { color: '#fff', fontWeight: '700', fontSize: typography.base },
 
   reviewCard: {
     padding: 12,
