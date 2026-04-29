@@ -65,12 +65,15 @@ export default function Home() {
     [isTrainer, trainerSessionsQ.data, clientSessionsQ.data],
   );
 
-  const now = new Date();
-  const weekStart = startOfWeek();
-
-  const upcoming   = useMemo(() => sessions.filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now), [sessions]);
+  const upcoming = useMemo(() => {
+    const now = new Date();
+    return sessions.filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now);
+  }, [sessions]);
   const nextSession = upcoming[0] ?? null;
-  const thisWeek   = useMemo(() => sessions.filter((s) => new Date(s.starts_at) >= weekStart), [sessions]);
+  const thisWeek = useMemo(() => {
+    const weekStart = startOfWeek();
+    return sessions.filter((s) => new Date(s.starts_at) >= weekStart);
+  }, [sessions]);
   const completed  = useMemo(() => sessions.filter((s) => s.status === 'completed'), [sessions]);
 
   const isLoading = isTrainer ? trainerSessionsQ.isLoading : clientSessionsQ.isLoading;

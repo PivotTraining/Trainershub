@@ -6,14 +6,13 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { Switch } from 'react-native';
 
 import { signOut, useAuth } from '@/lib/auth';
 import {
@@ -36,7 +35,7 @@ export default function Profile() {
   const { session, profile } = useAuth();
   const isTrainer = profile?.role === 'trainer';
   const userId = session?.user.id ?? '';
-  const { colors: themeColors, accent, isDark } = useTheme();
+  const { colors: themeColors, accent } = useTheme();
   const { darkMode, showEmoji, accentColor, setDarkMode, setShowEmoji, setAccentColor } = usePreferences();
 
   const updateProfile = useUpdateProfile();
@@ -61,6 +60,8 @@ export default function Profile() {
   // seed once the data arrives
   useEffect(() => {
     if (profile) setFullName(profile.full_name ?? '');
+  // Intentionally seed only when full_name changes, not the whole profile object
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.full_name]);
 
   useEffect(() => {

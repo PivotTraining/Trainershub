@@ -47,8 +47,8 @@ export default function NewClient() {
     >
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          If this email isn't registered yet, they'll receive an invitation link. Either way
-          they'll appear in your client list once added.
+          If this email isn&apos;t registered yet, they&apos;ll receive an invitation link. Either way
+          they&apos;ll appear in your client list once added.
         </Text>
       </View>
 
