@@ -54,6 +54,13 @@ export default function BookingNew() {
   const trainerProfile = trainerQuery.data;
   const supportedTypes: SessionType[] = trainerProfile?.session_types ?? ['in-person', 'virtual'];
 
+  // Price estimate
+  const rateCents = trainerProfile?.hourly_rate_cents ?? null;
+  const estimatedCents = rateCents != null ? Math.round(rateCents * (duration / 60)) : null;
+  const estimatedLabel = estimatedCents != null
+    ? `$${(estimatedCents / 100).toFixed(2)}`
+    : null;
+
   const eligiblePurchases = (packagesQuery.data ?? []).filter(
     (p) => p.trainer_id === trainerId && p.sessions_remaining > 0,
   );
@@ -242,6 +249,20 @@ export default function BookingNew() {
             multiline
           />
 
+          {/* Price estimate */}
+          {estimatedLabel && !selectedPurchaseId && (
+            <View style={[styles.priceRow, { backgroundColor: colors.surfaceRaised, borderRadius: radius.md }]}>
+              <Text style={[styles.priceLabel, { color: colors.muted }]}>Estimated total</Text>
+              <Text style={[styles.priceValue, { color: colors.ink }]}>{estimatedLabel}</Text>
+            </View>
+          )}
+          {selectedPurchaseId && (
+            <View style={[styles.priceRow, { backgroundColor: colors.successBg, borderRadius: radius.md }]}>
+              <Text style={[styles.priceLabel, { color: colors.success }]}>Using package session</Text>
+              <Text style={[styles.priceValue, { color: colors.success }]}>–1 session</Text>
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.button, { backgroundColor: accent }, createBooking.isPending && styles.buttonDisabled]}
             onPress={handleSubmit}
@@ -312,4 +333,14 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: typography.base, fontWeight: '600' },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    marginTop: spacing.lg,
+  },
+  priceLabel: { fontSize: typography.sm },
+  priceValue: { fontSize: typography.md, fontWeight: '700' },
 });

@@ -132,3 +132,25 @@ CREATE TABLE IF NOT EXISTS journal_entries (
 ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "client manages own journal" ON journal_entries
   USING (client_id = auth.uid()) WITH CHECK (client_id = auth.uid());
+
+-- ── Package balance decrement ─────────────────────────────────────────────────
+-- When a booking moves to 'confirmed' and has a package_purchase_id,
+-- decrement sessions_remaining by 1 (floor at 0).
+CREATE OR REPLACE FUNCTION decrement_package_sessions()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.status = 'confirmed'
+     AND OLD.status <> 'confirmed'
+     AND NEW.package_purchase_id IS NOT NULL THEN
+    UPDATE package_purchases
+    SET sessions_remaining = GREATEST(sessions_remaining - 1, 0)
+    WHERE id = NEW.package_purchase_id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_decrement_package_sessions ON bookings;
+CREATE TRIGGER trg_decrement_package_sessions
+  AFTER UPDATE ON bookings
+  FOR EACH ROW EXECUTE FUNCTION decrement_package_sessions();
