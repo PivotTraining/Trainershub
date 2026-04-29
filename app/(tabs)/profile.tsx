@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PerformanceDashboard } from '@/components/PerformanceDashboard';
 import { signOut, useAuth } from '@/lib/auth';
 import {
   ACCENT_COLORS,
@@ -291,6 +292,14 @@ export default function Profile() {
                 ))
               )}
             </>
+          )}
+
+          {/* ── Performance dashboard (trainer only) ────────────────── */}
+          {isTrainer && (
+            <PerformanceDashboard
+              trainerId={userId}
+              hourlyRateCents={trainerQuery.data?.hourly_rate_cents ?? null}
+            />
           )}
 
           {/* ── Preferences ─────────────────────────────────────────── */}
