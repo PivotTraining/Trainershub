@@ -13,12 +13,14 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
+import { useTheme } from '@/lib/useTheme';
 import { useCreateClient } from '@/lib/queries/clients';
 import { clientCreateSchema } from '@/lib/validators/client';
 
 export default function NewClient() {
   const router = useRouter();
   const { session } = useAuth();
+  const { colors, accent } = useTheme();
   const create = useCreateClient(session?.user.id ?? '');
   const [email, setEmail] = useState('');
   const [goals, setGoals] = useState('');
@@ -42,19 +44,19 @@ export default function NewClient() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.infoBox}>
-        <Text style={styles.infoText}>
+      <View style={[styles.infoBox, { backgroundColor: colors.infoBg }]}>
+        <Text style={[styles.infoText, { color: colors.ink }]}>
           If this email isn&apos;t registered yet, they&apos;ll receive an invitation link. Either way
           they&apos;ll appear in your client list once added.
         </Text>
       </View>
 
-      <Text style={styles.label}>Email</Text>
+      <Text style={[styles.label, { color: colors.muted }]}>Email</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: colors.borderInput, color: colors.ink }]}
         autoCapitalize="none"
         keyboardType="email-address"
         autoComplete="email"
@@ -63,9 +65,9 @@ export default function NewClient() {
         placeholder="client@example.com"
       />
 
-      <Text style={styles.label}>Goals (optional)</Text>
+      <Text style={[styles.label, { color: colors.muted }]}>Goals (optional)</Text>
       <TextInput
-        style={[styles.input, styles.multiline]}
+        style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink }]}
         value={goals}
         onChangeText={setGoals}
         multiline
@@ -73,14 +75,14 @@ export default function NewClient() {
       />
 
       <TouchableOpacity
-        style={[styles.button, create.isPending && styles.buttonDisabled]}
+        style={[styles.button, { backgroundColor: accent }, create.isPending && styles.buttonDisabled]}
         onPress={handleSubmit}
         disabled={create.isPending}
       >
         {create.isPending ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
-          <Text style={styles.buttonText}>Invite client</Text>
+          <Text style={[styles.buttonText, { color: colors.white }]}>Invite client</Text>
         )}
       </TouchableOpacity>
     </KeyboardAvoidingView>
@@ -88,18 +90,16 @@ export default function NewClient() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#fff' },
+  container: { flex: 1, padding: 24 },
   infoBox: {
-    backgroundColor: '#f0f7ff',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
   },
-  infoText: { fontSize: 13, color: '#446', lineHeight: 18 },
-  label: { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 16 },
+  infoText: { fontSize: 13, lineHeight: 18 },
+  label: { fontSize: 13, marginBottom: 6, marginTop: 16 },
   input: {
     borderWidth: 1,
-    borderColor: '#d0d0d0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -107,12 +107,11 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 100, textAlignVertical: 'top' },
   button: {
-    backgroundColor: '#111',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 28,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { fontSize: 16, fontWeight: '600' },
 });

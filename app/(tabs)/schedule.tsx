@@ -10,31 +10,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
+import { radius, spacing, typography } from '@/lib/theme';
 import type { Session, SessionWithClient } from '@/lib/types';
 import { useRealtimeSessions } from '@/lib/useRealtimeSessions';
+import { useTheme } from '@/lib/useTheme';
 
 const STATUS_ICON: Record<Session['status'], React.ComponentProps<typeof Ionicons>['name']> = {
   scheduled: 'time-outline',
   completed: 'checkmark-circle-outline',
-  canceled: 'close-circle-outline',
-};
-const STATUS_COLOR: Record<Session['status'], string> = {
-  scheduled: '#0a7',
-  completed: '#048',
-  canceled: '#c33',
+  canceled:  'close-circle-outline',
 };
 
 function groupByDay(sessions: SessionWithClient[]): { title: string; data: SessionWithClient[] }[] {
   const buckets = new Map<string, SessionWithClient[]>();
   for (const s of sessions) {
     const key = new Date(s.starts_at).toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
+      weekday: 'short', month: 'short', day: 'numeric',
     });
     const existing = buckets.get(key);
     buckets.set(key, existing ? [...existing, s] : [s]);
@@ -45,30 +41,39 @@ function groupByDay(sessions: SessionWithClient[]): { title: string; data: Sessi
 export default function Schedule() {
   const router = useRouter();
   const { session, profile } = useAuth();
+  const { colors, accent } = useTheme();
   const isTrainer = profile?.role === 'trainer';
   const userId = session?.user.id;
   const trainer = useTrainerSessions(isTrainer ? userId : undefined);
-  const client = useClientSessions(!isTrainer ? userId : undefined);
-  const query = isTrainer ? trainer : client;
+  const client  = useClientSessions(!isTrainer ? userId : undefined);
+  const query   = isTrainer ? trainer : client;
 
-  // Live updates: trainer receives realtime patches without pulling
   useRealtimeSessions(isTrainer ? userId : undefined);
   const sections = useMemo(() => groupByDay(query.data ?? []), [query.data]);
 
+  const STATUS_COLOR: Record<Session['status'], string> = {
+    scheduled: colors.success,
+    completed: colors.info,
+    canceled:  colors.danger,
+  };
+
   if (query.isLoading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
       <SectionList
         sections={sections}
         keyExtractor={(s) => s.id}
-        contentContainerStyle={[{ padding: 16 }, sections.length === 0 && { flex: 1 }]}
+        contentContainerStyle={[
+          { padding: spacing.md },
+          sections.length === 0 && { flex: 1 },
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={query.isFetching && !query.isLoading}
@@ -89,21 +94,20 @@ export default function Schedule() {
           />
         }
         renderSectionHeader={({ section }) => (
-          <Text style={styles.section}>{section.title}</Text>
+          <Text style={[styles.sectionHeader, { color: colors.muted }]}>{section.title}</Text>
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.row}
+            style={[styles.row, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
             onPress={() => router.push({ pathname: '/session/[id]', params: { id: item.id } })}
           >
             <View style={styles.rowLeft}>
-              <Text style={styles.rowTime}>
+              <Text style={[styles.rowTime, { color: colors.ink }]}>
                 {new Date(item.starts_at).toLocaleTimeString([], {
-                  hour: 'numeric',
-                  minute: '2-digit',
+                  hour: 'numeric', minute: '2-digit',
                 })}
               </Text>
-              <Text style={styles.rowMeta}>
+              <Text style={[styles.rowMeta, { color: colors.muted }]}>
                 {item.duration_min} min
                 {isTrainer && item.clientName
                   ? `  ·  ${item.clientName}`
@@ -112,7 +116,7 @@ export default function Schedule() {
                   : ''}
               </Text>
               {item.notes ? (
-                <Text style={styles.rowNotes} numberOfLines={1}>
+                <Text style={[styles.rowNotes, { color: colors.placeholder }]} numberOfLines={1}>
                   {item.notes}
                 </Text>
               ) : null}
@@ -127,57 +131,53 @@ export default function Schedule() {
                 {item.status}
               </Text>
             </View>
-            <Text style={styles.chevron}>›</Text>
+            <Text style={[styles.chevron, { color: colors.placeholder }]}>›</Text>
           </TouchableOpacity>
         )}
       />
       {isTrainer && sections.length > 0 && (
         <Link href="/session/new" asChild>
-          <TouchableOpacity style={styles.fab}>
+          <TouchableOpacity style={[styles.fab, { backgroundColor: accent }]}>
             <Text style={styles.fabText}>+ New session</Text>
           </TouchableOpacity>
         </Link>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fafafa' },
+  safe:   { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  section: {
-    fontSize: 12,
+  sectionHeader: {
+    fontSize: typography.xs,
     fontWeight: '600',
-    color: '#888',
-    marginTop: 16,
-    marginBottom: 6,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 14,
+    paddingHorizontal: spacing.md,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
   },
-  rowLeft: { flex: 1 },
-  rowTime: { fontSize: 16, fontWeight: '600' },
-  rowMeta: { fontSize: 12, color: '#666', marginTop: 2 },
-  rowNotes: { fontSize: 12, color: '#aaa', marginTop: 2, fontStyle: 'italic' },
-  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowStatus: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  chevron: { fontSize: 20, color: '#bbb' },
+  rowLeft:   { flex: 1 },
+  rowTime:   { fontSize: typography.base, fontWeight: '600' },
+  rowMeta:   { fontSize: typography.xs, marginTop: 2 },
+  rowNotes:  { fontSize: typography.xs, marginTop: 2, fontStyle: 'italic' },
+  rowRight:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rowStatus: { fontSize: typography.xs, fontWeight: '600', textTransform: 'capitalize' },
+  chevron:   { fontSize: 20 },
   fab: {
     position: 'absolute',
-    right: 16,
+    right: spacing.md,
     bottom: 24,
-    backgroundColor: '#111',
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderRadius: 30,

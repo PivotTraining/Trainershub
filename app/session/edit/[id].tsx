@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 
+import { useTheme } from '@/lib/useTheme';
 import { useSession, useUpdateSession } from '@/lib/queries/sessions';
 import { sessionUpdateSchema } from '@/lib/validators/session';
 
@@ -23,6 +24,7 @@ export default function EditSession() {
   const navigation = useNavigation();
   const { data, isLoading } = useSession(id);
   const update = useUpdateSession();
+  const { colors, accent } = useTheme();
 
   const [startsAt, setStartsAt] = useState<Date>(new Date());
   const [duration, setDuration] = useState('60');
@@ -77,20 +79,20 @@ export default function EditSession() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.label}>Date & time</Text>
+      <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.label, { color: colors.muted }]}>Date & time</Text>
         <View style={styles.row}>
           <TouchableOpacity
-            style={styles.pickerButton}
+            style={[styles.pickerButton, { borderColor: colors.borderInput }]}
             onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
           >
-            <Text style={styles.pickerButtonText}>{startsAt.toLocaleDateString()}</Text>
+            <Text style={[styles.pickerButtonText, { color: colors.ink }]}>{startsAt.toLocaleDateString()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.pickerButton}
+            style={[styles.pickerButton, { borderColor: colors.borderInput }]}
             onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
           >
-            <Text style={styles.pickerButtonText}>
+            <Text style={[styles.pickerButtonText, { color: colors.ink }]}>
               {startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </Text>
           </TouchableOpacity>
@@ -104,17 +106,17 @@ export default function EditSession() {
           />
         )}
 
-        <Text style={styles.label}>Duration (minutes)</Text>
+        <Text style={[styles.label, { color: colors.muted }]}>Duration (minutes)</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.borderInput, color: colors.ink }]}
           keyboardType="number-pad"
           value={duration}
           onChangeText={setDuration}
         />
 
-        <Text style={styles.label}>Notes</Text>
+        <Text style={[styles.label, { color: colors.muted }]}>Notes</Text>
         <TextInput
-          style={[styles.input, styles.multiline]}
+          style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink }]}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -122,14 +124,14 @@ export default function EditSession() {
         />
 
         <TouchableOpacity
-          style={[styles.button, update.isPending && styles.buttonDisabled]}
+          style={[styles.button, { backgroundColor: accent }, update.isPending && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={update.isPending}
         >
           {update.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.buttonText}>Save changes</Text>
+            <Text style={[styles.buttonText, { color: colors.white }]}>Save changes</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -140,12 +142,11 @@ export default function EditSession() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  container: { padding: 24, backgroundColor: '#fff', flexGrow: 1 },
-  label: { fontSize: 13, color: '#555', marginBottom: 6, marginTop: 16 },
+  container: { padding: 24, flexGrow: 1 },
+  label: { fontSize: 13, marginBottom: 6, marginTop: 16 },
   row: { flexDirection: 'row', gap: 8 },
   input: {
     borderWidth: 1,
-    borderColor: '#d0d0d0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -155,7 +156,6 @@ const styles = StyleSheet.create({
   pickerButton: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#d0d0d0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -163,12 +163,11 @@ const styles = StyleSheet.create({
   },
   pickerButtonText: { fontSize: 16 },
   button: {
-    backgroundColor: '#111',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 28,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { fontSize: 16, fontWeight: '600' },
 });

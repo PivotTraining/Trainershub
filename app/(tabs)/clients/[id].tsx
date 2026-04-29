@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
+import { useTheme } from '@/lib/useTheme';
 import { useClient, useDeleteClient, useUpdateClient } from '@/lib/queries/clients';
 import {
   useAssignProgram,
@@ -22,6 +23,7 @@ import {
 export default function ClientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
+  const { colors } = useTheme();
   const trainerId = session?.user.id ?? '';
 
   const clientQuery = useClient(id);
@@ -69,7 +71,7 @@ export default function ClientDetail() {
   if (clientQuery.error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{(clientQuery.error as Error).message}</Text>
+        <Text style={{ color: colors.danger }}>{(clientQuery.error as Error).message}</Text>
       </View>
     );
   }
@@ -136,11 +138,11 @@ export default function ClientDetail() {
     'Client';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 24 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ padding: 24 }}>
       {/* ── Name + email ─────────────────────────────────────────── */}
       <Text style={styles.clientName}>{displayName}</Text>
       {clientQuery.data.profile?.email ? (
-        <Text style={styles.clientEmail}>{clientQuery.data.profile.email}</Text>
+        <Text style={[styles.clientEmail, { color: colors.muted }]}>{clientQuery.data.profile.email}</Text>
       ) : null}
 
       {/* ── Header row ───────────────────────────────────────────── */}
@@ -148,18 +150,18 @@ export default function ClientDetail() {
         <Text style={styles.sectionTitle}>Client info</Text>
         {!editing ? (
           <TouchableOpacity onPress={() => setEditing(true)}>
-            <Text style={styles.editLink}>Edit</Text>
+            <Text style={[styles.editLink, { color: colors.success }]}>Edit</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.editActions}>
             <TouchableOpacity onPress={handleCancel} disabled={updateClient.isPending}>
-              <Text style={styles.cancelLink}>Cancel</Text>
+              <Text style={[styles.cancelLink, { color: colors.muted }]}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleSave} disabled={updateClient.isPending}>
               {updateClient.isPending ? (
                 <ActivityIndicator size="small" />
               ) : (
-                <Text style={styles.saveLink}>Save</Text>
+                <Text style={[styles.saveLink, { color: colors.success }]}>Save</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -167,10 +169,10 @@ export default function ClientDetail() {
       </View>
 
       {/* ── Goals ────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Goals</Text>
+      <Text style={[styles.label, { color: colors.muted }]}>Goals</Text>
       {editing ? (
         <TextInput
-          style={[styles.input, styles.multiline]}
+          style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink }]}
           value={goals}
           onChangeText={setGoals}
           multiline
@@ -181,10 +183,10 @@ export default function ClientDetail() {
       )}
 
       {/* ── Notes ────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Notes</Text>
+      <Text style={[styles.label, { color: colors.muted }]}>Notes</Text>
       {editing ? (
         <TextInput
-          style={[styles.input, styles.multiline]}
+          style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink }]}
           value={notes}
           onChangeText={setNotes}
           multiline
@@ -194,7 +196,7 @@ export default function ClientDetail() {
         <Text style={styles.value}>{clientQuery.data.notes || '—'}</Text>
       )}
 
-      <Text style={styles.label}>Added</Text>
+      <Text style={[styles.label, { color: colors.muted }]}>Added</Text>
       <Text style={styles.value}>
         {new Date(clientQuery.data.created_at).toLocaleDateString()}
       </Text>
@@ -204,12 +206,12 @@ export default function ClientDetail() {
       {assigned.isLoading ? (
         <ActivityIndicator style={{ marginTop: 8 }} />
       ) : (assigned.data ?? []).length === 0 ? (
-        <Text style={styles.muted}>None yet.</Text>
+        <Text style={[styles.muted, { color: colors.muted }]}>None yet.</Text>
       ) : (
         (assigned.data ?? []).map((p) => (
-          <View key={p.id} style={styles.programRow}>
+          <View key={p.id} style={[styles.programRow, { borderBottomColor: colors.border }]}>
             <Text style={styles.programTitle}>{p.title}</Text>
-            {p.description ? <Text style={styles.muted}>{p.description}</Text> : null}
+            {p.description ? <Text style={[styles.muted, { color: colors.muted }]}>{p.description}</Text> : null}
           </View>
         ))
       )}
@@ -217,16 +219,16 @@ export default function ClientDetail() {
       {/* ── Assign from unassigned ───────────────────────────────── */}
       {unassigned.length > 0 && (
         <>
-          <Text style={[styles.label, { marginTop: 24 }]}>Assign a program</Text>
+          <Text style={[styles.label, { marginTop: 24, color: colors.muted }]}>Assign a program</Text>
           {unassigned.map((p) => (
             <TouchableOpacity
               key={p.id}
-              style={styles.assignRow}
+              style={[styles.assignRow, { borderBottomColor: colors.border }]}
               onPress={() => handleAssign(p.id)}
               disabled={assignMut.isPending}
             >
               <Text style={styles.programTitle}>{p.title}</Text>
-              <Text style={styles.assignLink}>+ Assign</Text>
+              <Text style={[styles.assignLink, { color: colors.success }]}>+ Assign</Text>
             </TouchableOpacity>
           ))}
         </>
@@ -234,20 +236,20 @@ export default function ClientDetail() {
 
       {/* ── Danger zone ──────────────────────────────────────────── */}
       <TouchableOpacity
-        style={styles.deleteButton}
+        style={[styles.deleteButton, { borderColor: colors.danger }]}
         onPress={handleDelete}
         disabled={deleteClient.isPending}
       >
         {deleteClient.isPending
-          ? <ActivityIndicator color="#c33" />
-          : <Text style={styles.deleteText}>Remove client</Text>}
+          ? <ActivityIndicator color={colors.danger} />
+          : <Text style={[styles.deleteText, { color: colors.danger }]}>Remove client</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   headerRow: {
     flexDirection: 'row',
@@ -257,14 +259,13 @@ const styles = StyleSheet.create({
   },
   editActions: { flexDirection: 'row', gap: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700' },
-  editLink: { color: '#0a7', fontWeight: '600' },
-  cancelLink: { color: '#888' },
-  saveLink: { color: '#0a7', fontWeight: '600' },
-  label: { fontSize: 13, color: '#888', marginTop: 16, marginBottom: 4 },
+  editLink: { fontWeight: '600' },
+  cancelLink: {},
+  saveLink: { fontWeight: '600' },
+  label: { fontSize: 13, marginTop: 16, marginBottom: 4 },
   value: { fontSize: 16 },
   input: {
     borderWidth: 1,
-    borderColor: '#d0d0d0',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -272,13 +273,11 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   clientName: { fontSize: 22, fontWeight: '700' },
-  clientEmail: { fontSize: 14, color: '#888', marginTop: 2 },
-  error: { color: '#c00' },
-  muted: { color: '#666', marginTop: 4 },
+  clientEmail: { fontSize: 14, marginTop: 2 },
+  muted: { marginTop: 4 },
   programRow: {
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   programTitle: { fontSize: 15, fontWeight: '600' },
   assignRow: {
@@ -287,17 +286,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
-  assignLink: { color: '#0a7', fontWeight: '600' },
+  assignLink: { fontWeight: '600' },
   deleteButton: {
     marginTop: 40,
     borderWidth: 1,
-    borderColor: '#c33',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 24,
   },
-  deleteText: { color: '#c33', fontWeight: '600' },
+  deleteText: { fontWeight: '600' },
 });
