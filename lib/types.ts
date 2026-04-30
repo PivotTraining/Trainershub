@@ -1,12 +1,23 @@
 export type UserRole = 'trainer' | 'client';
 export type SessionStatus = 'scheduled' | 'completed' | 'canceled';
 
+export type StreakUnit = 'days' | 'weeks' | 'months';
+
 export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
   role: UserRole;
   created_at: string;
+  date_of_birth?: string | null;
+  phone?: string | null;
+  location_city?: string | null;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  streak_unit?: StreakUnit;
+  streak_count?: number;
+  streak_last_logged?: string | null;
+  liability_accepted_at?: string | null;
 }
 
 export interface Client {
@@ -127,7 +138,11 @@ export interface PackagePurchase {
   package?: Package | null;
 }
 
-export type BookingWithNames = Booking & { trainerName: string | null; clientName: string | null };
+export type BookingWithNames = Booking & {
+  trainerName: string | null;
+  clientName: string | null;
+  trainerSpecialty: string | null;
+};
 
 export interface Booking {
   id: string;

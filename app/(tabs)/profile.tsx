@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 
 import { PerformanceDashboard } from '@/components/PerformanceDashboard';
+import { ShareableProfileCard } from '@/components/ShareableProfileCard';
 import { signOut, useAuth } from '@/lib/auth';
 import { useStartStripeOnboarding } from '@/lib/queries/stripe';
 import {
@@ -75,6 +76,7 @@ export default function Profile() {
   const [sessionTypes, setSessionTypes] = useState<string[]>(['in-person']);
   const [languages, setLanguages] = useState(''); // comma-separated display
   const [vibeTags, setVibeTags] = useState<string[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
   const [instantBook, setInstantBook] = useState(false);
 
   // seed once the data arrives
@@ -274,6 +276,20 @@ export default function Profile() {
           {/* ── Trainer-only section ────────────────────────────────── */}
           {isTrainer && (
             <>
+              {/* Share-card CTA — prominent because it drives growth */}
+              <TouchableOpacity
+                style={[styles.shareCardBtn, { backgroundColor: accent }]}
+                onPress={() => setShareOpen(true)}
+              >
+                <Text style={styles.shareCardBtnEmoji}>📣</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.shareCardBtnTitle}>Share your trainer card</Text>
+                  <Text style={styles.shareCardBtnHelp}>
+                    Download a QR-coded card for Instagram, TikTok, or your website.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
               <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Trainer details</Text>
 
               <Text style={styles.label}>Bio</Text>
@@ -654,6 +670,19 @@ export default function Profile() {
 
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {isTrainer && userId && (
+        <ShareableProfileCard
+          trainerId={userId}
+          trainerName={profile?.full_name ?? 'TrainerHub Coach'}
+          specialty={trainerQuery.data?.specialties?.[0] ?? null}
+          city={trainerQuery.data?.location ?? profile?.location_city ?? null}
+          rating={trainerQuery.data?.avg_rating ?? null}
+          reviewCount={trainerQuery.data?.review_count ?? 0}
+          visible={shareOpen}
+          onClose={() => setShareOpen(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -763,6 +792,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   deleteAccountText: { color: colors.danger, fontWeight: '600' },
+  shareCardBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderRadius: 14,
+    padding: 16,
+    marginTop: spacing.lg,
+    marginBottom: 4,
+  },
+  shareCardBtnEmoji: { fontSize: 32 },
+  shareCardBtnTitle: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  shareCardBtnHelp:  { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2, lineHeight: 16 },
 
   stripeCard: {
     marginTop: spacing.xl,

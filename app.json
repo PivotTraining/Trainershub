@@ -61,6 +61,19 @@
       ],
       "@react-native-community/datetimepicker",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "TrainerHub uses your location to suggest nearby trainers.",
+          "locationWhenInUsePermission": "TrainerHub uses your location to suggest nearby trainers."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "TrainerHub adds your sessions to your device calendar so you never miss one."
+        }
+      ],
+      [
         "@stripe/stripe-react-native",
         {
           "merchantIdentifier": "merchant.com.trainerhub.app",

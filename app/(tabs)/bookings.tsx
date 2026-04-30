@@ -136,14 +136,22 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: B
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+      {/* Activity chip pulls double-duty: identifies the discipline at a glance */}
+      {booking.trainerSpecialty && (
+        <View style={[styles.activityChip, { backgroundColor: colors.surfaceRaised }]}>
+          <Text style={[styles.activityText, { color: colors.ink }]}>
+            {booking.trainerSpecialty}
+          </Text>
+        </View>
+      )}
       <View style={styles.cardTop}>
         <View style={styles.cardLeft}>
           <Text style={[styles.cardTrainer, { color: colors.ink }]}>
-            {booking.trainerName ?? 'Trainer'}
+            with {booking.trainerName ?? 'Trainer'}
           </Text>
           <Text style={[styles.cardDate, { color: colors.muted }]}>
             {bookingDate.toLocaleString([], {
-              weekday: 'short',
+              weekday: 'long',
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
@@ -151,18 +159,13 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: B
             })}
           </Text>
           <Text style={[styles.cardMeta, { color: colors.muted }]}>
-            {booking.duration_min} min
+            {booking.duration_min} min · {booking.session_type === 'in-person' ? 'In-Person' : 'Virtual'}
           </Text>
         </View>
         <View style={styles.cardRight}>
           <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
             <Text style={[styles.badgeText, { color: statusStyle.text }]}>
               {booking.status}
-            </Text>
-          </View>
-          <View style={[styles.badge, styles.typeBadge, { backgroundColor: colors.surfaceRaised, marginTop: 4 }]}>
-            <Text style={[styles.badgeText, { color: colors.muted }]}>
-              {booking.session_type === 'in-person' ? 'In-Person' : 'Virtual'}
             </Text>
           </View>
         </View>
@@ -368,8 +371,18 @@ const styles = StyleSheet.create({
   cardLeft: { flex: 1 },
   cardRight: { alignItems: 'flex-end' },
   cardTrainer: { fontSize: typography.md, fontWeight: '600' },
-  cardDate: { fontSize: typography.sm, marginTop: 2 },
-  cardMeta: { fontSize: typography.xs, marginTop: 2 },
+  cardDate: { fontSize: typography.sm, marginTop: 4, fontWeight: '500' },
+  cardMeta: { fontSize: typography.xs, marginTop: 4 },
+  activityChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    marginTop: spacing.sm,
+    marginLeft: spacing.md,
+    marginBottom: -2,
+  },
+  activityText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize', letterSpacing: 0.3 },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 3,

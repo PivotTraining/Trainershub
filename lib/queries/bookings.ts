@@ -3,13 +3,15 @@ import { supabase } from '../supabase';
 import type { Booking, BookingStatus, BookingWithNames } from '../types';
 
 const BOOKING_SELECT =
-  '*, trainer:profiles!trainer_id(full_name), client:profiles!client_id(full_name)' as const;
+  '*, trainer:profiles!trainer_id(full_name, trainer_profile:trainer_profiles(specialties)), client:profiles!client_id(full_name)' as const;
 
 function rowToBookingWithNames(row: any): BookingWithNames {
+  const specialties: string[] | undefined = row.trainer?.trainer_profile?.specialties;
   return {
     ...row,
     trainerName: row.trainer?.full_name ?? null,
     clientName: row.client?.full_name ?? null,
+    trainerSpecialty: specialties && specialties.length > 0 ? specialties[0] : null,
   };
 }
 

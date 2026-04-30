@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
+import { addSessionToDeviceCalendar } from '@/lib/calendar';
 import {
   useDeleteSession,
   useSession,
@@ -123,6 +124,24 @@ export default function SessionDetail() {
           onPress={() => router.push({ pathname: '/session/edit/[id]', params: { id: data.id } })}
         >
           <Text style={styles.editButtonText}>Edit time & duration</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* ── Add to device calendar (everyone, scheduled only) ─────── */}
+      {data.status === 'scheduled' && (
+        <TouchableOpacity
+          style={styles.calendarButton}
+          onPress={async () => {
+            const id = await addSessionToDeviceCalendar({
+              title: `Training: ${clientDisplay}`,
+              startsAt: data.starts_at,
+              durationMin: data.duration_min,
+              notes: data.notes ?? null,
+            });
+            if (id) Alert.alert('Added', 'Session added to your device calendar.');
+          }}
+        >
+          <Text style={styles.calendarButtonText}>📅 Add to device calendar</Text>
         </TouchableOpacity>
       )}
 
@@ -279,6 +298,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10, alignItems: 'center', marginBottom: 8,
   },
   editButtonText: { color: colors.inkSoft, fontWeight: '600' },
+  calendarButton: {
+    borderWidth: 1, borderColor: colors.borderInput, borderRadius: 8,
+    paddingVertical: 10, alignItems: 'center', marginBottom: 8,
+  },
+  calendarButtonText: { color: colors.inkSoft, fontWeight: '600' },
   // delete
   deleteButton: {
     borderWidth: 1, borderColor: colors.danger, borderRadius: 8,

@@ -18,6 +18,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/Avatar';
+import { FindMatchCard } from '@/components/FindMatchCard';
+import { NotificationsNudge } from '@/components/NotificationsNudge';
+import { StreakCard } from '@/components/StreakCard';
+import { TrainerDashboard } from '@/components/TrainerDashboard';
+import { WeatherWidget } from '@/components/WeatherWidget';
 import { useAuth } from '@/lib/auth';
 import { usePreferences } from '@/lib/preferences';
 import { useClients } from '@/lib/queries/clients';
@@ -92,31 +97,43 @@ export default function Home() {
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
       >
-        {/* ── Greeting ──────────────────────────────────────────────── */}
-        <Text style={s.greeting}>{greeting}</Text>
-        <Text style={s.subtitle}>
-          {isTrainer ? 'Your training dashboard' : 'Your fitness journey'}
-        </Text>
-
-        {/* ── Stats row (trainer) ───────────────────────────────────── */}
-        {isTrainer && (
-          <View style={s.statsRow}>
-            <View style={s.statCard}>
-              <Text style={s.statVal}>{clientsQ.data?.length ?? '—'}</Text>
-              <Text style={s.statLabel}>{showEmoji ? '👥 ' : ''}Clients</Text>
-            </View>
-            <View style={s.statCard}>
-              <Text style={s.statVal}>{thisWeek.length}</Text>
-              <Text style={s.statLabel}>{showEmoji ? '📅 ' : ''}This week</Text>
-            </View>
-            <View style={s.statCard}>
-              <Text style={s.statVal}>{completed.length}</Text>
-              <Text style={s.statLabel}>{showEmoji ? '✅ ' : ''}Done</Text>
-            </View>
+        {/* ── Header: greeting + weather pill ──────────────────────── */}
+        <View style={s.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.greeting}>{greeting}</Text>
+            <Text style={s.subtitle}>
+              {isTrainer ? 'Your training dashboard' : 'Your training journey'}
+            </Text>
           </View>
+          <WeatherWidget
+            lat={profile?.location_lat}
+            lng={profile?.location_lng}
+            city={profile?.location_city}
+          />
+        </View>
+
+        {/* ── Notifications nudge ──────────────────────────────────── */}
+        <NotificationsNudge />
+
+        {/* ── Find-your-match (clients only) ───────────────────────── */}
+        {!isTrainer && <FindMatchCard />}
+
+        {/* ── Streak (clients only) ────────────────────────────────── */}
+        {!isTrainer && userId && (
+          <StreakCard
+            userId={userId}
+            count={profile?.streak_count ?? 0}
+            unit={profile?.streak_unit ?? 'days'}
+            lastLogged={profile?.streak_last_logged}
+          />
         )}
 
-        {/* ── Next session card ─────────────────────────────────────── */}
+        {/* ── Trainer dashboard (revenue / monetization focus) ─────── */}
+        {isTrainer && userId && <TrainerDashboard trainerId={userId} />}
+
+        {/* ── Next session card (clients only — trainer dashboard has its own) ─ */}
+        {!isTrainer && (
+          <>
         <Text style={s.sectionTitle}>
           {showEmoji ? '⏰ ' : ''}Next session
         </Text>
@@ -167,8 +184,11 @@ export default function Home() {
           </View>
         )}
 
+          </>
+        )}
+
         {/* ── Upcoming queue (trainer) ──────────────────────────────── */}
-        {isTrainer && upcoming.length > 1 && (
+        {isTrainer && false && upcoming.length > 1 && (
           <>
             <Text style={s.sectionTitle}>{showEmoji ? '📋 ' : ''}Up next</Text>
             {upcoming.slice(1, 4).map((sess) => (
@@ -227,8 +247,9 @@ function makeStyles(
   return StyleSheet.create({
     safe:     { flex: 1, backgroundColor: colors.background },
     scroll:   { padding: 24, paddingBottom: 40 },
+    headerRow:{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
     greeting: { fontSize: 26, fontWeight: '800', color: colors.ink },
-    subtitle: { fontSize: 14, color: colors.muted, marginTop: 2, marginBottom: 24 },
+    subtitle: { fontSize: 14, color: colors.muted, marginTop: 2 },
 
     // stats
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
