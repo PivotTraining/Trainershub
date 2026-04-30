@@ -16,8 +16,10 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your sessions.",
-        "ITSAppUsesNonExemptEncryption": false
+        "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your training sessions.",
+        "NSPhotoLibraryAddUsageDescription": "TrainerHub saves your shareable trainer card to your photo library when you tap Save.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["mailto", "tel"]
       }
     },
     "android": {
