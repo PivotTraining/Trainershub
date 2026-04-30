@@ -14,9 +14,9 @@
 set -euo pipefail
 
 # ── FILL THESE IN ─────────────────────────────────────────────────────────────
-SUPABASE_PROJECT_REF="REPLACE_WITH_YOUR_PROJECT_REF"   # e.g. abcdefghijklmno
-STRIPE_SECRET_KEY="sk_live_REPLACE"                    # Stripe Dashboard → API keys → Secret key
-STRIPE_WEBHOOK_SECRET="whsec_REPLACE"                  # Stripe Dashboard → Webhooks → Signing secret
+SUPABASE_PROJECT_REF="${SUPABASE_PROJECT_REF:-YOUR_PROJECT_REF}"
+STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-YOUR_STRIPE_SECRET_KEY}"
+STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-YOUR_STRIPE_WEBHOOK_SECRET}"
 # ──────────────────────────────────────────────────────────────────────────────
 
 PLATFORM_FEE_PERCENT="4"

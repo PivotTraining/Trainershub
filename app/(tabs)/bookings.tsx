@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripe } from '@/lib/stripe';
 
 import { useAuth } from '@/lib/auth';
 import { useMyBookingsAsClient, useUpdateBookingStatus } from '@/lib/queries/bookings';
