@@ -79,6 +79,9 @@ export function useCreateBooking() {
   });
 }
 
+/** Alias for useMyBookingsAsTrainer — keeps import lines tidy in TrainerDashboard. */
+export const useBookings = useMyBookingsAsTrainer;
+
 export function useUpdateBookingStatus(trainerId: string) {
   const qc = useQueryClient();
   return useMutation({
