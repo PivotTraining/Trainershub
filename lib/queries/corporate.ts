@@ -206,18 +206,37 @@ export function usePendingInvites(acctId: string | undefined) {
   });
 }
 
+/** Fire the corporate-invite Edge Function to send emails for the given invite IDs. */
+async function dispatchInviteEmails(inviteIds: string[]): Promise<void> {
+  if (inviteIds.length === 0) return;
+  // Best-effort — don't throw if the email step fails (invite row already exists)
+  try {
+    const { error } = await supabase.functions.invoke('corporate-invite', {
+      body: { inviteIds },
+    });
+    if (error) console.warn('corporate-invite function error:', error.message);
+  } catch (err) {
+    console.warn('corporate-invite dispatch failed:', err);
+  }
+}
+
 export function useInviteMember() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: InviteMemberPayload) => {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase.from('corporate_invites').insert({
-        corporate_account_id: payload.corporate_account_id,
-        email:                payload.email.toLowerCase().trim(),
-        invited_by:           user.id,
-      });
+      const { data, error } = await supabase
+        .from('corporate_invites')
+        .insert({
+          corporate_account_id: payload.corporate_account_id,
+          email:                payload.email.toLowerCase().trim(),
+          invited_by:           user.id,
+        })
+        .select('id')
+        .single();
       if (error) throw new Error(error.message);
+      await dispatchInviteEmails([data.id]);
     },
     onSuccess: (_data, payload) =>
       qc.invalidateQueries({ queryKey: corpKeys.invites(payload.corporate_account_id) }),
@@ -235,11 +254,14 @@ export function useBulkInviteMembers() {
         email:                e.toLowerCase().trim(),
         invited_by:           user.id,
       }));
-      // upsert to skip duplicates gracefully
-      const { error } = await supabase
+      // upsert to skip duplicates gracefully, return inserted IDs
+      const { data, error } = await supabase
         .from('corporate_invites')
-        .upsert(rows, { onConflict: 'corporate_account_id,email', ignoreDuplicates: true });
+        .upsert(rows, { onConflict: 'corporate_account_id,email', ignoreDuplicates: true })
+        .select('id');
       if (error) throw new Error(error.message);
+      const ids = (data ?? []).map((r) => r.id);
+      await dispatchInviteEmails(ids);
     },
     onSuccess: (_data, payload) =>
       qc.invalidateQueries({ queryKey: corpKeys.invites(payload.corporate_account_id) }),
