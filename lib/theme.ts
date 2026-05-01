@@ -1,11 +1,11 @@
 /**
  * Design tokens — colours, spacing, radius, typography.
  *
- * The brand uses a sky-blue → indigo gradient (matching the Logo chevron).
- * All palettes are built around that anchor so the system feels coherent.
+ * Palette direction: warm & human. Inspired by boutique studio apps,
+ * Airbnb, and Apple/Calm. Ivory/cream light mode, warm brown-black dark mode.
+ * No cold navy, no blue-lavender tints.
  *
- * New code should pull the active palette via `useTheme()` (lib/useTheme.ts),
- * which resolves dark/light and accent colour from user preferences.
+ * New code should pull the active palette via `useTheme()` (lib/useTheme.ts).
  * The `colors` export is kept for backward-compat with existing screens.
  */
 
@@ -43,72 +43,72 @@ export const typography = {
   display: 32,
 } as const;
 
-// ── Light palette ──────────────────────────────────────────────────────────────
-// Slightly blue-tinted whites give the UI life vs flat grey. Deep indigo-black
-// ink reads richer than pure #111.
+// ── Light palette — warm ivory ─────────────────────────────────────────────────
+// Inspired by Airbnb, Calm, and boutique studio apps.
+// Warm ivory background, brown-black ink — human and approachable.
 
 export const lightColors = {
-  background:    '#F5F6FF',   // very light lavender-white — alive, not grey
+  background:    '#F7F5F2',   // warm ivory — alive without shouting
   surface:       '#FFFFFF',
-  surfaceCard:   '#FFFFFF',
-  surfaceRaised: '#ECEEFF',   // indigo-tinted elevated surface
+  surfaceCard:   '#FFFEFB',   // barely-warm white cards
+  surfaceRaised: '#EDE9E3',   // warm sand for elevated elements
 
-  ink:         '#0D0D24',     // deep indigo-black — warmer than pure black
-  inkSoft:     '#2A2A4A',
-  muted:       '#7070A0',     // cool-tinted muted — not plain grey
-  placeholder: '#ABABC8',
-  disabled:    '#C8C8DC',
+  ink:         '#1A1512',     // warm brown-black — richer than cold #111
+  inkSoft:     '#3D342C',
+  muted:       '#8B7D73',     // warm grey-brown — not cold grey
+  placeholder: '#B5A89F',
+  disabled:    '#D4C8C0',
 
-  border:      '#E4E4F0',     // slightly warm border
-  borderInput: '#CACAD8',
+  border:      '#E5DDD6',     // warm border
+  borderInput: '#C8BDB4',
 
-  success:          '#059669',
-  successBg:        '#D1FAE5',
-  info:             '#0284C7',
-  infoBg:           '#E0F2FE',
-  danger:           '#DC2626',
-  dangerBg:         '#FEE2E2',
-  warning:          '#D97706',
+  success:          '#2D6A4F',
+  successBg:        '#D8F0E4',
+  info:             '#1D5FA5',
+  infoBg:           '#EBF2FF',
+  danger:           '#C0392B',
+  dangerBg:         '#FDECEA',
+  warning:          '#B45309',
   warningBg:        '#FEF3C7',
 
-  statusScheduled:  '#059669',
-  statusCompleted:  '#0284C7',
-  statusCanceled:   '#DC2626',
+  statusScheduled:  '#2D6A4F',
+  statusCompleted:  '#1D5FA5',
+  statusCanceled:   '#C0392B',
 
   white: '#FFFFFF',
   black: '#000000',
 } as const;
 
-// ── Dark palette ───────────────────────────────────────────────────────────────
-// Deep navy-black rather than system grey — feels premium and high-contrast.
-// Surfaces step up clearly from background so cards have real depth.
+// ── Dark palette — warm premium ────────────────────────────────────────────────
+// Deep warm brown-black. Think Whoop or a premium leather notebook.
+// Surfaces step clearly so cards have real depth.
 
 export const darkColors = {
-  background:    '#090915',   // deep navy-black
-  surface:       '#11112A',
-  surfaceCard:   '#1A1A35',
-  surfaceRaised: '#242445',
+  background:    '#131009',   // warm deep brown-black
+  surface:       '#1E1A12',
+  surfaceCard:   '#272218',
+  surfaceRaised: '#332E22',
 
-  ink:         '#EDEDFF',     // slightly blue-white — easy on eyes
-  inkSoft:     '#C0C0E8',
-  muted:       '#8080AA',
-  placeholder: '#50507A',
-  disabled:    '#30304A',
+  ink:         '#F5F0E8',     // warm off-white — easy on eyes
+  inkSoft:     '#D4C9B8',
+  muted:       '#8A7D6C',     // warm muted
+  placeholder: '#5A5040',
+  disabled:    '#3A3228',
 
-  border:      '#25253D',
-  borderInput: '#353558',
+  border:      '#302A1E',
+  borderInput: '#40382A',
 
   success:          '#34D399',
   successBg:        '#05200F',
-  info:             '#38BDF8',
-  infoBg:           '#041825',
+  info:             '#60A5FA',
+  infoBg:           '#051525',
   danger:           '#F87171',
   dangerBg:         '#250808',
   warning:          '#FBBF24',
   warningBg:        '#221500',
 
   statusScheduled:  '#34D399',
-  statusCompleted:  '#38BDF8',
+  statusCompleted:  '#60A5FA',
   statusCanceled:   '#F87171',
 
   white: '#FFFFFF',
@@ -121,26 +121,27 @@ export type ColorPalette = { [K in keyof typeof lightColors]: string };
 
 export const colors: ColorPalette = lightColors;
 
-// ── Brand gradient stops (matches Logo chevron) ────────────────────────────────
+// ── Brand gradient (logo chevron) ─────────────────────────────────────────────
+// Kept for the Logo component — not used as a UI motif in the warm redesign.
 
 export const BRAND_GRADIENT = {
-  start: '#0EA5E9',   // sky-400
-  end:   '#6366F1',   // indigo-500
+  start: '#0EA5E9',
+  end:   '#6366F1',
 } as const;
 
-// ── Avatar colour pool ─────────────────────────────────────────────────────────
+// ── Avatar colour pool — warmer, earthier swatches ────────────────────────────
 
 export const AVATAR_SWATCHES: { bg: string; fg: string }[] = [
-  { bg: '#EEF2FF', fg: '#4338CA' }, // indigo
-  { bg: '#E0F2FE', fg: '#0369A1' }, // sky
-  { bg: '#D1FAE5', fg: '#065F46' }, // emerald
-  { bg: '#FEE2E2', fg: '#991B1B' }, // red
   { bg: '#FEF3C7', fg: '#92400E' }, // amber
-  { bg: '#F3E8FF', fg: '#6B21A8' }, // violet
+  { bg: '#FEE2E2', fg: '#991B1B' }, // red
+  { bg: '#D1FAE5', fg: '#065F46' }, // emerald
   { bg: '#FCE7F3', fg: '#9D174D' }, // pink
-  { bg: '#CFFAFE', fg: '#155E75' }, // cyan
+  { bg: '#F3E8FF', fg: '#6B21A8' }, // violet
   { bg: '#FED7AA', fg: '#9A3412' }, // orange
-  { bg: '#F0FDF4', fg: '#166534' }, // green
+  { bg: '#CFFAFE', fg: '#155E75' }, // cyan
+  { bg: '#EEF2FF', fg: '#4338CA' }, // indigo
+  { bg: '#E0E7FF', fg: '#3730A3' }, // blue
+  { bg: '#ECFDF5', fg: '#065F46' }, // green
 ];
 
 /** Deterministic swatch from any string seed (client name, user id…). */

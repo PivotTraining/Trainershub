@@ -20,12 +20,12 @@ import {
 // ── Accent colours ─────────────────────────────────────────────────────────────
 
 export const ACCENT_COLORS = {
-  indigo:  { label: 'Indigo',  value: '#6366F1' }, // matches logo gradient end
-  sky:     { label: 'Sky',     value: '#0EA5E9' }, // matches logo gradient start
-  coral:   { label: 'Coral',   value: '#F97316' }, // energy / warmth
-  emerald: { label: 'Emerald', value: '#10B981' }, // nature / health
-  violet:  { label: 'Violet',  value: '#8B5CF6' }, // premium
-  rose:    { label: 'Rose',    value: '#F43F5E' }, // intensity / passion
+  amber:      { label: 'Amber',      value: '#D97706' }, // warm gold — default
+  terracotta: { label: 'Terracotta', value: '#D05C38' }, // bold warm orange-red
+  sage:       { label: 'Sage',       value: '#4A7C6E' }, // health / wellness / nature
+  plum:       { label: 'Plum',       value: '#7C3D8C' }, // sophisticated, premium
+  slate:      { label: 'Slate',      value: '#475569' }, // Apple-ish neutral
+  crimson:    { label: 'Crimson',    value: '#BE1B48' }, // bold, passionate
 } as const;
 
 export type AccentKey = keyof typeof ACCENT_COLORS;
@@ -51,7 +51,7 @@ interface PreferencesCtx extends Preferences {
 const DEFAULTS: Preferences = {
   darkMode: 'system',
   showEmoji: true,
-  accentColor: 'indigo',
+  accentColor: 'amber',
 };
 
 const STORAGE_KEY = '@trainerhub/preferences';

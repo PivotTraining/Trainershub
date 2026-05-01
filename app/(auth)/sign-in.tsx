@@ -1,10 +1,12 @@
 /**
- * Sign-in screen — OTP email flow.
+ * Sign-in screen — email OTP flow.
  *
- * Visual approach: the brand gradient (sky → indigo) is used as decorative
- * SVG blobs behind the content, giving the screen energy without being loud.
- * The CTA button carries the full gradient so it reads as the primary action.
- * Works in both light and dark mode.
+ * Visual approach: warm split-screen.
+ * - Top ~42% of screen: solid accent colour with logo + tagline in white.
+ *   The colour IS the design — no blobs, no gradients needed.
+ * - Bottom ~58%: white card with generous rounded top corners slides over
+ *   the colour area. Role toggle lives inside the card as a tab row.
+ * - Clean, human, Airbnb/Apple Calm inspired.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
@@ -13,6 +15,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -20,99 +23,73 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  LinearGradient,
-  Rect,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg';
 
 import { Logo } from '@/components/Logo';
 import { signInWithOtp, verifyOtp } from '@/lib/auth';
-import { BRAND_GRADIENT } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
 type Mode = 'client' | 'trainer';
+type Stage = 'email' | 'token';
 
-// ── Gradient button ────────────────────────────────────────────────────────────
+// ── Role toggle tab ────────────────────────────────────────────────────────────
 
-interface GradientButtonProps {
-  label: string;
-  onPress: () => void;
-  loading?: boolean;
-  disabled?: boolean;
+interface RoleTabProps {
+  mode: Mode;
+  onSwitch: (m: Mode) => void;
+  accent: string;
+  colors: ReturnType<typeof useTheme>['colors'];
 }
 
-function GradientButton({ label, onPress, loading, disabled }: GradientButtonProps) {
+function RoleTab({ mode, onSwitch, accent, colors }: RoleTabProps) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.82}
-      style={{ marginBottom: 12, opacity: disabled && !loading ? 0.6 : 1 }}
-    >
-      <Svg height={52} width="100%" style={{ borderRadius: 14 }}>
-        <Defs>
-          <LinearGradient id="btnGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <Stop offset="0%" stopColor={BRAND_GRADIENT.start} />
-            <Stop offset="100%" stopColor={BRAND_GRADIENT.end} />
-          </LinearGradient>
-        </Defs>
-        <Rect rx={14} fill="url(#btnGrad)" width="100%" height={52} />
-      </Svg>
-      {/* Overlay the text / spinner — positioned over the SVG */}
-      <View style={s.gradBtnOverlay} pointerEvents="none">
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={s.gradBtnText}>{label}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ── Background decoration ──────────────────────────────────────────────────────
-
-function BackgroundBlobs({ isDark }: { isDark: boolean }) {
-  // Large blob top-right, smaller blob bottom-left — echoes the logo gradient.
-  const opacity = isDark ? 0.18 : 0.12;
-  return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      <Svg width="100%" height="100%">
-        <Defs>
-          <LinearGradient id="blobA" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={BRAND_GRADIENT.start} stopOpacity={opacity} />
-            <Stop offset="100%" stopColor={BRAND_GRADIENT.end} stopOpacity={opacity * 0.6} />
-          </LinearGradient>
-          <LinearGradient id="blobB" x1="100%" y1="100%" x2="0%" y2="0%">
-            <Stop offset="0%" stopColor={BRAND_GRADIENT.end} stopOpacity={opacity} />
-            <Stop offset="100%" stopColor={BRAND_GRADIENT.start} stopOpacity={0} />
-          </LinearGradient>
-        </Defs>
-        {/* Large circle top-right */}
-        <Circle cx="110%" cy="-8%" r="48%" fill="url(#blobA)" />
-        {/* Medium circle bottom-left */}
-        <Circle cx="-15%" cy="92%" r="40%" fill="url(#blobB)" />
-        {/* Small accent mid-right */}
-        <Circle cx="95%" cy="55%" r="12%" fill={BRAND_GRADIENT.end} fillOpacity={isDark ? 0.07 : 0.05} />
-      </Svg>
+    <View style={[tab.wrap, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
+      <Pressable
+        style={[tab.btn, mode === 'client' && { backgroundColor: accent }]}
+        onPress={() => onSwitch('client')}
+      >
+        <Text style={[tab.label, { color: mode === 'client' ? '#fff' : colors.muted }]}>
+          I'm a client
+        </Text>
+      </Pressable>
+      <Pressable
+        style={[tab.btn, mode === 'trainer' && { backgroundColor: accent }]}
+        onPress={() => onSwitch('trainer')}
+      >
+        <Text style={[tab.label, { color: mode === 'trainer' ? '#fff' : colors.muted }]}>
+          I'm a trainer
+        </Text>
+      </Pressable>
     </View>
   );
 }
 
+const tab = StyleSheet.create({
+  wrap:  {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 3,
+    marginBottom: 24,
+  },
+  btn:   {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  label: { fontSize: 13, fontWeight: '600' },
+});
+
 // ── Screen ─────────────────────────────────────────────────────────────────────
 
 export default function SignIn() {
-  const { colors, accent, isDark, spacing, radius } = useTheme();
-  const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
-  const [stage, setStage] = useState<'email' | 'token'>('email');
+  const { colors, accent, isDark } = useTheme();
+  const [email, setEmail]       = useState('');
+  const [token, setToken]       = useState('');
+  const [stage, setStage]       = useState<Stage>('email');
   const [submitting, setSubmitting] = useState(false);
-  const [mode, setMode] = useState<Mode>('client');
+  const [mode, setMode]         = useState<Mode>('client');
 
   useEffect(() => {
     AsyncStorage.getItem(PREFERRED_ROLE_KEY).then((v) => {
@@ -139,7 +116,7 @@ export default function SignIn() {
       if (/rate limit|over.?email|too many/i.test(msg)) {
         Alert.alert(
           'Too many sign-in emails',
-          "We've hit the email rate limit for now. Wait a couple minutes and try again — or if you've already received a code recently, just enter it below.",
+          "We've hit the email rate limit. Wait a moment and try again — or enter a code you already received.",
           [
             { text: 'Enter code', onPress: () => setStage('token') },
             { text: 'OK', style: 'cancel' },
@@ -173,59 +150,43 @@ export default function SignIn() {
 
   const isTrainerMode = mode === 'trainer';
 
-  return (
-    <SafeAreaView style={[s.safe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <BackgroundBlobs isDark={isDark} />
+  // Card background adapts to dark mode
+  const cardBg = isDark ? colors.surfaceCard : '#FFFFFF';
 
-      {/* Role toggle pill — top-right */}
-      <View style={s.topBar}>
-        <TouchableOpacity
-          onPress={() => switchMode(isTrainerMode ? 'client' : 'trainer')}
-          style={[s.modePill, { borderColor: colors.border, backgroundColor: colors.surfaceCard }]}
-        >
-          <Text style={[s.modePillText, { color: colors.muted }]}>
-            {isTrainerMode ? "I'm a client →" : "I'm a trainer →"}
-          </Text>
-        </TouchableOpacity>
+  return (
+    <SafeAreaView style={[s.root, { backgroundColor: accent }]} edges={['top']}>
+
+      {/* ── Colour band — top portion ──────────────────────────── */}
+      <View style={s.colorBand}>
+        {/* background="none" = just the white chevron mark, no box */}
+        <Logo size={52} color="#fff" background="none" />
+        <Text style={s.brandName}>TrainerHub</Text>
+        <Text style={s.tagline}>
+          {isTrainerMode
+            ? 'Coach smarter. Get paid faster.'
+            : 'Find the trainer who gets it done.'}
+        </Text>
       </View>
 
+      {/* ── White card — slides up over colour band ────────────── */}
       <KeyboardAvoidingView
-        style={[s.container, { paddingHorizontal: spacing.lg }]}
+        style={[s.card, { backgroundColor: cardBg }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* ── Brand ─────────────────────────────────────────────────── */}
-        <View style={s.brandRow}>
-          <Logo size={56} />
-          <Text style={[s.brandName, { color: colors.ink }]}>TrainerHub</Text>
-        </View>
+        {/* Role toggle — inside card */}
+        {stage === 'email' && (
+          <RoleTab mode={mode} onSwitch={switchMode} accent={accent} colors={colors} />
+        )}
 
-        <Text style={[s.tagline, { color: colors.ink }]}>
-          {isTrainerMode
-            ? 'Coach smarter.\nGet paid faster.'
-            : 'Find the trainer who\ngets it done.'}
-        </Text>
-
-        <Text style={[s.subtitle, { color: colors.muted }]}>
-          {stage === 'email'
-            ? isTrainerMode
-              ? 'Sign in to your trainer account with your email.'
-              : 'Sign in or create an account with your email.'
-            : 'Enter the 6-digit code we sent to your email.'}
-        </Text>
-
-        {/* ── Form ──────────────────────────────────────────────────── */}
         {stage === 'email' ? (
           <>
+            <Text style={[s.formLabel, { color: colors.muted }]}>Email address</Text>
             <TextInput
-              style={[
-                s.input,
-                {
-                  borderColor: colors.borderInput,
-                  color: colors.ink,
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.md,
-                },
-              ]}
+              style={[s.input, {
+                borderColor: colors.borderInput,
+                color: colors.ink,
+                backgroundColor: colors.background,
+              }]}
               placeholder="you@example.com"
               placeholderTextColor={colors.placeholder}
               autoCapitalize="none"
@@ -235,29 +196,30 @@ export default function SignIn() {
               onChangeText={setEmail}
               editable={!submitting}
             />
-            <GradientButton
-              label="Send code"
+
+            <TouchableOpacity
+              style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
               onPress={handleSendOtp}
-              loading={submitting}
               disabled={submitting}
-            />
+              activeOpacity={0.82}
+            >
+              {submitting
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnText}>Send code</Text>
+              }
+            </TouchableOpacity>
           </>
         ) : (
           <>
+            <Text style={[s.formLabel, { color: colors.muted }]}>
+              Check your email — enter the 6-digit code
+            </Text>
             <TextInput
-              style={[
-                s.input,
-                {
-                  borderColor: colors.borderInput,
-                  color: colors.ink,
-                  backgroundColor: colors.surface,
-                  borderRadius: radius.md,
-                  letterSpacing: 6,
-                  textAlign: 'center',
-                  fontSize: 22,
-                  fontWeight: '700',
-                },
-              ]}
+              style={[s.input, s.codeInput, {
+                borderColor: colors.borderInput,
+                color: colors.ink,
+                backgroundColor: colors.background,
+              }]}
               placeholder="• • • • • •"
               placeholderTextColor={colors.placeholder}
               keyboardType="number-pad"
@@ -266,12 +228,19 @@ export default function SignIn() {
               editable={!submitting}
               maxLength={6}
             />
-            <GradientButton
-              label="Verify code"
+
+            <TouchableOpacity
+              style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
               onPress={handleVerify}
-              loading={submitting}
               disabled={submitting}
-            />
+              activeOpacity={0.82}
+            >
+              {submitting
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={s.btnText}>Verify code</Text>
+              }
+            </TouchableOpacity>
+
             <TouchableOpacity onPress={() => setStage('email')} disabled={submitting}>
               <Text style={[s.linkText, { color: accent }]}>← Use a different email</Text>
             </TouchableOpacity>
@@ -279,9 +248,9 @@ export default function SignIn() {
         )}
 
         <Text style={[s.disclaimer, { color: colors.placeholder }]}>
-          By continuing you agree that TrainerHub is a marketplace and is{' '}
-          <Text style={{ fontWeight: '700', color: colors.muted }}>not responsible</Text> for the{' '}
-          {isTrainerMode ? 'trainers or clients' : 'trainers'} you meet through it.
+          By continuing you agree TrainerHub is a marketplace and is{' '}
+          <Text style={{ fontWeight: '700', color: colors.muted }}>not responsible</Text>
+          {' '}for the {isTrainerMode ? 'trainers or clients' : 'trainers'} you meet through it.
         </Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -290,36 +259,94 @@ export default function SignIn() {
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
+const CARD_RADIUS = 32;
+
 const s = StyleSheet.create({
-  safe:       { flex: 1 },
-  topBar:     { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, paddingTop: 8 },
-  modePill:   { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 24, borderWidth: 1 },
-  modePillText: { fontSize: 12, fontWeight: '700' },
+  root: { flex: 1 },
 
-  container:  { flex: 1, justifyContent: 'center', paddingBottom: 32 },
+  // ── Colour band ──────────────────────────────────────────────
+  colorBand: {
+    // Fixed height — tall enough to feel bold, small enough to leave room for the card
+    minHeight: 240,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 28,
+    paddingBottom: 36,
+    gap: 10,
+  },
+  brandName: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#fff',
+    letterSpacing: -0.5,
+  },
+  tagline: {
+    fontSize: 17,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 24,
+  },
 
-  brandRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
-  brandName:  { fontSize: 34, fontWeight: '900', letterSpacing: -0.5 },
+  // ── White card ────────────────────────────────────────────────
+  card: {
+    flex: 1,
+    borderTopLeftRadius:  CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 48,
+    // Shadow casting up onto the colour band
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 12,
+  },
 
-  tagline:    { fontSize: 26, fontWeight: '800', lineHeight: 33, marginBottom: 10, letterSpacing: -0.3 },
-  subtitle:   { fontSize: 15, marginBottom: 28, lineHeight: 22, fontWeight: '400' },
-
+  // ── Form ─────────────────────────────────────────────────────
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
   input: {
     borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     marginBottom: 16,
   },
-
-  // Gradient button — SVG takes the visual space, overlay carries the label
-  gradBtnOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
+  codeInput: {
+    textAlign: 'center',
+    letterSpacing: 8,
+    fontSize: 24,
+    fontWeight: '700',
   },
-  gradBtnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
 
-  linkText:    { textAlign: 'center', marginTop: 4, fontSize: 14, fontWeight: '600' },
-  disclaimer:  { fontSize: 11, marginTop: 28, lineHeight: 16, textAlign: 'center' },
+  // ── Button ───────────────────────────────────────────────────
+  btn: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
+
+  linkText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 2,
+    marginBottom: 16,
+  },
+  disclaimer: {
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: 8,
+  },
 });
