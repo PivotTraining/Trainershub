@@ -20,12 +20,12 @@ import {
 // ── Accent colours ─────────────────────────────────────────────────────────────
 
 export const ACCENT_COLORS = {
-  ink:    { label: 'Ink',    value: '#111111' },
-  ocean:  { label: 'Ocean',  value: '#0052CC' },
-  forest: { label: 'Forest', value: '#00875A' },
-  ember:  { label: 'Ember',  value: '#D45A00' },
-  berry:  { label: 'Berry',  value: '#6B21A8' },
-  rose:   { label: 'Rose',   value: '#B91C1C' },
+  indigo:  { label: 'Indigo',  value: '#6366F1' }, // matches logo gradient end
+  sky:     { label: 'Sky',     value: '#0EA5E9' }, // matches logo gradient start
+  coral:   { label: 'Coral',   value: '#F97316' }, // energy / warmth
+  emerald: { label: 'Emerald', value: '#10B981' }, // nature / health
+  violet:  { label: 'Violet',  value: '#8B5CF6' }, // premium
+  rose:    { label: 'Rose',    value: '#F43F5E' }, // intensity / passion
 } as const;
 
 export type AccentKey = keyof typeof ACCENT_COLORS;
@@ -51,7 +51,7 @@ interface PreferencesCtx extends Preferences {
 const DEFAULTS: Preferences = {
   darkMode: 'system',
   showEmoji: true,
-  accentColor: 'ink',
+  accentColor: 'indigo',
 };
 
 const STORAGE_KEY = '@trainerhub/preferences';
@@ -78,6 +78,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       .then((raw) => {
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<Preferences>;
+          // Migrate stale accent key — drop it so the default kicks in.
+          if (parsed.accentColor && !(parsed.accentColor in ACCENT_COLORS)) {
+            delete parsed.accentColor;
+          }
           setPrefs((prev) => ({ ...prev, ...parsed }));
         }
       })

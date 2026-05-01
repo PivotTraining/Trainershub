@@ -32,7 +32,9 @@ export function useTheme(): Theme {
     (darkMode === 'system' && system === 'dark');
 
   const palette: ColorPalette = isDark ? darkColors : lightColors;
-  const accent = ACCENT_COLORS[accentColor]?.value ?? '#111111';
+  // Fall back to indigo (the brand default) if the stored key no longer exists
+  // — this handles migrations when accent colour options are updated.
+  const accent = ACCENT_COLORS[accentColor]?.value ?? ACCENT_COLORS.indigo.value;
 
   return { colors: palette, accent, isDark, spacing, radius, typography };
 }

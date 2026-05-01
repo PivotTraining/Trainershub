@@ -2,16 +2,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 
 import { useAuth } from '@/lib/auth';
+import { useTheme } from '@/lib/useTheme';
 
 export default function TabsLayout() {
   const { session, profile, loading } = useAuth();
+  const { colors, accent, isDark } = useTheme();
+
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/sign-in" />;
 
   const isTrainer = profile?.role === 'trainer';
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: '#111' }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+        headerStyle: {
+          backgroundColor: colors.surface,
+        },
+        headerTintColor: colors.ink,
+        headerShadowVisible: false,
+      }}
+    >
       {/* ── Shared: Home ─────────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"

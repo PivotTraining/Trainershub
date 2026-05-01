@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 import { Avatar } from '@/components/Avatar';
 import { FindMatchCard } from '@/components/FindMatchCard';
@@ -28,6 +29,7 @@ import { usePreferences } from '@/lib/preferences';
 import { useClients } from '@/lib/queries/clients';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
+import { BRAND_GRADIENT } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -96,22 +98,41 @@ export default function Home() {
       <ScrollView
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
+        showsVerticalScrollIndicator={false}
       >
-        {/* ── Header: greeting + weather pill ──────────────────────── */}
-        <View style={s.headerRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.greeting}>{greeting}</Text>
-            <Text style={s.subtitle}>
-              {isTrainer ? 'Your training dashboard' : 'Your training journey'}
-            </Text>
+        {/* ── Gradient hero header ──────────────────────────────────── */}
+        <View style={s.hero}>
+          <Svg style={StyleSheet.absoluteFillObject}>
+            <Defs>
+              <LinearGradient id="heroA" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={BRAND_GRADIENT.start} stopOpacity="0.18" />
+                <Stop offset="1" stopColor={BRAND_GRADIENT.end} stopOpacity="0.06" />
+              </LinearGradient>
+              <LinearGradient id="heroB" x1="1" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={BRAND_GRADIENT.end} stopOpacity="0.14" />
+                <Stop offset="1" stopColor={BRAND_GRADIENT.start} stopOpacity="0" />
+              </LinearGradient>
+            </Defs>
+            <Circle cx="105%" cy="-20%" r="55%" fill="url(#heroA)" />
+            <Circle cx="-10%" cy="120%" r="40%" fill="url(#heroB)" />
+          </Svg>
+
+          <View style={s.headerRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.greeting}>{greeting}</Text>
+              <Text style={s.subtitle}>
+                {isTrainer ? 'Your training dashboard' : 'Your training journey'}
+              </Text>
+            </View>
+            <WeatherWidget
+              lat={profile?.location_lat}
+              lng={profile?.location_lng}
+              city={profile?.location_city}
+            />
           </View>
-          <WeatherWidget
-            lat={profile?.location_lat}
-            lng={profile?.location_lng}
-            city={profile?.location_city}
-          />
         </View>
 
+        <View style={s.content}>
         {/* ── Notifications nudge ──────────────────────────────────── */}
         <NotificationsNudge />
 
@@ -134,9 +155,10 @@ export default function Home() {
         {/* ── Next session card (clients only — trainer dashboard has its own) ─ */}
         {!isTrainer && (
           <>
-        <Text style={s.sectionTitle}>
-          {showEmoji ? '⏰ ' : ''}Next session
-        </Text>
+        <View style={s.sectionTitleRow}>
+          <View style={[s.sectionAccentBar, { backgroundColor: accent }]} />
+          <Text style={s.sectionTitle}>Next session</Text>
+        </View>
         {nextSession ? (
           <TouchableOpacity
             style={s.nextCard}
@@ -190,7 +212,10 @@ export default function Home() {
         {/* ── Upcoming queue (trainer) ──────────────────────────────── */}
         {isTrainer && false && upcoming.length > 1 && (
           <>
-            <Text style={s.sectionTitle}>{showEmoji ? '📋 ' : ''}Up next</Text>
+            <View style={s.sectionTitleRow}>
+              <View style={[s.sectionAccentBar, { backgroundColor: accent }]} />
+              <Text style={s.sectionTitle}>Up next</Text>
+            </View>
             {upcoming.slice(1, 4).map((sess) => (
               <TouchableOpacity
                 key={sess.id}
@@ -221,7 +246,10 @@ export default function Home() {
         {/* ── Client: assigned programs ─────────────────────────────── */}
         {!isTrainer && (programsQ.data?.length ?? 0) > 0 && (
           <>
-            <Text style={s.sectionTitle}>{showEmoji ? '🏋️ ' : ''}My programs</Text>
+            <View style={s.sectionTitleRow}>
+              <View style={[s.sectionAccentBar, { backgroundColor: accent }]} />
+              <Text style={s.sectionTitle}>My programs</Text>
+            </View>
             {(programsQ.data ?? []).map((p) => (
               <View key={p.id} style={s.programCard}>
                 <Text style={s.programTitle}>{p.title}</Text>
@@ -232,6 +260,7 @@ export default function Home() {
             ))}
           </>
         )}
+        </View>{/* end content */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -242,84 +271,118 @@ export default function Home() {
 function makeStyles(
   colors: ReturnType<typeof useTheme>['colors'],
   accent: string,
-  _isDark: boolean,
+  isDark: boolean,
 ) {
   return StyleSheet.create({
-    safe:     { flex: 1, backgroundColor: colors.background },
-    scroll:   { padding: 24, paddingBottom: 40 },
-    headerRow:{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-    greeting: { fontSize: 26, fontWeight: '800', color: colors.ink },
-    subtitle: { fontSize: 14, color: colors.muted, marginTop: 2 },
+    safe:  { flex: 1, backgroundColor: colors.background },
+    scroll: { paddingBottom: 40 },
 
-    // stats
+    // ── Gradient hero ─────────────────────────────────────────────
+    hero: {
+      overflow: 'hidden',
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      paddingHorizontal: 24,
+      paddingTop: 20,
+      paddingBottom: 24,
+      marginBottom: 20,
+      backgroundColor: colors.surface,
+      // Subtle card shadow so the hero lifts slightly off background
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isDark ? 0.4 : 0.07,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    greeting:  { fontSize: 28, fontWeight: '900', color: colors.ink, letterSpacing: -0.5 },
+    subtitle:  { fontSize: 14, color: colors.muted, marginTop: 3, fontWeight: '500' },
+
+    // ── Content area ──────────────────────────────────────────────
+    content: { paddingHorizontal: 24 },
+
+    // ── Stats ─────────────────────────────────────────────────────
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
     statCard: {
-      flex: 1, backgroundColor: colors.surfaceCard, borderRadius: 12,
+      flex: 1, backgroundColor: colors.surfaceCard, borderRadius: 16,
       borderWidth: 1, borderColor: colors.border,
       padding: 14, alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: isDark ? 0.3 : 0.04,
+      shadowRadius: 4,
     },
-    statVal:   { fontSize: 24, fontWeight: '800', color: colors.ink },
-    statLabel: { fontSize: 11, color: colors.muted, marginTop: 2, textAlign: 'center' },
+    statVal:   { fontSize: 26, fontWeight: '900', color: colors.ink },
+    statLabel: { fontSize: 11, color: colors.muted, marginTop: 3, textAlign: 'center', fontWeight: '600' },
 
-    // section
-    sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: 10 },
+    // ── Section titles ────────────────────────────────────────────
+    sectionTitleRow: {
+      flexDirection: 'row', alignItems: 'center',
+      gap: 8, marginBottom: 12,
+    },
+    sectionAccentBar: {
+      width: 3, height: 17, borderRadius: 2,
+    },
+    sectionTitle: {
+      fontSize: 16, fontWeight: '800', color: colors.ink, letterSpacing: -0.2,
+    },
 
-    // next session
+    // ── Next session card ─────────────────────────────────────────
     nextCard: {
       backgroundColor: accent,
-      borderRadius: 16,
-      padding: 18,
+      borderRadius: 20,
+      padding: 20,
       marginBottom: 24,
       shadowColor: accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 6,
     },
-    nextCardTop:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    nextCardTime:    { fontSize: 15, fontWeight: '700', color: '#fff' },
-    nextCardClient:  { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-    nextCardDuration:{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-    nextCardNotes:   { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 10, fontStyle: 'italic' },
-    countdownBadge:  {
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      borderRadius: 10,
-      paddingHorizontal: 10, paddingVertical: 6,
+    nextCardTop:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    nextCardTime:     { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
+    nextCardClient:   { fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 2 },
+    nextCardDuration: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2, fontWeight: '600' },
+    nextCardNotes:    { fontSize: 13, color: 'rgba(255,255,255,0.78)', marginTop: 12, fontStyle: 'italic', lineHeight: 18 },
+    countdownBadge: {
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      borderRadius: 12,
+      paddingHorizontal: 12, paddingVertical: 7,
     },
-    countdownText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+    countdownText: { fontSize: 13, fontWeight: '800', color: '#fff' },
 
-    // empty
+    // ── Empty states ──────────────────────────────────────────────
     emptyCard: {
       backgroundColor: colors.surfaceCard,
-      borderRadius: 12, borderWidth: 1, borderColor: colors.border,
-      padding: 20, alignItems: 'center', gap: 12, marginBottom: 24,
+      borderRadius: 16, borderWidth: 1, borderColor: colors.border,
+      padding: 24, alignItems: 'center', gap: 12, marginBottom: 24,
     },
-    emptyText: { fontSize: 14, color: colors.muted, textAlign: 'center' },
+    emptyText: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 20 },
     emptyBtn: {
-      backgroundColor: accent, borderRadius: 8,
-      paddingHorizontal: 18, paddingVertical: 10,
+      backgroundColor: accent, borderRadius: 12,
+      paddingHorizontal: 22, paddingVertical: 12,
     },
-    emptyBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 
-    // up next rows
+    // ── Up next rows (trainer) ────────────────────────────────────
     upNextRow: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
       backgroundColor: colors.surfaceCard,
-      borderRadius: 10, borderWidth: 1, borderColor: colors.border,
-      padding: 12, marginBottom: 8,
-    },
-    upNextName: { fontSize: 14, fontWeight: '600', color: colors.ink },
-    upNextTime: { fontSize: 12, color: colors.muted, marginTop: 2 },
-    chevron:    { fontSize: 20, color: colors.placeholder },
-    seeAll:     { fontSize: 13, color: accent, fontWeight: '600', textAlign: 'center', marginTop: 4, marginBottom: 20 },
-
-    // programs
-    programCard: {
-      backgroundColor: colors.surfaceCard,
-      borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 14, borderWidth: 1, borderColor: colors.border,
       padding: 14, marginBottom: 8,
     },
-    programTitle: { fontSize: 15, fontWeight: '600', color: colors.ink },
-    programDesc:  { fontSize: 13, color: colors.muted, marginTop: 4 },
+    upNextName: { fontSize: 14, fontWeight: '700', color: colors.ink },
+    upNextTime: { fontSize: 12, color: colors.muted, marginTop: 2, fontWeight: '500' },
+    chevron:    { fontSize: 20, color: colors.placeholder },
+    seeAll:     { fontSize: 13, color: accent, fontWeight: '700', textAlign: 'center', marginTop: 4, marginBottom: 20 },
+
+    // ── Programs ──────────────────────────────────────────────────
+    programCard: {
+      backgroundColor: colors.surfaceCard,
+      borderRadius: 14, borderWidth: 1, borderColor: colors.border,
+      padding: 16, marginBottom: 8,
+    },
+    programTitle: { fontSize: 15, fontWeight: '700', color: colors.ink },
+    programDesc:  { fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 },
   });
 }

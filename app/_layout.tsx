@@ -7,7 +7,7 @@ import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
-import { PreferencesProvider } from '@/lib/preferences';
+import { usePreferences, PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
@@ -15,21 +15,13 @@ const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Data stays fresh for 5 minutes — avoids redundant refetches on tab
-      // switches and short background/foreground cycles.
       staleTime: 5 * 60 * 1000,
-      // Keep unused cache entries for 10 minutes so navigating back to a list
-      // shows stale data instantly rather than a blank loading state.
       gcTime: 10 * 60 * 1000,
-      // Retry once with a 2-second backoff before surfacing an error.
       retry: 1,
       retryDelay: 2_000,
-      // Show stale data while a background refetch is running (no flash to empty).
       placeholderData: (prev: unknown) => prev,
     },
     mutations: {
-      // Mutations should always attempt to run — even if the network looks
-      // flaky. TanStack Query will queue them internally.
       networkMode: 'always',
       retry: 1,
       retryDelay: 2_000,
@@ -37,35 +29,52 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+/**
+ * Inner stack — lives inside PreferencesProvider so it can read the user's
+ * darkMode preference and pass the correct theme to React Navigation.
+ * Without this the nav chrome (tab bar, headers) always follows the system
+ * scheme and ignores the in-app preference toggle.
+ */
+function ThemedStack() {
+  const system = useColorScheme();
+  const { darkMode } = usePreferences();
+
+  const isDark =
+    darkMode === 'dark' ||
+    (darkMode === 'system' && system === 'dark');
 
   return (
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="session/new"
+          options={{ presentation: 'modal', title: 'New session' }}
+        />
+        <Stack.Screen name="session/[id]" options={{ title: 'Session' }} />
+        <Stack.Screen
+          name="session/edit/[id]"
+          options={{ presentation: 'modal', title: 'Edit session' }}
+        />
+      </Stack>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+    </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
     <ErrorBoundary label="App root">
-    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
-    <QueryClientProvider client={queryClient}>
-      <PreferencesProvider>
-      <AuthProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="session/new"
-              options={{ presentation: 'modal', title: 'New session' }}
-            />
-            <Stack.Screen name="session/[id]" options={{ title: 'Session' }} />
-            <Stack.Screen
-              name="session/edit/[id]"
-              options={{ presentation: 'modal', title: 'Edit session' }}
-            />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </AuthProvider>
-      </PreferencesProvider>
-    </QueryClientProvider>
-    </StripeProvider>
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
+        <QueryClientProvider client={queryClient}>
+          <PreferencesProvider>
+            <AuthProvider>
+              <ThemedStack />
+            </AuthProvider>
+          </PreferencesProvider>
+        </QueryClientProvider>
+      </StripeProvider>
     </ErrorBoundary>
   );
 }
