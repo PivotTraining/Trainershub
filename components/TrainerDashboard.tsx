@@ -209,12 +209,6 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
   );
 }
 
-// useBookings — alias for useMyBookingsAsTrainer for cleaner import usage above
-import { useMyBookingsAsTrainer } from '@/lib/queries/bookings';
-function useBookings(trainerId: string) {
-  return useMyBookingsAsTrainer(trainerId);
-}
-
 function makeStyles(colors: ReturnType<typeof useTheme>['colors'], accent: string) {
   return StyleSheet.create({
     heroRow:    { marginBottom: 12 },

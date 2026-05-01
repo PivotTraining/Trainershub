@@ -17,6 +17,7 @@
       },
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your training sessions.",
+        "NSCameraUsageDescription": "TrainerHub uses the camera to scan payment cards when setting up Stripe payouts.",
         "NSPhotoLibraryAddUsageDescription": "TrainerHub saves your shareable trainer card to your photo library when you tap Save.",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": ["mailto", "tel"]
