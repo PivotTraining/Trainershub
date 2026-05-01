@@ -628,7 +628,7 @@ export default function Profile() {
                     { color: themeColors.muted },
                     darkMode === opt && { color: '#fff' },
                   ]}>
-                    {opt === 'system' ? '⚙ Auto' : opt === 'light' ? '☀ Light' : '🌙 Dark'}
+                    {opt === 'system' ? 'Auto' : opt === 'light' ? 'Light' : 'Dark'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -752,12 +752,14 @@ const styles = StyleSheet.create({
   prefLabel: { flex: 1 },
   prefTitle: { fontSize: typography.md, fontWeight: '600' },
   prefSub:   { fontSize: typography.xs, marginTop: 2 },
-  segmentRow: { flexDirection: 'row', gap: 6 },
+  segmentRow: { flexDirection: 'row', gap: 6, flex: 1 },
   segment: {
+    flex: 1,
     borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   segmentText: { fontSize: typography.xs, fontWeight: '600' },
   swatchRow:  { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },

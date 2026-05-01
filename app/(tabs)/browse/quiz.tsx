@@ -345,7 +345,7 @@ export default function Quiz() {
                   {
                     borderColor: isSelected ? accent : colors.border,
                     backgroundColor: isSelected ? accent : colors.surface,
-                    borderRadius: radius.lg,
+                    borderRadius: radius.pill,
                   },
                 ]}
                 onPress={() => handleSelect(opt.id)}
@@ -357,7 +357,7 @@ export default function Quiz() {
                     styles.optionText,
                     {
                       color: isSelected ? '#fff' : colors.ink,
-                      fontSize: typography.md,
+                      fontSize: typography.sm,
                     },
                   ]}
                 >
@@ -402,17 +402,17 @@ const styles = StyleSheet.create({
   stepLabel: { fontWeight: '500' },
   prompt: { fontWeight: '700', lineHeight: 32, marginBottom: 6 },
   helper: { fontSize: 14, marginBottom: 22 },
-  optionsWrap: { gap: 10 },
+  optionsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   option: {
     borderWidth: 1.5,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 7,
   },
-  optionEmoji: { fontSize: 22 },
-  optionText: { fontWeight: '500', flex: 1 },
+  optionEmoji: { fontSize: 18 },
+  optionText: { fontWeight: '600' },
   footer: { paddingTop: 12 },
   nextButton: { alignItems: 'center', paddingVertical: 15 },
   nextButtonText: { color: '#fff', fontWeight: '600' },

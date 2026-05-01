@@ -98,7 +98,7 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero header ───────────────────────────────────────────── */}
+        {/* ── Hero header — accent colour band ─────────────────────── */}
         <View style={s.hero}>
           <View style={s.headerRow}>
             <View style={{ flex: 1 }}>
@@ -251,28 +251,31 @@ function makeStyles(
     safe:   { flex: 1, backgroundColor: colors.background },
     scroll: { paddingBottom: 40 },
 
-    // ── Hero header ────────────────────────────────────────────────
-    // Clean, lifted card. No SVG blobs — depth comes from the real shadow.
+    // ── Hero header — solid accent band, matches sign-in top ───────
     hero: {
-      borderBottomLeftRadius: 24,
-      borderBottomRightRadius: 24,
+      backgroundColor: accent,
       paddingHorizontal: 24,
-      paddingTop: 20,
-      paddingBottom: 28,
-      marginBottom: 20,
-      backgroundColor: colors.surface,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: isDark ? 0.45 : 0.10,
-      shadowRadius: 16,
-      elevation: 4,
+      paddingTop: 16,
+      paddingBottom: 32,
     },
     headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    greeting:  { fontSize: 28, fontWeight: '900', color: colors.ink, letterSpacing: -0.5 },
-    subtitle:  { fontSize: 14, color: colors.muted, marginTop: 4, fontWeight: '500' },
+    greeting:  { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+    subtitle:  { fontSize: 14, color: 'rgba(255,255,255,0.80)', marginTop: 4, fontWeight: '500' },
 
-    // ── Content area ───────────────────────────────────────────────
-    content: { paddingHorizontal: 24 },
+    // ── Content area — white card slides over accent band ──────────
+    content: {
+      backgroundColor: colors.background,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 24,
+      paddingTop: 24,
+      // Shadow casting up onto the colour band
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.10,
+      shadowRadius: 16,
+      elevation: 12,
+    },
 
     // ── Stats ──────────────────────────────────────────────────────
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
