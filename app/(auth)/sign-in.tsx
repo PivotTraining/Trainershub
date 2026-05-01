@@ -9,6 +9,7 @@
  * - Clean, human, Airbnb/Apple Calm inspired.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -85,6 +86,8 @@ const tab = StyleSheet.create({
 
 export default function SignIn() {
   const { colors, accent, isDark } = useTheme();
+  const router = useRouter();
+  const { inviteToken } = useLocalSearchParams<{ inviteToken?: string }>();
   const [email, setEmail]       = useState('');
   const [token, setToken]       = useState('');
   const [stage, setStage]       = useState<Stage>('email');
@@ -138,6 +141,10 @@ export default function SignIn() {
     setSubmitting(true);
     try {
       await verifyOtp(email.trim().toLowerCase(), token.trim());
+      // If the user arrived via a corporate invite link, redirect back to accept it
+      if (inviteToken) {
+        router.replace({ pathname: '/invite', params: { token: inviteToken } });
+      }
     } catch (error: unknown) {
       Alert.alert(
         'Verification failed',

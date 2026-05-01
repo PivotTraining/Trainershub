@@ -20,6 +20,7 @@ import { useMyBookingsAsClient, useUpdateBookingStatus } from '@/lib/queries/boo
 import { useCreateReview } from '@/lib/queries/reviews';
 import { useCreatePaymentIntent } from '@/lib/queries/stripe';
 import { radius, spacing, typography } from '@/lib/theme';
+import { useCorporateMember } from '@/lib/useCorporateMember';
 import { useTheme } from '@/lib/useTheme';
 import type { BookingWithNames, BookingStatus } from '@/lib/types';
 
@@ -118,9 +119,10 @@ interface BookingCardProps {
   onReview: (booking: BookingWithNames) => void;
   onPay: (booking: BookingWithNames) => void;
   isPayingThisCard?: boolean;
+  isCorporateMember?: boolean;
 }
 
-function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: BookingCardProps) {
+function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard, isCorporateMember }: BookingCardProps) {
   const { colors } = useTheme();
   const now = new Date();
   const bookingDate = new Date(booking.starts_at);
@@ -172,7 +174,7 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: B
       </View>
       {(canCancel || canReview || canPay) && (
         <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
-          {canPay && (
+          {canPay && !isCorporateMember && (
             <TouchableOpacity
               style={[styles.actionBtn, styles.payBtn]}
               onPress={() => onPay(booking)}
@@ -184,6 +186,13 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard }: B
                 <Text style={[styles.actionBtnText, { color: '#fff' }]}>Pay Now</Text>
               )}
             </TouchableOpacity>
+          )}
+          {canPay && isCorporateMember && (
+            <View style={[styles.actionBtn, styles.corpBadge]}>
+              <Text style={[styles.actionBtnText, { color: '#15803d' }]}>
+                🏢 Covered by your company
+              </Text>
+            </View>
           )}
           {canCancel && (
             <TouchableOpacity
@@ -212,6 +221,7 @@ export default function Bookings() {
   const userId = session?.user.id ?? '';
   const { colors } = useTheme();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { data: isCorporateMember = false } = useCorporateMember();
 
   const bookingsQuery = useMyBookingsAsClient(userId);
   const updateStatus = useUpdateBookingStatus(userId);
@@ -316,6 +326,7 @@ export default function Bookings() {
                   onReview={setReviewBooking}
                   onPay={handlePay}
                   isPayingThisCard={payingBookingId === b.id}
+                  isCorporateMember={isCorporateMember}
                 />
               ))
             )}
@@ -404,7 +415,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionBtnText: { fontSize: typography.sm, fontWeight: '600' },
-  payBtn: { backgroundColor: '#635BFF', borderColor: '#635BFF' },
+  payBtn:    { backgroundColor: '#635BFF', borderColor: '#635BFF' },
+  corpBadge: { backgroundColor: '#f0fdf4', borderColor: '#86efac' },
   // Modal
   modalSafe: { flex: 1 },
   modalHeader: {

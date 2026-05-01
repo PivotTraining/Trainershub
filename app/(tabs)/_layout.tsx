@@ -108,6 +108,15 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* ── Shared: Corporate ────────────────────────────────────────── */}
+      <Tabs.Screen
+        name="corporate"
+        options={{
+          title: 'Corporate',
+          tabBarIcon: ({ color, size }) => <Ionicons name="business-outline" color={color} size={size} />,
+        }}
+      />
+
       {/* ── Shared: Profile ──────────────────────────────────────────── */}
       <Tabs.Screen
         name="profile"

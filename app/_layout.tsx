@@ -57,6 +57,10 @@ function ThemedStack() {
           name="session/edit/[id]"
           options={{ presentation: 'modal', title: 'Edit session' }}
         />
+        <Stack.Screen
+          name="invite"
+          options={{ presentation: 'modal', title: 'Join your team', headerShown: false }}
+        />
       </Stack>
       <StatusBar style={isDark ? 'light' : 'dark'} />
     </ThemeProvider>
