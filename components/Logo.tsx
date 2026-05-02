@@ -1,48 +1,50 @@
 /**
- * Logo — TrainerHub mark, scalable.  Uses react-native-svg for crisp rendering
- * at any size.  The mark is an upward chevron (representing growth) inside a
- * rounded square — versatile enough to read across all trainer sectors, not
- * just fitness.
+ * Logo — TrainerHub T-mark.
+ *
+ * Bold heavy-weight "T" where the crossbar rises to a sharp upward-arrow
+ * peak at centre — communicating ascent, progress, coaching momentum.
+ *
+ * Rendering modes:
+ *   background="rounded"  — amber rounded-square tile, white mark (default)
+ *   background="flat"     — amber flat square (icon generation)
+ *   background="none"     — mark only, colour from `color` prop
  */
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 
 interface LogoProps {
   size?: number;
-  color?: string;        // override gradient with a solid colour (used for monochrome contexts)
-  background?: 'rounded' | 'none';
+  /** Mark colour in background="none" mode. Defaults to amber. */
+  color?: string;
+  background?: 'rounded' | 'flat' | 'none';
+  /** Background tile colour. Defaults to amber. */
+  bgColor?: string;
 }
 
-export function Logo({ size = 64, color, background = 'rounded' }: LogoProps) {
-  const stroke = color ?? 'url(#th-grad)';
+// Bold T with upward-arrow peak at crossbar centre, on a 100×100 canvas.
+// Arrow peak sits at y=18; crossbar band is y=40→58; stem is x=36→64, y=58→90.
+const T_PATH =
+  'M 8,40 L 36,40 L 50,18 L 64,40 L 92,40 L 92,58 L 64,58 L 64,90 L 36,90 L 36,58 L 8,58 Z';
+
+const AMBER = '#D97706';
+
+export function Logo({
+  size = 64,
+  color,
+  background = 'rounded',
+  bgColor = AMBER,
+}: LogoProps) {
+  const rx = Math.round(size * 0.22); // ~22% → natural rounded-square
+  const markFill = background === 'none' ? (color ?? AMBER) : '#FFFFFF';
 
   return (
-    <Svg width={size} height={size} viewBox="0 0 64 64">
-      <Defs>
-        <LinearGradient id="th-grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-          <Stop offset="0" stopColor="#0EA5E9" />
-          <Stop offset="1" stopColor="#6366F1" />
-        </LinearGradient>
-      </Defs>
+    <Svg width={size} height={size} viewBox="0 0 100 100">
       {background === 'rounded' && (
-        <Rect x="0" y="0" width="64" height="64" rx="14" fill={color ?? 'url(#th-grad)'} />
+        <Rect x="0" y="0" width="100" height="100" rx={rx} ry={rx} fill={bgColor} />
       )}
-      {/* Upward chevron — symbolises ascent / progress */}
-      <Path
-        d="M16 42 L32 22 L48 42"
-        stroke={background === 'rounded' ? '#fff' : stroke}
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      {/* Inner accent dot — subtle, suggests focus */}
-      <Path
-        d="M32 35 L32 35"
-        stroke={background === 'rounded' ? '#fff' : stroke}
-        strokeWidth="6"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
+      {background === 'flat' && (
+        <Rect x="0" y="0" width="100" height="100" rx="0" ry="0" fill={bgColor} />
+      )}
+      <Path d={T_PATH} fill={markFill} />
     </Svg>
   );
 }
