@@ -26,10 +26,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Logo } from '@/components/Logo';
-import { signInWithOtp, verifyOtp } from '@/lib/auth';
+import { signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
 import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
+const OTP_COOLDOWN_MS = 60_000;
+const REVIEWER_EMAIL = 'appreview@trainerhub.app';
 type Mode = 'client' | 'trainer';
 type Stage = 'email' | 'token';
 
@@ -90,9 +92,25 @@ export default function SignIn() {
   const { inviteToken } = useLocalSearchParams<{ inviteToken?: string }>();
   const [email, setEmail]       = useState('');
   const [token, setToken]       = useState('');
+  const [password, setPassword] = useState('');
   const [stage, setStage]       = useState<Stage>('email');
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode]         = useState<Mode>('client');
+  const [lastSendAt, setLastSendAt] = useState<Record<string, number>>({});
+  const [now, setNow]           = useState<number>(Date.now());
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const isReviewerEmail = normalizedEmail === REVIEWER_EMAIL;
+  const lastSentForEmail = lastSendAt[normalizedEmail] ?? 0;
+  const cooldownRemainingMs = Math.max(0, OTP_COOLDOWN_MS - (now - lastSentForEmail));
+  const cooldownActive = cooldownRemainingMs > 0;
+  const cooldownLabel = `${Math.floor(cooldownRemainingMs / 60000)}:${String(Math.ceil((cooldownRemainingMs % 60000) / 1000)).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (!cooldownActive) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [cooldownActive]);
 
   useEffect(() => {
     AsyncStorage.getItem(PREFERRED_ROLE_KEY).then((v) => {
@@ -110,24 +128,52 @@ export default function SignIn() {
       Alert.alert('Invalid email', 'Enter a valid email address.');
       return;
     }
+    if (Date.now() - (lastSendAt[normalizedEmail] ?? 0) < OTP_COOLDOWN_MS) {
+      // Still in cooldown — skip the network call and let the user enter the
+      // code we already sent.
+      setStage('token');
+      return;
+    }
     setSubmitting(true);
     try {
-      await signInWithOtp(email.trim().toLowerCase());
+      await signInWithOtp(normalizedEmail);
+      setLastSendAt((m) => ({ ...m, [normalizedEmail]: Date.now() }));
+      setNow(Date.now());
       setStage('token');
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
       if (/rate limit|over.?email|too many/i.test(msg)) {
+        // Mark a cooldown so the user doesn't keep retrying the same address.
+        setLastSendAt((m) => ({ ...m, [normalizedEmail]: Date.now() }));
+        setNow(Date.now());
         Alert.alert(
           'Too many sign-in emails',
-          "We've hit the email rate limit. Wait a moment and try again — or enter a code you already received.",
-          [
-            { text: 'Enter code', onPress: () => setStage('token') },
-            { text: 'OK', style: 'cancel' },
-          ],
+          'Please wait about 60 minutes before requesting another code, or contact support@trainerhub.app for help.',
         );
       } else {
         Alert.alert('Sign-in failed', msg);
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePasswordSignIn = async () => {
+    if (!password) {
+      Alert.alert('Enter password', 'Password is required for this account.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await signInWithPassword(normalizedEmail, password);
+      if (inviteToken) {
+        router.replace({ pathname: '/invite', params: { token: inviteToken } });
+      }
+    } catch (error: unknown) {
+      Alert.alert(
+        'Sign-in failed',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -204,17 +250,49 @@ export default function SignIn() {
               editable={!submitting}
             />
 
-            <TouchableOpacity
-              style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
-              onPress={handleSendOtp}
-              disabled={submitting}
-              activeOpacity={0.82}
-            >
-              {submitting
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.btnText}>Send code</Text>
-              }
-            </TouchableOpacity>
+            {isReviewerEmail ? (
+              <>
+                <Text style={[s.formLabel, { color: colors.muted, marginTop: 12 }]}>Password</Text>
+                <TextInput
+                  style={[s.input, {
+                    borderColor: colors.borderInput,
+                    color: colors.ink,
+                    backgroundColor: colors.background,
+                  }]}
+                  placeholder="Password"
+                  placeholderTextColor={colors.placeholder}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!submitting}
+                />
+                <TouchableOpacity
+                  style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
+                  onPress={handlePasswordSignIn}
+                  disabled={submitting}
+                  activeOpacity={0.82}
+                >
+                  {submitting
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={s.btnText}>Sign in</Text>
+                  }
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={[s.btn, { backgroundColor: accent }, (submitting || cooldownActive) && s.btnDisabled]}
+                onPress={handleSendOtp}
+                disabled={submitting || cooldownActive}
+                activeOpacity={0.82}
+              >
+                {submitting
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={s.btnText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send code'}</Text>
+                }
+              </TouchableOpacity>
+            )}
           </>
         ) : (
           <>
@@ -248,7 +326,17 @@ export default function SignIn() {
               }
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => setStage('email')} disabled={submitting}>
+            <TouchableOpacity
+              onPress={handleSendOtp}
+              disabled={submitting || cooldownActive}
+              style={{ marginTop: 12 }}
+            >
+              <Text style={[s.linkText, { color: cooldownActive ? colors.placeholder : accent }]}>
+                {cooldownActive ? `Resend in ${cooldownLabel}` : 'Resend code'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => { setToken(''); setStage('email'); }} disabled={submitting}>
               <Text style={[s.linkText, { color: accent }]}>← Use a different email</Text>
             </TouchableOpacity>
           </>
