@@ -99,20 +99,25 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Shared: Schedule ─────────────────────────────────────────── */}
+      {/* ── Trainer: Schedule (clients use Bookings tab instead) ─────── */}
       <Tabs.Screen
         name="schedule"
         options={{
           title: 'Schedule',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: (isTrainer ? '/(tabs)/schedule' : null) as any,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
         }}
       />
 
-      {/* ── Shared: Corporate ────────────────────────────────────────── */}
+      {/* ── Corporate (hidden from tab bar to keep ≤5 tabs;
+              accessible from Profile / direct deep-link) ─────────────── */}
       <Tabs.Screen
         name="corporate"
         options={{
           title: 'Corporate',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          href: null as any,
           tabBarIcon: ({ color, size }) => <Ionicons name="business-outline" color={color} size={size} />,
         }}
       />
