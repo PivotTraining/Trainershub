@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -69,16 +70,18 @@ function ThemedStack() {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary label="App root">
-      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
-        <QueryClientProvider client={queryClient}>
-          <PreferencesProvider>
-            <AuthProvider>
-              <ThemedStack />
-            </AuthProvider>
-          </PreferencesProvider>
-        </QueryClientProvider>
-      </StripeProvider>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary label="App root">
+        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
+          <QueryClientProvider client={queryClient}>
+            <PreferencesProvider>
+              <AuthProvider>
+                <ThemedStack />
+              </AuthProvider>
+            </PreferencesProvider>
+          </QueryClientProvider>
+        </StripeProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }
