@@ -24,11 +24,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+      })
+      .catch((err) => {
+        // Network failure or corrupted persisted session — log and proceed
+        // unauthenticated so the sign-in screen renders instead of hanging.
+        console.warn('[auth] getSession failed:', err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
@@ -53,9 +62,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from('profiles')
       .select('*')
       .eq('id', session.user.id)
-      .single()
-      .then(({ data }) => {
-        if (active && data) setProfile(data as Profile);
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.warn('[auth] profile fetch failed:', error.message);
+          return;
+        }
+        if (data) {
+          setProfile(data as Profile);
+        } else {
+          // No profile row yet (e.g. user created via dashboard before
+          // the auth.users → profiles trigger existed). Create a minimal one.
+          supabase
+            .from('profiles')
+            .upsert(
+              { id: session.user.id, email: session.user.email ?? '', role: 'client' },
+              { onConflict: 'id' },
+            )
+            .select('*')
+            .maybeSingle()
+            .then(({ data: created, error: createErr }) => {
+              if (!active) return;
+              if (createErr) {
+                console.warn('[auth] profile bootstrap failed:', createErr.message);
+              } else if (created) {
+                setProfile(created as Profile);
+              }
+            });
+        }
       });
     return () => {
       active = false;

@@ -299,6 +299,10 @@ export default function SignIn() {
             <Text style={[s.formLabel, { color: colors.muted }]}>
               Check your email — enter the 6-digit code
             </Text>
+            <Text style={[s.helperText, { color: colors.placeholder }]}>
+              Use the 6-digit code in the email. Ignore any &ldquo;Confirm&rdquo; link
+              — it isn&rsquo;t needed.
+            </Text>
             <TextInput
               style={[s.input, s.codeInput, {
                 borderColor: colors.borderInput,
@@ -405,6 +409,12 @@ const s = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 8,
     textTransform: 'uppercase',
+  },
+  helperText: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 12,
+    marginTop: -4,
   },
   input: {
     borderWidth: 1.5,

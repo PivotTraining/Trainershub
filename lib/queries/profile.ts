@@ -34,14 +34,25 @@ export function useUpdateProfile() {
       if (rest.streak_unit !== undefined) patch.streak_unit = rest.streak_unit;
       if (rest.liability_accepted_at !== undefined) patch.liability_accepted_at = rest.liability_accepted_at;
 
+      // Try update first (the auth.users → profiles trigger normally creates
+      // the row). If it returns no row, fall back to insert so users created
+      // without a trigger-fired profile still work.
       const { data, error } = await supabase
         .from('profiles')
         .update(patch)
         .eq('id', id)
         .select('*')
-        .single();
+        .maybeSingle();
       if (error) throw new Error(error.message);
-      return data as Profile;
+      if (data) return data as Profile;
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from('profiles')
+        .insert({ id, email: '', role: 'client', ...patch })
+        .select('*')
+        .single();
+      if (insertErr) throw new Error(insertErr.message);
+      return inserted as Profile;
     },
     onSuccess: () => {
       // Auth context re-fetches profile on next render; also bust the clients list
