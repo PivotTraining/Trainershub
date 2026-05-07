@@ -8,13 +8,15 @@ import * as Notifications from 'expo-notifications';
 import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { requestNotificationPermission } from '@/lib/notifications';
+import { useAuth } from '@/lib/auth';
+import { registerPushToken } from '@/lib/notifications';
 import { useTheme } from '@/lib/useTheme';
 
 const DISMISS_KEY = '@trainerhub:notifications_nudge_dismissed';
 
 export function NotificationsNudge() {
   const { colors, accent } = useTheme();
+  const { session } = useAuth();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -37,8 +39,11 @@ export function NotificationsNudge() {
   if (!visible) return null;
 
   const handleEnable = async () => {
-    const granted = await requestNotificationPermission();
-    if (granted) setVisible(false);
+    const userId = session?.user.id;
+    if (!userId) return;
+    // Explicit user action — OK to prompt and store the token.
+    await registerPushToken(userId, { promptIfNeeded: true }).catch(() => null);
+    setVisible(false);
   };
 
   const handleDismiss = async () => {

@@ -1,7 +1,9 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
@@ -10,6 +12,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
 import { usePreferences, PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
+
+// Keep the splash visible until we explicitly hide it after first paint.
+// On iPad iOS 26 the auto-hide can race with the navigator mount and leave
+// the splash on top, intercepting all taps and making the app appear frozen.
+SplashScreen.preventAutoHideAsync().catch(() => null);
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 
@@ -69,6 +76,13 @@ function ThemedStack() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Hide once React has mounted. We don't gate on auth/profile loading —
+    // those screens render their own loading state, but the splash itself
+    // must never linger.
+    SplashScreen.hideAsync().catch(() => null);
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ErrorBoundary label="App root">

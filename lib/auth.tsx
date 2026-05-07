@@ -42,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
       if (next?.user) {
+        // Silent registration only — never prompt at sign-in. The prompt
+        // is owned by NotificationsNudge / onboarding (explicit user
+        // action). See registerPushToken docstring for the App Review
+        // history behind this.
         registerPushToken(next.user.id).catch(() => null);
       }
     });

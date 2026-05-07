@@ -70,12 +70,34 @@ export async function cancelSessionReminder(sessionId: string): Promise<void> {
 }
 
 /**
- * Register and store the current device's push token in the user's profile.
- * Call this once after sign-in when notification permission is granted.
+ * Returns true if notification permission has already been granted, without
+ * prompting the user. Use this for silent / opportunistic registration paths.
  */
-export async function registerPushToken(userId: string): Promise<void> {
+export async function hasNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+}
+
+/**
+ * Register and store the current device's push token in the user's profile.
+ *
+ * Pass `{ promptIfNeeded: false }` (default) to skip when permission isn't
+ * yet granted — important for paths that run automatically (e.g. on every
+ * sign-in) since prompting without context is an Apple HIG violation and
+ * has caused App Review failures on iPad.
+ *
+ * Pass `{ promptIfNeeded: true }` only from explicit user actions like
+ * tapping "Enable" in NotificationsNudge or completing onboarding.
+ */
+export async function registerPushToken(
+  userId: string,
+  opts: { promptIfNeeded?: boolean } = {},
+): Promise<void> {
   if (Platform.OS === 'web') return;
-  const granted = await requestNotificationPermission();
+  const granted = opts.promptIfNeeded
+    ? await requestNotificationPermission()
+    : await hasNotificationPermission();
   if (!granted) return;
 
   const tokenData = await Notifications.getExpoPushTokenAsync();

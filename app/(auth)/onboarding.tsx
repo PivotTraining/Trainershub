@@ -29,7 +29,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
-import { requestNotificationPermission } from '@/lib/notifications';
+import { registerPushToken } from '@/lib/notifications';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/useTheme';
@@ -143,8 +143,9 @@ export default function Onboarding() {
       });
 
       // Ask for notification permission right after onboarding — better context
-      // than a cold prompt at app launch.
-      await requestNotificationPermission().catch(() => null);
+      // than a cold prompt at app launch. Also stores the push token so we
+      // can deliver session reminders.
+      await registerPushToken(session.user.id, { promptIfNeeded: true }).catch(() => null);
       router.replace('/(tabs)');
     } catch (err: unknown) {
       Alert.alert('Setup failed', err instanceof Error ? err.message : 'Unknown error');
