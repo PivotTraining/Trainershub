@@ -16,6 +16,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        // Pin tabs to the bottom on iPad. iOS 26 / react-native-screens 4.x
+        // otherwise renders a sidebar/floating tab bar variant on iPad that
+        // has been observed to intercept taps and leave the app appearing
+        // frozen post-login (App Review 2.1a, iPad Air iPadOS 26.4.2).
+        tabBarPosition: 'bottom',
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
