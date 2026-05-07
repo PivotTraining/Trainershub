@@ -7,10 +7,9 @@
  *
  *   const { colors, accent } = useTheme();
  */
-import { useColorScheme } from 'react-native';
 import { ACCENT_COLORS } from './preferences';
 import { usePreferences } from './preferences';
-import { darkColors, lightColors, spacing, radius, typography } from './theme';
+import { lightColors, spacing, radius, typography } from './theme';
 import type { ColorPalette } from './theme';
 
 export interface Theme {
@@ -24,14 +23,14 @@ export interface Theme {
 }
 
 export function useTheme(): Theme {
-  const system = useColorScheme(); // 'light' | 'dark' | null
-  const { darkMode, accentColor } = usePreferences();
+  const { accentColor } = usePreferences();
 
-  const isDark =
-    darkMode === 'dark' ||
-    (darkMode === 'system' && system === 'dark');
-
-  const palette: ColorPalette = isDark ? darkColors : lightColors;
+  // Force light mode while we work through App Review. The dark palette has
+  // contrast / glass-blend issues on iPad iOS 26.4 that compound the
+  // post-login interaction problems Apple has been reporting. Will re-enable
+  // dark mode once approval lands.
+  const palette: ColorPalette = lightColors;
+  const isDark = false;
   // Fall back to amber (the brand default) if the stored key no longer exists
   // — this handles migrations when accent colour options are updated.
   const accent = ACCENT_COLORS[accentColor]?.value ?? ACCENT_COLORS.amber.value;

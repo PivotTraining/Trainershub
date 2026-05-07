@@ -21,6 +21,17 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_VsJFwJzxUJxhKOU5qXtnwQ_R0AB_1Ii",
         "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51MYXwyERWdPcDJ1Zp45qUdV744DUe25WGukDNx8VOdzpx1DnSX9FGRUMh0DkRUwQ6YF5fVcyqcvrpbEhCia7CTOz00p0C2Ofa3"
       }
+    },
+    "preview-sim": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://lluhpxjngcyxlmezuxks.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_VsJFwJzxUJxhKOU5qXtnwQ_R0AB_1Ii",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51MYXwyERWdPcDJ1Zp45qUdV744DUe25WGukDNx8VOdzpx1DnSX9FGRUMh0DkRUwQ6YF5fVcyqcvrpbEhCia7CTOz00p0C2Ofa3"
+      }
     }
   },
   "submit": {
