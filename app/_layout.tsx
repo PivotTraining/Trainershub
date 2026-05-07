@@ -1,16 +1,14 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/lib/auth';
-import { usePreferences, PreferencesProvider } from '@/lib/preferences';
+import { PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
 
 // Keep the splash visible until we explicitly hide it after first paint.
@@ -38,21 +36,14 @@ const queryClient = new QueryClient({
 });
 
 /**
- * Inner stack — lives inside PreferencesProvider so it can read the user's
- * darkMode preference and pass the correct theme to React Navigation.
- * Without this the nav chrome (tab bar, headers) always follows the system
- * scheme and ignores the in-app preference toggle.
+ * Force-light theme. Dark mode preference temporarily ignored — the app's
+ * dark palette has known contrast/glass-blend issues on iPad iOS 26.4 that
+ * compound the post-login interaction problems Apple is reporting. Will
+ * re-enable dark mode in a follow-up after the App Store approval lands.
  */
 function ThemedStack() {
-  const system = useColorScheme();
-  const { darkMode } = usePreferences();
-
-  const isDark =
-    darkMode === 'dark' ||
-    (darkMode === 'system' && system === 'dark');
-
   return (
-    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -70,7 +61,7 @@ function ThemedStack() {
           options={{ presentation: 'modal', title: 'Join your team', headerShown: false }}
         />
       </Stack>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
@@ -83,19 +74,23 @@ export default function RootLayout() {
     SplashScreen.hideAsync().catch(() => null);
   }, []);
 
+  // NOTE: GestureHandlerRootView removed. It was added defensively in #2 but
+  // the App Review reports of "buttons don't function" post-login on real
+  // iPad hardware (iPadOS 26.4.2) point at the gesture handler intercepting
+  // native UITabBar / Pressable touches in ways the simulator does not
+  // reproduce. The app does not actually use any react-native-gesture-handler
+  // gesture detectors, so removing the wrapper is safe.
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary label="App root">
-        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
-          <QueryClientProvider client={queryClient}>
-            <PreferencesProvider>
-              <AuthProvider>
-                <ThemedStack />
-              </AuthProvider>
-            </PreferencesProvider>
-          </QueryClientProvider>
-        </StripeProvider>
-      </ErrorBoundary>
-    </GestureHandlerRootView>
+    <ErrorBoundary label="App root">
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY} urlScheme="trainerhub">
+        <QueryClientProvider client={queryClient}>
+          <PreferencesProvider>
+            <AuthProvider>
+              <ThemedStack />
+            </AuthProvider>
+          </PreferencesProvider>
+        </QueryClientProvider>
+      </StripeProvider>
+    </ErrorBoundary>
   );
 }
