@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 
+import { TabBar } from '@/components/TabBar';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/useTheme';
 
@@ -15,12 +16,13 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      // Use a JS-rendered tab bar instead of the native UITabBarController.
+      // The native bar (react-native-screens 4.16 + iOS 26.4) ships with a
+      // hit-test bug on real hardware that leaves bottom-tab buttons
+      // unresponsive after sign-in. The custom TabBar uses Pressable so
+      // taps go through the standard React Native responder system.
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
-        // Pin tabs to the bottom on iPad. iOS 26 / react-native-screens 4.x
-        // otherwise renders a sidebar/floating tab bar variant on iPad that
-        // has been observed to intercept taps and leave the app appearing
-        // frozen post-login (App Review 2.1a, iPad Air iPadOS 26.4.2).
-        tabBarPosition: 'bottom',
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
