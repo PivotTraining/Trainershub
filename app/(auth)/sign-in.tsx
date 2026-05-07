@@ -180,8 +180,11 @@ export default function SignIn() {
   };
 
   const handleVerify = async () => {
+    // Supabase OTP length is configurable per project (6–10 digits). Accept
+    // any length in that range so the app keeps working if the project
+    // setting is changed later.
     if (token.trim().length < 6) {
-      Alert.alert('Invalid code', 'Check the 6-digit code in your email.');
+      Alert.alert('Invalid code', 'Enter the code from your email.');
       return;
     }
     setSubmitting(true);
@@ -297,10 +300,10 @@ export default function SignIn() {
         ) : (
           <>
             <Text style={[s.formLabel, { color: colors.muted }]}>
-              Check your email — enter the 6-digit code
+              Check your email — enter the code
             </Text>
             <Text style={[s.helperText, { color: colors.placeholder }]}>
-              Use the 6-digit code in the email. Ignore any &ldquo;Confirm&rdquo; link
+              Type the code from the email. Ignore any &ldquo;Confirm&rdquo; link
               — it isn&rsquo;t needed.
             </Text>
             <TextInput
@@ -315,7 +318,7 @@ export default function SignIn() {
               value={token}
               onChangeText={setToken}
               editable={!submitting}
-              maxLength={6}
+              maxLength={10}
             />
 
             <TouchableOpacity
