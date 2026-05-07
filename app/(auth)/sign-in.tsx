@@ -31,9 +31,9 @@ import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
 const OTP_COOLDOWN_MS = 60_000;
-const REVIEWER_EMAIL = 'appreview@trainerhub.app';
 type Mode = 'client' | 'trainer';
 type Stage = 'email' | 'token';
+type Method = 'password' | 'otp';
 
 // ── Role toggle tab ────────────────────────────────────────────────────────────
 
@@ -94,13 +94,13 @@ export default function SignIn() {
   const [token, setToken]       = useState('');
   const [password, setPassword] = useState('');
   const [stage, setStage]       = useState<Stage>('email');
+  const [method, setMethod]     = useState<Method>('password');
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode]         = useState<Mode>('client');
   const [lastSendAt, setLastSendAt] = useState<Record<string, number>>({});
   const [now, setNow]           = useState<number>(Date.now());
 
   const normalizedEmail = email.trim().toLowerCase();
-  const isReviewerEmail = normalizedEmail === REVIEWER_EMAIL;
   const lastSentForEmail = lastSendAt[normalizedEmail] ?? 0;
   const cooldownRemainingMs = Math.max(0, OTP_COOLDOWN_MS - (now - lastSentForEmail));
   const cooldownActive = cooldownRemainingMs > 0;
@@ -159,8 +159,12 @@ export default function SignIn() {
   };
 
   const handlePasswordSignIn = async () => {
+    if (!email.includes('@')) {
+      Alert.alert('Invalid email', 'Enter a valid email address.');
+      return;
+    }
     if (!password) {
-      Alert.alert('Enter password', 'Password is required for this account.');
+      Alert.alert('Enter password', 'Password is required.');
       return;
     }
     setSubmitting(true);
@@ -170,10 +174,16 @@ export default function SignIn() {
         router.replace({ pathname: '/invite', params: { token: inviteToken } });
       }
     } catch (error: unknown) {
-      Alert.alert(
-        'Sign-in failed',
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      // Surface a clearer hint when no password account exists for that email.
+      if (/invalid login credentials|user not found/i.test(msg)) {
+        Alert.alert(
+          'Sign-in failed',
+          'Wrong email or password. New here? Tap "Get a one-time code instead" to sign up with email.',
+        );
+      } else {
+        Alert.alert('Sign-in failed', msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -253,7 +263,7 @@ export default function SignIn() {
               editable={!submitting}
             />
 
-            {isReviewerEmail ? (
+            {method === 'password' ? (
               <>
                 <Text style={[s.formLabel, { color: colors.muted, marginTop: 12 }]}>Password</Text>
                 <TextInput
@@ -282,19 +292,39 @@ export default function SignIn() {
                     : <Text style={s.btnText}>Sign in</Text>
                   }
                 </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setMethod('otp')}
+                  disabled={submitting}
+                  style={{ marginTop: 12 }}
+                >
+                  <Text style={[s.linkText, { color: accent }]}>
+                    Get a one-time code instead
+                  </Text>
+                </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity
-                style={[s.btn, { backgroundColor: accent }, (submitting || cooldownActive) && s.btnDisabled]}
-                onPress={handleSendOtp}
-                disabled={submitting || cooldownActive}
-                activeOpacity={0.82}
-              >
-                {submitting
-                  ? <ActivityIndicator color="#fff" />
-                  : <Text style={s.btnText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send code'}</Text>
-                }
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={[s.btn, { backgroundColor: accent }, (submitting || cooldownActive) && s.btnDisabled]}
+                  onPress={handleSendOtp}
+                  disabled={submitting || cooldownActive}
+                  activeOpacity={0.82}
+                >
+                  {submitting
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={s.btnText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send code'}</Text>
+                  }
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setMethod('password')}
+                  disabled={submitting}
+                  style={{ marginTop: 12 }}
+                >
+                  <Text style={[s.linkText, { color: accent }]}>
+                    Use password instead
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
           </>
         ) : (
