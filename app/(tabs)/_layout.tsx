@@ -14,6 +14,12 @@ export default function TabsLayout() {
 
   const isTrainer = profile?.role === 'trainer';
 
+  // The five visible tabs per role. Anything else (programs, packages,
+  // availability) stays routable but is omitted from the bar.
+  const visibleRouteNames = isTrainer
+    ? (['index', 'clients', 'requests', 'schedule', 'profile'] as const)
+    : (['index', 'browse', 'bookings', 'journal', 'profile'] as const);
+
   return (
     <Tabs
       // Use a JS-rendered tab bar instead of the native UITabBarController.
@@ -21,7 +27,7 @@ export default function TabsLayout() {
       // hit-test bug on real hardware that leaves bottom-tab buttons
       // unresponsive after sign-in. The custom TabBar uses Pressable so
       // taps go through the standard React Native responder system.
-      tabBar={(props) => <TabBar {...props} />}
+      tabBar={(props) => <TabBar {...props} visibleRouteNames={visibleRouteNames} />}
       screenOptions={{
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,

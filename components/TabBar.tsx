@@ -9,6 +9,10 @@
  * This component is plain RN — Pressable, View, Text — so taps go through
  * the standard React Native responder system and aren't subject to the
  * native tab-bar bug.
+ *
+ * The set of visible tabs is computed by the layout (which has the role
+ * context) and passed in as `visibleRouteNames`. Anything not in that list
+ * is omitted from the bar even if expo-router still routes to it.
  */
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -41,22 +45,24 @@ const LABEL_BY_ROUTE: Record<string, string> = {
   profile: 'Profile',
 };
 
-export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+interface TabBarExtraProps {
+  visibleRouteNames: readonly string[];
+}
+
+export function TabBar({
+  state,
+  descriptors,
+  navigation,
+  visibleRouteNames,
+}: BottomTabBarProps & TabBarExtraProps) {
   const { colors, accent } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Filter out routes that have href: null in their options — those are
-  // hidden from the bar but still routable programmatically.
-  const visibleRoutes = state.routes.filter((route) => {
-    const options = descriptors[route.key]?.options;
-    // expo-router stores href as a non-standard option; check both the
-    // typed `tabBarItemHidden` (newer) and the raw `href` field.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts: any = options;
-    if (opts?.href === null) return false;
-    if (opts?.tabBarItemHidden) return false;
-    return true;
-  });
+  // Render only the routes the layout told us are visible, in the order the
+  // layout specified them.
+  const visibleRoutes = visibleRouteNames
+    .map((name) => state.routes.find((r) => r.name === name))
+    .filter((r): r is typeof state.routes[number] => r !== undefined);
 
   return (
     <View
