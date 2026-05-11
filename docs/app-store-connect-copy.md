@@ -125,7 +125,8 @@ The trainer account is pre-populated with:
 • 2 training programs with client assignments
 • 4 weekly availability windows (M/W/F mornings + Saturday)
 • 2 active packages (4-session and 12-session bundles)
-• Stripe Connect runs in test mode (no real payments are processed)
+• Stripe Connect is intentionally not attached to this demo trainer, so no
+  real payments can be processed during review
 
 CLIENT EXPERIENCE
 To see the client side of the app, sign out and create a fresh account with
