@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TrainerHub — Support</title>
+<meta name="description" content="Support for the TrainerHub iOS app — contact, FAQ, and account help." />
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --text: #e8ecf1;
+    --muted: #9aa3ad;
+    --accent: #4f8cff;
+    --border: #232830;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+  header { margin-bottom: 32px; }
+  h1 { font-size: 32px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 32px 0 12px; letter-spacing: -0.01em; }
+  p { margin: 0 0 12px; color: var(--text); }
+  .lede { color: var(--muted); font-size: 17px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 16px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .pill { display: inline-block; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 13px; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; }
+  code { background: #1a1f26; padding: 2px 6px; border-radius: 4px; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>TrainerHub Support</h1>
+      <p class="lede">Help for personal trainers and clients using the TrainerHub iOS app.</p>
+      <div class="row">
+        <span class="pill">Version 1.0</span>
+        <span class="pill">iOS</span>
+        <span class="pill">Updated May 2026</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Contact us</h2>
+      <p>The fastest way to get help is by email. We typically respond within 1 business day.</p>
+      <p><strong>Email:</strong> <a href="mailto:support@trainerhub.app">support@trainerhub.app</a></p>
+    </section>
+
+    <h2>Frequently asked questions</h2>
+
+    <div class="panel">
+      <h2 style="margin-top:0">How do I sign in?</h2>
+      <p>TrainerHub uses passwordless email sign-in. Enter your email on the Sign In screen, tap <strong>Send Code</strong>, then enter the 6-digit code we email you. There is no password to remember.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">I didn't receive my login code</h2>
+      <ul>
+        <li>Check your spam or junk folder.</li>
+        <li>Make sure you entered the same email you originally signed up with.</li>
+        <li>Codes expire after 10 minutes — request a new one if needed.</li>
+        <li>Still stuck? Email <a href="mailto:support@trainerhub.app">support@trainerhub.app</a> and we'll help.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">How do I book a session with my trainer?</h2>
+      <p>Open your trainer's profile, tap <strong>Book a session</strong>, pick an available time, and confirm. You'll get a notification when your trainer accepts the request.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">How do trainers get paid?</h2>
+      <p>Trainers connect a Stripe account in the app. Payouts are processed automatically after each completed session, on Stripe's standard schedule.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">How do I cancel or reschedule a session?</h2>
+      <p>Open the session from your Schedule and tap <strong>Cancel</strong> or <strong>Reschedule</strong>. Please give your trainer as much notice as possible — individual trainers may have their own cancellation policy.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">How do I delete my account?</h2>
+      <p>Go to <strong>Profile → Settings → Delete Account</strong>, or email <a href="mailto:support@trainerhub.app">support@trainerhub.app</a> from your account email and we will permanently delete your account and associated data within 30 days.</p>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0">Privacy & data</h2>
+      <p>We use Supabase and Stripe — both industry-standard providers — to keep your data and payments secure. See our <a href="privacy.html">Privacy Policy</a> for details on what we collect and how it's used.</p>
+    </div>
+
+    <footer>
+      &copy; 2026 TrainerHub. All rights reserved. &middot; <a href="mailto:support@trainerhub.app">support@trainerhub.app</a>
+    </footer>
+  </div>
+</body>
+</html>
