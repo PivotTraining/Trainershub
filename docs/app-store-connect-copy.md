@@ -68,6 +68,11 @@ personal trainer,fitness,workout,coaching,trainer app,clients,schedule,sessions,
 https://trainerhub.app/support
 ```
 
+> ⚠️ **Apple previously rejected the listing because this URL returned an error.**
+> A self-contained static support page now lives at `public/support.html`. Deploy
+> it so that `https://trainerhub.app/support` serves that file (or returns a 200
+> when the URL is fetched) before resubmitting.
+
 ---
 
 ## Privacy Policy URL
@@ -102,28 +107,36 @@ Steps in App Store Connect:
 ## App Review Notes
 
 ```
-Demo account for review (email OTP login — no password needed):
+TRAINER DEMO ACCOUNT (Guideline 2.1(a))
 
-Email: review@trainerhub.app
+Easiest path — one tap, no typing:
+  On the Sign In screen, tap "Continue as Demo Trainer" near the bottom.
+  This signs you straight into the seeded trainer account below.
 
-Login steps:
-1. Enter the email above on the Sign In screen and tap "Send Code"
-2. The 6-digit OTP will be sent to that inbox. For App Review access,
-   use code: 123456 (demo bypass enabled for review builds)
-   — OR —
-   Contact support@trainerhub.app and we will provide the OTP within 1 business day.
+Manual credentials (if you prefer to type them):
+  Email:    review-trainer@trainerhub.app
+  Password: TrainerHubReview2026!
+  Method:   Use the default "Password" sign-in (not the one-time code).
 
-The demo account is pre-populated with:
-• 3 sample clients
-• 5 upcoming sessions
-• 2 training programs
-• Stripe Connect in test mode (no real payments)
+The trainer account is pre-populated with:
+• 3 sample clients (Avery, Jordan, Sam) with goals and notes
+• 5 bookings — mix of confirmed, pending, and one past session
+• 4 historical sessions with completion notes
+• 2 training programs with client assignments
+• 4 weekly availability windows (M/W/F mornings + Saturday)
+• 2 active packages (4-session and 12-session bundles)
+• Stripe Connect runs in test mode (no real payments are processed)
 
-Note: The app uses Supabase email OTP authentication. There is no password.
+CLIENT EXPERIENCE
+To see the client side of the app, sign out and create a fresh account with
+"I'm a client" selected, or sign in as one of the seeded clients:
+  demo-client-a@trainerhub.app / ClientReview2026!
+
+NOTES
+• The app supports both password and one-time email-code sign-in. The demo
+  credentials use password sign-in so no email access is required.
+• Account deletion is available from Profile → Settings → Delete Account.
 ```
-
-> ⚠️  Before submitting: confirm whether your Supabase instance has a demo OTP bypass
-> or set up a real email (review@trainerhub.app) that you can forward the OTP from.
 
 ---
 
