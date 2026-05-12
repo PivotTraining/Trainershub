@@ -31,6 +31,12 @@ import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
 const OTP_COOLDOWN_MS = 60_000;
+
+// App Review Guideline 2.1(a): reviewers must be able to access trainer
+// functionality without external credentials. These match the seeded account
+// in supabase/migrations/20260511_review_demo_account.sql.
+const DEMO_TRAINER_EMAIL = 'review-trainer@trainerhub.app';
+const DEMO_TRAINER_PASSWORD = 'TrainerHubReview2026!';
 type Mode = 'client' | 'trainer';
 type Stage = 'email' | 'token';
 type Method = 'password' | 'otp';
@@ -153,6 +159,20 @@ export default function SignIn() {
       } else {
         Alert.alert('Sign-in failed', msg);
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDemoSignIn = async () => {
+    setSubmitting(true);
+    try {
+      await signInWithPassword(DEMO_TRAINER_EMAIL, DEMO_TRAINER_PASSWORD);
+    } catch (error: unknown) {
+      Alert.alert(
+        'Demo sign-in failed',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -379,6 +399,25 @@ export default function SignIn() {
           </>
         )}
 
+        {stage === 'email' && (
+          <View style={s.demoWrap}>
+            <View style={[s.demoDivider, { backgroundColor: colors.border }]} />
+            <TouchableOpacity
+              style={[s.demoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceRaised }]}
+              onPress={handleDemoSignIn}
+              disabled={submitting}
+              activeOpacity={0.85}
+            >
+              <Text style={[s.demoBtnText, { color: colors.ink }]}>
+                Continue as Demo Trainer
+              </Text>
+              <Text style={[s.demoBtnHint, { color: colors.muted }]}>
+                For App Review · pre-populated trainer account
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Text style={[s.disclaimer, { color: colors.placeholder }]}>
           By continuing you agree TrainerHub is a marketplace and is{' '}
           <Text style={{ fontWeight: '700', color: colors.muted }}>not responsible</Text>
@@ -487,4 +526,17 @@ const s = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+
+  // ── Demo (App Review) ────────────────────────────────────────
+  demoWrap: { marginTop: 8, marginBottom: 12 },
+  demoDivider: { height: 1, marginBottom: 16, opacity: 0.6 },
+  demoBtn: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  demoBtnText: { fontSize: 15, fontWeight: '700' },
+  demoBtnHint: { fontSize: 11, marginTop: 2, fontWeight: '500' },
 });
