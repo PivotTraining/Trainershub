@@ -52,7 +52,7 @@ function RoleTab({ mode, onSwitch, accent, colors }: RoleTabProps) {
         onPress={() => onSwitch('client')}
       >
         <Text style={[tab.label, { color: mode === 'client' ? '#fff' : colors.muted }]}>
-          I'm a client
+          I&apos;m a client
         </Text>
       </Pressable>
       <Pressable
@@ -60,7 +60,7 @@ function RoleTab({ mode, onSwitch, accent, colors }: RoleTabProps) {
         onPress={() => onSwitch('trainer')}
       >
         <Text style={[tab.label, { color: mode === 'trainer' ? '#fff' : colors.muted }]}>
-          I'm a trainer
+          I&apos;m a trainer
         </Text>
       </Pressable>
     </View>

@@ -52,7 +52,7 @@ export default function InviteScreen() {
         <>
           <Text style={styles.check}>✓</Text>
           <Text style={[styles.title, { color: colors.ink, fontSize: typography.lg }]}>
-            You're in!
+            You&apos;re in!
           </Text>
           <Text style={[styles.sub, { color: colors.muted, fontSize: typography.sm }]}>
             Your corporate account is now active. Sessions will be billed to your company.

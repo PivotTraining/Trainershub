@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "com.trainerhub.app",
-      "buildNumber": "1",
+      "buildNumber": "21",
       "supportsTablet": true,
       "config": {
         "usesNonExemptEncryption": false
@@ -28,7 +28,7 @@
     },
     "android": {
       "package": "com.trainerhub.app",
-      "versionCode": 1,
+      "versionCode": 21,
       "adaptiveIcon": {
         "backgroundColor": "#111111",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
