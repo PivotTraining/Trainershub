@@ -354,7 +354,7 @@ export default function CorporateScreen() {
           <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginTop: 12 }]}>
             <Text style={[s.cardTitle, { color: colors.ink }]}>Already have an invite?</Text>
             <Text style={[s.cardBody, { color: colors.muted }]}>
-              Check your email for an invite link from your HR team. Tap it to join your company's account automatically.
+              Check your email for an invite link from your HR team. Tap it to join your company&apos;s account automatically.
             </Text>
           </View>
         </ScrollView>
@@ -374,7 +374,7 @@ export default function CorporateScreen() {
           <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
             <Text style={[s.acctName, { color: accent }]}>{account.name}</Text>
             <Text style={[s.cardBody, { color: colors.muted }]}>
-              Your sessions are covered by your company. Book any trainer and your company's account will be charged — you'll never see a payment screen.
+              Your sessions are covered by your company. Book any trainer and your company&apos;s account will be charged — you&apos;ll never see a payment screen.
             </Text>
           </View>
           {seatQuery.data && (
