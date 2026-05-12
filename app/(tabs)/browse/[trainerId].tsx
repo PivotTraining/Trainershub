@@ -19,6 +19,7 @@ import {
   useTrainerReviewsPublic,
 } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
+import { usePurchasePackage } from '@/lib/queries/packages';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { VibeTag } from '@/lib/types';
@@ -49,6 +50,38 @@ export default function TrainerProfile() {
 
   const isFav = useIsFavorite(userId, trainerId);
   const toggleFav = useToggleFavorite(userId ?? '');
+  const purchasePackage = usePurchasePackage();
+
+  const handlePackagePress = (pkg: { id: string; title: string; session_count: number; price_cents: number }) => {
+    if (!userId) {
+      Alert.alert('Sign in required', 'Please sign in to purchase a package.');
+      return;
+    }
+    const totalPrice = (pkg.price_cents / 100).toFixed(2);
+    Alert.alert(
+      'Purchase package?',
+      `${pkg.title}\n${pkg.session_count} sessions for $${totalPrice}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              await purchasePackage.mutateAsync({
+                package_id: pkg.id,
+                client_id: userId,
+                trainer_id: trainerId,
+                sessions_remaining: pkg.session_count,
+              });
+              Alert.alert('Package purchased', 'Your sessions are now available. Your trainer will collect payment at your next session.');
+            } catch (err) {
+              Alert.alert('Purchase failed', err instanceof Error ? err.message : 'Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const isLoading = loadingProfile || loadingReviews || loadingPackages;
 
@@ -235,8 +268,11 @@ export default function TrainerProfile() {
                   ? (pkg.price_cents / pkg.session_count / 100).toFixed(2)
                   : '—';
                 return (
-                  <View
+                  <TouchableOpacity
                     key={pkg.id}
+                    onPress={() => handlePackagePress(pkg)}
+                    disabled={purchasePackage.isPending}
+                    activeOpacity={0.7}
                     style={[
                       styles.packageCard,
                       {
@@ -263,7 +299,7 @@ export default function TrainerProfile() {
                     <Text style={[styles.packagePrice, { color: colors.ink, fontSize: typography.lg }]}>
                       ${Math.round(pkg.price_cents / 100)}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>

@@ -56,6 +56,7 @@ begin
     where program_id in (select id from programs where trainer_id = v_trainer_id);
   delete from programs where trainer_id = v_trainer_id;
   delete from clients  where trainer_id = v_trainer_id;
+  delete from packages where trainer_id = v_trainer_id;
   delete from auth.users
     where email in (
       'demo-client-alex@trainerhub.local',
@@ -116,6 +117,12 @@ begin
   insert into program_assignments (program_id, client_id) values
     (v_prog_strength, v_c3_id),
     (v_prog_mobility, v_c2_id);
+
+  -- 8. 3 selectable packages on the trainer's public profile
+  insert into packages (trainer_id, title, session_count, price_cents, description, is_active) values
+    (v_trainer_id, 'Starter Pack',  5,  25000, '5 one-hour sessions. Great for getting started.', true),
+    (v_trainer_id, '10-Session Bundle', 10, 45000, 'Save $50. Best value for a 10-week block.',  true),
+    (v_trainer_id, 'Monthly Unlimited', 12, 60000, 'Up to 12 sessions in a calendar month.',     true);
 
   raise notice 'Seeded demo data for trainer %', v_trainer_id;
 end $$;
