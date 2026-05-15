@@ -301,6 +301,32 @@ export default function SignIn() {
                     Get a one-time code instead
                   </Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (submitting) return;
+                    const demoEmail = 'chrisdavism+appstore@gmail.com';
+                    const demoPassword = 'trainerreview2026demo';
+                    setEmail(demoEmail);
+                    setPassword(demoPassword);
+                    setSubmitting(true);
+                    try {
+                      await signInWithPassword(demoEmail, demoPassword);
+                    } catch (error: unknown) {
+                      Alert.alert(
+                        'Demo sign-in failed',
+                        error instanceof Error ? error.message : 'Please try again.',
+                      );
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={submitting}
+                  style={{ marginTop: 8 }}
+                >
+                  <Text style={[s.linkText, { color: colors.muted, fontSize: 12 }]}>
+                    App Review demo sign-in
+                  </Text>
+                </TouchableOpacity>
               </>
             ) : (
               <>
