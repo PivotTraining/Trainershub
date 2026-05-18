@@ -134,43 +134,34 @@
 
     .nav-cta:hover { background: var(--red-light) !important; }
 
-    /* ── VIDEO HERO ── */
-    .video-hero {
+    /* ── HEADER HERO ── */
+    .header-hero {
       margin-top: 70px;
       width: 100%;
-      background: #000;
-      line-height: 0;
-      overflow: hidden;
+      min-height: 62vh;
+      background:
+        linear-gradient(180deg, rgba(17,17,17,0.55) 0%, rgba(17,17,17,0.75) 100%),
+        radial-gradient(circle at 20% 30%, rgba(204,31,45,0.45) 0%, transparent 55%),
+        radial-gradient(circle at 80% 70%, rgba(204,31,45,0.25) 0%, transparent 50%),
+        #111;
       position: relative;
-      height: 56.25vw;
-      max-height: calc(92vh - 70px);
-    }
-    .video-hero-iframe {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      /* size to cover: 16:9 video filling the box without letterboxing */
-      width: max(100%, calc(100vh * 16 / 9));
-      height: max(56.25vw, 100%);
-      min-width: 100%;
-      min-height: 100%;
-      border: 0;
-      pointer-events: none;
-    }
-    .video-hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.65) 100%);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-end;
-      padding: 0 24px 56px;
+      justify-content: center;
       text-align: center;
+      padding: 80px 24px 96px;
+    }
+    .header-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 14px);
       pointer-events: none;
     }
-    .video-hero-overlay > * { pointer-events: auto; }
-    .video-hero-badge {
+    .header-live-badge {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -182,10 +173,12 @@
       text-transform: uppercase;
       padding: 8px 16px;
       border-radius: 100px;
-      margin-bottom: 16px;
+      margin-bottom: 22px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      position: relative;
+      z-index: 1;
     }
-    .video-hero-badge::before {
+    .header-live-badge::before {
       content: '';
       width: 8px; height: 8px;
       background: #fff;
@@ -196,22 +189,61 @@
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.7); }
     }
-    .video-hero-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.25);
+    .header-hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(48px, 8vw, 92px);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.02;
+      letter-spacing: -2px;
+      margin-bottom: 18px;
+      max-width: 900px;
+      position: relative;
+      z-index: 1;
+    }
+    .header-hero-title em { font-style: italic; color: var(--red-light); }
+    .header-hero-sub {
+      font-size: clamp(16px, 1.8vw, 19px);
+      color: rgba(255,255,255,0.75);
+      max-width: 600px;
+      line-height: 1.7;
+      margin-bottom: 36px;
+      position: relative;
+      z-index: 1;
+    }
+    .header-hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+    .btn-hero-primary {
+      background: var(--red);
       color: #fff;
       font-weight: 700;
-      font-size: 14px;
-      padding: 12px 22px;
-      border-radius: 100px;
-      transition: background 0.2s, transform 0.15s;
+      padding: 16px 34px;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
     }
-    .video-hero-cta:hover { background: rgba(204,31,45,0.9); transform: translateY(-2px); }
-    .video-hero-cta svg { width: 16px; height: 16px; fill: currentColor; }
+    .btn-hero-primary:hover { background: var(--red-light); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(204,31,45,0.4); }
+    .btn-hero-ghost {
+      background: transparent;
+      color: #fff;
+      font-weight: 700;
+      padding: 15px 32px;
+      border-radius: 8px;
+      font-size: 15px;
+      border: 1.5px solid rgba(255,255,255,0.4);
+      transition: background 0.2s, border-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-hero-ghost:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+    .btn-hero-ghost svg { width: 16px; height: 16px; fill: currentColor; }
     /* ── HERO BELOW VIDEO ── */
     .hero-below {
       background: var(--white);
@@ -1390,51 +1422,19 @@
     </button>
   </nav>
 
-  <!-- VIDEO HERO WALL — autoplay muted background -->
-  <div class="video-hero" aria-label="The Remedy Church live stream">
-    <iframe
-      class="video-hero-iframe"
-      src="https://www.youtube.com/embed/w4qqbMjBpRg?autoplay=1&mute=1&controls=0&loop=1&playlist=w4qqbMjBpRg&modestbranding=1&playsinline=1&rel=0&showinfo=0&iv_load_policy=3"
-      title="The Remedy Church — Live"
-      allow="autoplay; encrypted-media; picture-in-picture"
-      allowfullscreen></iframe>
-    <div class="video-hero-overlay">
-      <div class="video-hero-badge">Live · The Remedy</div>
-      <a href="https://www.youtube.com/live/w4qqbMjBpRg" target="_blank" rel="noopener" class="video-hero-cta">
+  <!-- HEADER HERO -->
+  <header class="header-hero">
+    <div class="header-live-badge">Sundays · 9am &amp; 11am</div>
+    <h1 class="header-hero-title">You belong <em>here.</em></h1>
+    <p class="header-hero-sub">A church for real people, real questions, and real life. Join us this Sunday at 131 S. High St. — wherever you are in your journey.</p>
+    <div class="header-hero-actions">
+      <a href="#expect" class="btn-hero-primary">Plan Your Visit</a>
+      <a href="https://www.youtube.com/live/w4qqbMjBpRg" target="_blank" rel="noopener" class="btn-hero-ghost">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        Watch with Sound
+        Watch Live
       </a>
     </div>
-  </div>
-
-  <!-- HERO TEXT — BELOW THE VIDEO -->
-  <section class="hero-below">
-    <div class="hero-below-inner">
-      <div class="hero-eyebrow">Sundays in Akron, Ohio</div>
-      <h1 class="hero-title">You belong<br /><em>here.</em></h1>
-      <p class="hero-subtitle">A church for real people, real questions, and real life. Join us this Sunday — wherever you are in your journey.</p>
-      <div class="hero-actions">
-        <a href="#expect" class="btn-primary">Plan Your Visit</a>
-        <a href="#sermons" class="btn-outline-dark">Watch Online</a>
-      </div>
-      <div class="hero-badges">
-        <div class="hero-badge">
-          <span class="hero-badge-icon">🕘</span>
-          Sundays 9am &amp; 11am
-        </div>
-        <div class="hero-badge-divider"></div>
-        <div class="hero-badge">
-          <span class="hero-badge-icon">📍</span>
-          131 S. High St., Akron OH
-        </div>
-        <div class="hero-badge-divider"></div>
-        <div class="hero-badge">
-          <span class="hero-badge-icon">🅿️</span>
-          Free Parking + Shuttles
-        </div>
-      </div>
-    </div>
-  </section>
+  </header>
 
   <!-- SERVICE STRIP -->
   <div class="service-strip">
@@ -1540,7 +1540,7 @@
 
     <div class="pastor-feature">
       <div class="pastor-feature-photo">
-        <img src="https://storage1.snappages.site/K9PW54/assets/images/22610686_1920x1080_500.png" alt="Pastors Deante and Lesa Lavender" />
+        <img src="assets/remedy/pastors-family.png" alt="Pastors Deante and Lesa Lavender with their family" />
       </div>
       <div class="pastor-feature-content">
         <div class="pastor-duo">
