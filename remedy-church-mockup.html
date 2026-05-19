@@ -1333,6 +1333,50 @@
       border: none;
     }
 
+    /* ── IMAGE PLACEHOLDER FALLBACKS ──
+       Renders a styled placeholder while the real image is being added.
+       The real <img> stacks on top once the file exists. */
+    .img-placeholder {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+    .img-placeholder::before {
+      content: attr(data-label);
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 800;
+      font-size: clamp(22px, 3vw, 36px);
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      z-index: 0;
+      background:
+        linear-gradient(135deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.15) 100%),
+        var(--ph-bg, linear-gradient(135deg, #CC1F2D 0%, #6a1018 100%));
+    }
+    .img-placeholder img {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    /* Hide alt text flash while broken */
+    .img-placeholder img { color: transparent; font-size: 0; }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
       nav { padding: 0 24px; }
@@ -1540,7 +1584,9 @@
 
     <div class="pastor-feature">
       <div class="pastor-feature-photo">
-        <img src="assets/remedy/pastors-family.png" alt="Pastors Deante and Lesa Lavender with their family" />
+        <div class="img-placeholder" data-label="Pastors Deante &amp; Lesa Lavender" style="--ph-bg: linear-gradient(135deg,#2a2422 0%,#5a3a36 100%);">
+          <img src="assets/remedy/pastors-family.png" alt="Pastors Deante and Lesa Lavender with their family" />
+        </div>
       </div>
       <div class="pastor-feature-content">
         <div class="pastor-duo">
@@ -1568,7 +1614,9 @@
     <div class="sermon-inner">
       <div class="sermon-grid">
         <a class="sermon-video-wrap" href="https://www.youtube.com/@theremedynation" target="_blank" aria-label="Watch the latest sermon on YouTube">
-          <img src="assets/remedy/royalty-from-ruins.png" alt="Royalty From Ruins — Family Ties Series" />
+          <div class="img-placeholder" data-label="Royalty From Ruins · Family Ties Series" style="--ph-bg: linear-gradient(135deg,#0a1a2e 0%,#1a3a5e 100%);">
+            <img src="assets/remedy/royalty-from-ruins.png" alt="Royalty From Ruins — Family Ties Series" />
+          </div>
           <div class="sermon-play-overlay">
             <div class="sermon-play-btn">
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -1605,7 +1653,9 @@
     <div class="events-grid">
       <div class="event-card">
         <div class="event-card-media">
-          <img src="assets/remedy/date-night.png" alt="Date Night @ Remedy — Sunday May 31st, 6PM" loading="lazy" />
+          <div class="img-placeholder" data-label="Date Night @ Remedy" style="--ph-bg: linear-gradient(135deg,#1a1410 0%,#3a2a20 100%);">
+            <img src="assets/remedy/date-night.png" alt="Date Night @ Remedy — Sunday May 31st, 6PM" loading="lazy" />
+          </div>
         </div>
         <div class="event-card-top">
           <div class="event-date-box"><div class="event-month">May</div><div class="event-day">31</div></div>
@@ -1618,7 +1668,9 @@
       </div>
       <div class="event-card">
         <div class="event-card-media">
-          <img src="assets/remedy/the-bar.png" alt="The B.A.R. — Next Steps every Sunday after service" loading="lazy" />
+          <div class="img-placeholder" data-label="The B.A.R. · Next Steps" style="--ph-bg: linear-gradient(135deg,#CC1F2D 0%,#6a1018 100%);">
+            <img src="assets/remedy/the-bar.png" alt="The B.A.R. — Next Steps every Sunday after service" loading="lazy" />
+          </div>
         </div>
         <div class="event-card-top">
           <div class="event-date-box"><div class="event-month">Wkly</div><div class="event-day">Sun</div></div>
@@ -1646,7 +1698,9 @@
   <div class="vision-banner-wrap">
     <div class="vision-banner">
       <a href="https://www.theremedynation.org/vision131-campaign" class="vision-banner-media" aria-label="What is VISION131?">
-        <img src="assets/remedy/vision131.png" alt="What is VISION131?" />
+        <div class="img-placeholder" data-label="What is VISION131?" style="--ph-bg: linear-gradient(135deg,#e8a4a4 0%,#c47575 100%);">
+          <img src="assets/remedy/vision131.png" alt="What is VISION131?" />
+        </div>
       </a>
       <div class="vision-banner-body">
         <div class="vision-text">
@@ -1695,7 +1749,9 @@
   <!-- LOCATION -->
   <div class="location" id="location">
     <a href="#location" class="welcome-home-banner" aria-label="Welcome Home — service times and parking">
-      <img src="assets/remedy/welcome-home.png" alt="Welcome Home — 131 S. High St. Akron, Service Times 9am & 11am, parking instructions" />
+      <div class="img-placeholder" data-label="Welcome Home · 131 S. High St., Akron" style="--ph-bg: linear-gradient(135deg,#1a1a1a 0%,#3a3a3a 100%); min-height: 320px;">
+        <img src="assets/remedy/welcome-home.png" alt="Welcome Home — 131 S. High St. Akron, Service Times 9am & 11am, parking instructions" />
+      </div>
     </a>
     <div class="location-grid">
       <div class="map-card">
