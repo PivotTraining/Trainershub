@@ -1333,6 +1333,88 @@
       border: none;
     }
 
+    /* ── IG CAROUSEL ── */
+    .ig-carousel {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--bg3);
+      margin-bottom: 28px;
+      aspect-ratio: 16/9;
+      max-height: 560px;
+    }
+    .ig-carousel-track {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .ig-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+    }
+    .ig-slide.active { opacity: 1; z-index: 1; }
+    .ig-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .ig-slide-caption {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 40px 28px 24px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+    .ig-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px; height: 44px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #fff;
+      z-index: 3;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .ig-arrow:hover { background: rgba(204,31,45,0.9); transform: translateY(-50%) scale(1.08); }
+    .ig-arrow.prev { left: 16px; }
+    .ig-arrow.next { right: 16px; }
+    .ig-arrow svg { width: 18px; height: 18px; fill: currentColor; }
+    .ig-dots {
+      position: absolute;
+      bottom: 12px; left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 3;
+    }
+    .ig-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.45);
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      transition: background 0.2s, width 0.2s;
+    }
+    .ig-dot.active { background: #fff; width: 24px; border-radius: 100px; }
+    @media (max-width: 768px) {
+      .ig-carousel { aspect-ratio: 4/5; }
+      .ig-arrow { width: 36px; height: 36px; }
+    }
+
     /* ── IMAGE PLACEHOLDER FALLBACKS ──
        Renders a styled placeholder while the real image is being added.
        The real <img> stacks on top once the file exists. */
@@ -1820,31 +1902,18 @@
         </a>
       </div>
 
-      <div class="instagram-grid">
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/24120848_1920x1080_500.png" alt="The Remedy Church" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/24354992_1920x1080_500.png" alt="Worship at The Remedy" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/24354999_1920x1080_500.png" alt="Sunday Service" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/23547070_1920x1080_500.png" alt="Community" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/23910898_1920x1080_500.png" alt="Praise" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
-        <a href="https://www.instagram.com/TheRemedyNation/" target="_blank" class="ig-tile">
-          <img src="https://storage1.snappages.site/K9PW54/assets/images/21079440_1545x2000_500.png" alt="Remedy Family" loading="lazy" />
-          <div class="ig-tile-overlay"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5"/></svg></div>
-        </a>
+      <div class="ig-carousel" id="igCarousel" aria-roledescription="carousel" aria-label="Life at The Remedy">
+        <div class="ig-carousel-track">
+          <div class="ig-slide active"><img src="https://storage1.snappages.site/K9PW54/assets/images/24120848_1920x1080_500.png" alt="The Remedy Church" /><div class="ig-slide-caption">Sunday worship — full house, full hearts.</div></div>
+          <div class="ig-slide"><img src="https://storage1.snappages.site/K9PW54/assets/images/24354992_1920x1080_500.png" alt="Worship at The Remedy" /><div class="ig-slide-caption">Worship night — voices raised together.</div></div>
+          <div class="ig-slide"><img src="https://storage1.snappages.site/K9PW54/assets/images/24354999_1920x1080_500.png" alt="Sunday Service" /><div class="ig-slide-caption">Sunday service — come as you are.</div></div>
+          <div class="ig-slide"><img src="https://storage1.snappages.site/K9PW54/assets/images/23547070_1920x1080_500.png" alt="Community" /><div class="ig-slide-caption">Community — built one conversation at a time.</div></div>
+          <div class="ig-slide"><img src="https://storage1.snappages.site/K9PW54/assets/images/23910898_1920x1080_500.png" alt="Praise" /><div class="ig-slide-caption">Praise that moves you.</div></div>
+          <div class="ig-slide"><img src="https://storage1.snappages.site/K9PW54/assets/images/21079440_1545x2000_500.png" alt="Remedy Family" /><div class="ig-slide-caption">The Remedy family.</div></div>
+        </div>
+        <button class="ig-arrow prev" aria-label="Previous slide"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+        <button class="ig-arrow next" aria-label="Next slide"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg></button>
+        <div class="ig-dots" role="tablist"></div>
       </div>
 
       <div class="instagram-cta">
@@ -1926,6 +1995,46 @@
         });
       });
     }
+
+    // Instagram carousel
+    (function () {
+      const root = document.getElementById('igCarousel');
+      if (!root) return;
+      const slides = Array.from(root.querySelectorAll('.ig-slide'));
+      const dotsWrap = root.querySelector('.ig-dots');
+      const prev = root.querySelector('.ig-arrow.prev');
+      const next = root.querySelector('.ig-arrow.next');
+      let idx = 0;
+      let timer;
+      const INTERVAL = 5000;
+
+      slides.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.className = 'ig-dot' + (i === 0 ? ' active' : '');
+        b.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        b.addEventListener('click', () => go(i, true));
+        dotsWrap.appendChild(b);
+      });
+      const dots = Array.from(dotsWrap.children);
+
+      function go(n, userInitiated) {
+        idx = (n + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+        if (userInitiated) restart();
+      }
+      function start() { timer = setInterval(() => go(idx + 1), INTERVAL); }
+      function stop() { clearInterval(timer); }
+      function restart() { stop(); start(); }
+
+      prev.addEventListener('click', () => go(idx - 1, true));
+      next.addEventListener('click', () => go(idx + 1, true));
+      root.addEventListener('mouseenter', stop);
+      root.addEventListener('mouseleave', start);
+      document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
+
+      start();
+    })();
   </script>
 </body>
 </html>
