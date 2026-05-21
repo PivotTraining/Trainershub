@@ -27,6 +27,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Logo } from '@/components/Logo';
 import { signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
@@ -304,13 +305,26 @@ export default function SignIn() {
                 <TouchableOpacity
                   onPress={async () => {
                     if (submitting) return;
-                    const demoEmail = 'testing@trainershub.com';
-                    const demoOtp = '123456';
-                    setEmail(demoEmail);
                     setSubmitting(true);
                     try {
-                      await signInWithOtp(demoEmail);
-                      await verifyOtp(demoEmail, demoOtp);
+                      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/review-signin`;
+                      const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+                        },
+                        body: JSON.stringify({ secret: 'trainerhub-review-2026' }),
+                      });
+                      const payload = await res.json();
+                      if (!res.ok || !payload.access_token || !payload.refresh_token) {
+                        throw new Error(payload.error ?? `Status ${res.status}`);
+                      }
+                      const { error } = await supabase.auth.setSession({
+                        access_token: payload.access_token,
+                        refresh_token: payload.refresh_token,
+                      });
+                      if (error) throw error;
                     } catch (error: unknown) {
                       Alert.alert(
                         'Demo sign-in failed',
