@@ -304,13 +304,13 @@ export default function SignIn() {
                 <TouchableOpacity
                   onPress={async () => {
                     if (submitting) return;
-                    const demoEmail = 'chrisdavism+appstore@gmail.com';
-                    const demoPassword = 'trainerreview2026demo';
+                    const demoEmail = 'testing@trainershub.com';
+                    const demoOtp = '123456';
                     setEmail(demoEmail);
-                    setPassword(demoPassword);
                     setSubmitting(true);
                     try {
-                      await signInWithPassword(demoEmail, demoPassword);
+                      await signInWithOtp(demoEmail);
+                      await verifyOtp(demoEmail, demoOtp);
                     } catch (error: unknown) {
                       Alert.alert(
                         'Demo sign-in failed',
