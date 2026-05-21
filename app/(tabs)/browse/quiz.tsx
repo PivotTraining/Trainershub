@@ -289,7 +289,7 @@ export default function Quiz() {
     } else {
       markQuizComplete();
       const filters = deriveFilters(answers);
-      (router as any).replace({ pathname: '/(tabs)/browse', params: filters }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      router.replace({ pathname: '/(tabs)/browse', params: filters });
     }
   };
 

@@ -295,35 +295,10 @@ export function useAcceptInvite() {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Not authenticated');
 
-      // Look up the invite
-      const { data: invite, error: fetchErr } = await supabase
-        .from('corporate_invites')
-        .select('*')
-        .eq('token', payload.token)
-        .is('accepted_at', null)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
-
-      if (fetchErr) throw new Error(fetchErr.message);
-      if (!invite) throw new Error('Invite not found or has expired.');
-
-      // Create the member row
-      const { error: memberErr } = await supabase.from('corporate_members').insert({
-        corporate_account_id: invite.corporate_account_id,
-        user_id:              user.id,
-        status:               'active',
-        invited_by:           invite.invited_by,
+      const { error } = await supabase.functions.invoke('accept-corporate-invite', {
+        body: payload,
       });
-      if (memberErr && memberErr.code !== '23505') {
-        // 23505 = unique violation — already a member, that's fine
-        throw new Error(memberErr.message);
-      }
-
-      // Mark invite accepted
-      await supabase
-        .from('corporate_invites')
-        .update({ accepted_at: new Date().toISOString() })
-        .eq('id', invite.id);
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: corpKeys.myAccount() }),
   });

@@ -15,7 +15,7 @@ import { useTheme } from '@/lib/useTheme';
 const DISMISS_KEY = '@trainerhub:notifications_nudge_dismissed';
 
 export function NotificationsNudge() {
-  const { colors, accent } = useTheme();
+  const { accent } = useTheme();
   const { session } = useAuth();
   const [visible, setVisible] = useState(false);
 

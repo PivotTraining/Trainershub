@@ -7,7 +7,7 @@ import { useTheme } from '@/lib/useTheme';
 
 export default function TabsLayout() {
   const { session, profile, loading } = useAuth();
-  const { colors, accent, isDark } = useTheme();
+  const { colors, accent } = useTheme();
 
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/sign-in" />;
@@ -61,8 +61,7 @@ export default function TabsLayout() {
         name="browse"
         options={{
           title: 'Discover',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (!isTrainer ? '/(tabs)/browse' : null) as any,
+          href: !isTrainer ? '/(tabs)/browse' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="search" color={color} size={size} />,
           headerShown: false,
         }}
@@ -73,8 +72,7 @@ export default function TabsLayout() {
         name="bookings"
         options={{
           title: 'Bookings',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (!isTrainer ? '/(tabs)/bookings' : null) as any,
+          href: !isTrainer ? '/(tabs)/bookings' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" color={color} size={size} />,
         }}
       />
@@ -84,8 +82,7 @@ export default function TabsLayout() {
         name="journal"
         options={{
           title: 'Journal',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (!isTrainer ? '/(tabs)/journal' : null) as any,
+          href: !isTrainer ? '/(tabs)/journal' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" color={color} size={size} />,
         }}
       />
@@ -95,8 +92,7 @@ export default function TabsLayout() {
         name="clients"
         options={{
           title: 'Clients',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (isTrainer ? '/(tabs)/clients' : null) as any,
+          href: isTrainer ? '/(tabs)/clients' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="people" color={color} size={size} />,
         }}
       />
@@ -106,8 +102,7 @@ export default function TabsLayout() {
         name="requests"
         options={{
           title: 'Requests',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (isTrainer ? '/(tabs)/requests' : null) as any,
+          href: isTrainer ? '/(tabs)/requests' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" color={color} size={size} />,
         }}
       />
@@ -117,8 +112,7 @@ export default function TabsLayout() {
         name="schedule"
         options={{
           title: 'Schedule',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: (isTrainer ? '/(tabs)/schedule' : null) as any,
+          href: isTrainer ? '/(tabs)/schedule' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar" color={color} size={size} />,
         }}
       />
@@ -129,8 +123,7 @@ export default function TabsLayout() {
         name="corporate"
         options={{
           title: 'Corporate',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: null as any,
+          href: null,
           tabBarIcon: ({ color, size }) => <Ionicons name="business-outline" color={color} size={size} />,
         }}
       />
@@ -148,24 +141,21 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="programs"
         options={{
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: null as any,
+          href: null,
           title: 'Programs',
         }}
       />
       <Tabs.Screen
         name="packages"
         options={{
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: null as any,
+          href: null,
           title: 'Packages',
         }}
       />
       <Tabs.Screen
         name="availability"
         options={{
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          href: null as any,
+          href: null,
           title: 'Availability',
         }}
       />

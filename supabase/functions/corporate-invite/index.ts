@@ -57,16 +57,26 @@ async function sendEmail(to: string, subject: string, html: string): Promise<voi
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildInviteEmail(opts: {
   recipientEmail: string;
   companyName: string;
   token: string;
   expiresAt: string;
 }): string {
-  const deepLink = `${APP_SCHEME}://invite?token=${opts.token}`;
-  const expiryDate = new Date(opts.expiresAt).toLocaleDateString('en-US', {
+  const companyName = escapeHtml(opts.companyName);
+  const deepLink = escapeHtml(`${APP_SCHEME}://invite?token=${encodeURIComponent(opts.token)}`);
+  const expiryDate = escapeHtml(new Date(opts.expiresAt).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
-  });
+  }));
 
   return `<!DOCTYPE html>
 <html>
@@ -98,7 +108,7 @@ function buildInviteEmail(opts: {
                 You've been invited to TrainerHub
               </p>
               <p style="margin:0 0 24px;font-size:15px;color:#8B7D73;line-height:1.6;">
-                <strong style="color:#1A1512;">${opts.companyName}</strong> has set up a corporate
+	                <strong style="color:#1A1512;">${companyName}</strong> has set up a corporate
                 TrainerHub account for your team. You now have access to coaches across fitness,
                 performance, nutrition, and more — with sessions covered by your company.
               </p>

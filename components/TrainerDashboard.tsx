@@ -41,19 +41,14 @@ interface UseBookingsResult {
   data: BookingWithNames[] | undefined;
 }
 
-// useBookings is a thin alias around useMyBookingsAsTrainer to keep the import line tidy
-function _ensureUseBookings(): unknown {
-  return null;
-}
-
 export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
   const router = useRouter();
   const { colors, accent } = useTheme();
   const sessionsQ = useTrainerSessions(trainerId);
   const bookingsQ = useBookings(trainerId) as UseBookingsResult;
 
-  const sessions = sessionsQ.data ?? [];
-  const bookings = bookingsQ.data ?? [];
+  const sessions = useMemo(() => sessionsQ.data ?? [], [sessionsQ.data]);
+  const bookings = useMemo(() => bookingsQ.data ?? [], [bookingsQ.data]);
 
   // Revenue from confirmed + paid bookings this month
   const monthStart = startOfMonth(new Date());
