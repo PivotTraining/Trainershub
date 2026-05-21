@@ -20,7 +20,6 @@ import {
 } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
 import { usePurchasePackage } from '@/lib/queries/packages';
-import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { VibeTag } from '@/lib/types';
 
@@ -105,8 +104,7 @@ export default function TrainerProfile() {
   };
 
   const handleBook = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (router as any).push({ pathname: '/booking/new', params: { trainerId } });
+    router.push({ pathname: '/booking/new', params: { trainerId } });
   };
 
   return (

@@ -16,9 +16,10 @@ import { useTheme } from '@/lib/useTheme';
 export default function InviteScreen() {
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
-  const { colors, accent, spacing, typography, radius } = useTheme();
+  const { colors, accent, typography, radius } = useTheme();
   const { session } = useAuth();
   const acceptInvite = useAcceptInvite();
+  const { mutate: acceptCorporateInvite } = acceptInvite;
   const attempted = useRef(false);
 
   useEffect(() => {
@@ -30,8 +31,8 @@ export default function InviteScreen() {
     }
     if (attempted.current) return;
     attempted.current = true;
-    acceptInvite.mutate({ token });
-  }, [token, session]); // eslint-disable-line react-hooks/exhaustive-deps
+    acceptCorporateInvite({ token });
+  }, [acceptCorporateInvite, router, session, token]);
 
   const isPending = acceptInvite.isPending;
   const isSuccess = acceptInvite.isSuccess;

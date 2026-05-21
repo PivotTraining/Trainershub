@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import type { Package, Review, TrainerListing } from '../types';
 
 export interface BrowseFilters {
+  search?: string;
   specialty?: string;
   sessionType?: 'in-person' | 'virtual';
   maxRateCents?: number;
@@ -11,10 +12,64 @@ export interface BrowseFilters {
   availableToday?: boolean;
 }
 
+type TrainerListingRow = Omit<TrainerListing, 'full_name' | 'email'> & {
+  profiles?: {
+    full_name: string | null;
+    email: string | null;
+  } | null;
+};
+
+type ReviewRow = Review & {
+  profiles?: {
+    full_name: string | null;
+  } | null;
+};
+
+function toTrainerListing(row: TrainerListingRow): TrainerListing {
+  const { profiles, ...trainer } = row;
+  return {
+    ...trainer,
+    full_name: profiles?.full_name ?? null,
+    email: profiles?.email ?? '',
+  };
+}
+
+function matchesSearch(trainer: TrainerListing, rawSearch: string | undefined): boolean {
+  const search = rawSearch?.trim().toLowerCase();
+  if (!search) return true;
+
+  const searchable = [
+    trainer.full_name,
+    trainer.email,
+    trainer.bio,
+    trainer.location,
+    ...trainer.specialties,
+    ...trainer.languages,
+  ];
+
+  return searchable.some((value) => value?.toLowerCase().includes(search));
+}
+
 export function useBrowseTrainers(filters: BrowseFilters = {}) {
   return useQuery({
     queryKey: ['browse', 'trainers', filters],
     queryFn: async (): Promise<TrainerListing[]> => {
+      let availableTrainerIds: string[] | undefined;
+
+      if (filters.availableToday) {
+        const { data: slots, error: slotsError } = await supabase
+          .from('availability_slots')
+          .select('trainer_id')
+          .eq('day_of_week', new Date().getDay());
+
+        if (slotsError) throw new Error(slotsError.message);
+
+        availableTrainerIds = [...new Set((slots ?? []).map((slot) => slot.trainer_id as string))];
+        if (availableTrainerIds.length === 0) return [];
+
+        // Limit the marketplace query to trainers who have any recurring slot today.
+      }
+
       // Join trainer_profiles with profiles to get full_name + email
       let q = supabase
         .from('trainer_profiles')
@@ -36,15 +91,16 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
       if (filters.language) {
         q = q.contains('languages', [filters.language]);
       }
+      if (availableTrainerIds) {
+        q = q.in('user_id', availableTrainerIds);
+      }
 
       const { data, error } = await q;
       if (error) throw new Error(error.message);
 
-      return (data ?? []).map((row: any) => ({
-        ...row,
-        full_name: row.profiles?.full_name ?? null,
-        email: row.profiles?.email ?? '',
-      })) as TrainerListing[];
+      return ((data ?? []) as TrainerListingRow[])
+        .map(toTrainerListing)
+        .filter((trainer) => matchesSearch(trainer, filters.search));
     },
   });
 }
@@ -61,11 +117,7 @@ export function usePublicTrainerProfile(trainerId: string | undefined) {
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) return null;
-      return {
-        ...(data as any),
-        full_name: (data as any).profiles?.full_name ?? null,
-        email: (data as any).profiles?.email ?? '',
-      } as TrainerListing;
+      return toTrainerListing(data as TrainerListingRow);
     },
   });
 }
@@ -82,7 +134,7 @@ export function useTrainerReviewsPublic(trainerId: string | undefined) {
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw new Error(error.message);
-      return (data ?? []).map((r: any) => ({
+      return ((data ?? []) as ReviewRow[]).map((r) => ({
         ...r,
         clientName: r.profiles?.full_name ?? null,
       })) as Review[];

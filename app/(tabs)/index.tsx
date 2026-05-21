@@ -25,7 +25,6 @@ import { TrainerDashboard } from '@/components/TrainerDashboard';
 import { WeatherWidget } from '@/components/WeatherWidget';
 import { useAuth } from '@/lib/auth';
 import { usePreferences } from '@/lib/preferences';
-import { useClients } from '@/lib/queries/clients';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
 import { useTheme } from '@/lib/useTheme';
@@ -43,13 +42,6 @@ function formatCountdown(target: Date): string {
   return diffDay === 1 ? 'Tomorrow' : `${diffDay} days`;
 }
 
-function startOfWeek(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - d.getDay());
-  return d;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
@@ -62,7 +54,6 @@ export default function Home() {
 
   const trainerSessionsQ = useTrainerSessions(isTrainer ? userId : undefined);
   const clientSessionsQ  = useClientSessions(!isTrainer ? userId : undefined);
-  const clientsQ         = useClients(isTrainer ? userId : undefined);
   const programsQ        = useClientAssignedProgramsByUserId(!isTrainer ? userId : undefined);
 
   const sessions = useMemo(
@@ -75,11 +66,6 @@ export default function Home() {
     return sessions.filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now);
   }, [sessions]);
   const nextSession = upcoming[0] ?? null;
-  const thisWeek = useMemo(() => {
-    const weekStart = startOfWeek();
-    return sessions.filter((s) => new Date(s.starts_at) >= weekStart);
-  }, [sessions]);
-  const completed  = useMemo(() => sessions.filter((s) => s.status === 'completed'), [sessions]);
 
   const isLoading = isTrainer ? trainerSessionsQ.isLoading : clientSessionsQ.isLoading;
   const refetch   = isTrainer ? trainerSessionsQ.refetch : clientSessionsQ.refetch;

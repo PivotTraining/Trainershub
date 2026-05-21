@@ -129,9 +129,9 @@ export async function sendPushToUser(
       .from('profiles')
       .select('expo_push_token')
       .eq('id', recipientUserId)
-      .maybeSingle();
+      .maybeSingle<{ expo_push_token: string | null }>();
 
-    const token = (row as any)?.expo_push_token;
+    const token = row?.expo_push_token;
     if (!token) return;
 
     await fetch('https://exp.host/--/api/v2/push/send', {

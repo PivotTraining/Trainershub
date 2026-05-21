@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -74,6 +74,11 @@ function TrainerCardItem({ trainer, userId, onPress }: TrainerCardItemProps) {
 
 export default function BrowseIndex() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    specialty?: string;
+    sessionType?: string;
+    maxRateCents?: string;
+  }>();
   const { colors, spacing, radius, typography } = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -94,11 +99,16 @@ export default function BrowseIndex() {
 
   // Build filters from active chip + search text
   const chip = FILTER_CHIPS.find((c) => c.id === activeFilter) ?? FILTER_CHIPS[0];
+  const quizSessionType =
+    params.sessionType === 'in-person' || params.sessionType === 'virtual'
+      ? params.sessionType
+      : undefined;
+  const quizMaxRateCents = params.maxRateCents ? Number(params.maxRateCents) : undefined;
   const filters = {
     search: debouncedSearch || undefined,
-    specialty: chip.specialty,
-    sessionType: chip.sessionType,
-    maxRateCents: chip.maxRateCents,
+    specialty: chip.specialty ?? params.specialty,
+    sessionType: chip.sessionType ?? quizSessionType,
+    maxRateCents: chip.maxRateCents ?? (Number.isFinite(quizMaxRateCents) ? quizMaxRateCents : undefined),
     availableToday: chip.availableToday,
   };
 
@@ -106,8 +116,7 @@ export default function BrowseIndex() {
 
   const handleCardPress = useCallback(
     (trainer: TrainerListing) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (router as any).push({ pathname: '/(tabs)/browse/[trainerId]', params: { trainerId: trainer.user_id } });
+      router.push({ pathname: '/(tabs)/browse/[trainerId]', params: { trainerId: trainer.user_id } });
     },
     [router],
   );
@@ -186,8 +195,7 @@ export default function BrowseIndex() {
             marginBottom: spacing.sm,
           },
         ]}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onPress={() => (router as any).push('/(tabs)/browse/quiz')}
+        onPress={() => router.push('/(tabs)/browse/quiz')}
         activeOpacity={0.8}
       >
         <View style={styles.quizBannerInner}>

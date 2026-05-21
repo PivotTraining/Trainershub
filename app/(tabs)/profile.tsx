@@ -35,6 +35,7 @@ import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions } from '@/lib/queries/sessions';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing, typography } from '@/lib/theme';
+import type { SessionType, VibeTag } from '@/lib/types';
 import { useTheme } from '@/lib/useTheme';
 
 const VIBE_TAGS = [
@@ -57,6 +58,7 @@ export default function Profile() {
   const trainerQuery = useTrainerProfile(isTrainer ? userId : undefined);
   const upsertTrainer = useUpsertTrainerProfile();
   const startStripeOnboarding = useStartStripeOnboarding();
+  const profileFullName = profile?.full_name ?? '';
 
   // ── client-only queries ───────────────────────────────────────────────────
   const clientSessionsQuery = useClientSessions(!isTrainer ? userId : undefined);
@@ -73,18 +75,16 @@ export default function Profile() {
   const [specialtiesRaw, setSpecialtiesRaw] = useState(''); // comma-separated
   const [rateStr, setRateStr] = useState(''); // displayed as dollars
   const [location, setLocation] = useState('');
-  const [sessionTypes, setSessionTypes] = useState<string[]>(['in-person']);
+  const [sessionTypes, setSessionTypes] = useState<SessionType[]>(['in-person']);
   const [languages, setLanguages] = useState(''); // comma-separated display
-  const [vibeTags, setVibeTags] = useState<string[]>([]);
+  const [vibeTags, setVibeTags] = useState<VibeTag[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
   const [instantBook, setInstantBook] = useState(false);
 
   // seed once the data arrives
   useEffect(() => {
-    if (profile) setFullName(profile.full_name ?? '');
-  // Intentionally seed only when full_name changes, not the whole profile object
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.full_name]);
+    setFullName(profileFullName);
+  }, [profileFullName]);
 
   useEffect(() => {
     if (trainerQuery.data) {
@@ -101,7 +101,7 @@ export default function Profile() {
   }, [trainerQuery.data]);
 
   const handleCancel = () => {
-    setFullName(profile?.full_name ?? '');
+    setFullName(profileFullName);
     if (trainerQuery.data) {
       setBio(trainerQuery.data.bio ?? '');
       setSpecialtiesRaw(trainerQuery.data.specialties.join(', '));
@@ -138,10 +138,9 @@ export default function Profile() {
           specialties,
           hourly_rate_cents,
           location: location.trim() || null,
-          session_types: sessionTypes as ('in-person' | 'virtual')[],
+          session_types: sessionTypes,
           languages: languages.split(',').map((l) => l.trim()).filter(Boolean),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          vibe_tags: vibeTags as any,
+          vibe_tags: vibeTags,
           instant_book: instantBook,
         });
       }
@@ -206,13 +205,13 @@ export default function Profile() {
     }
   };
 
-  const toggleSessionType = (type: string) => {
+  const toggleSessionType = (type: SessionType) => {
     setSessionTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
     );
   };
 
-  const toggleVibeTag = (tag: string) => {
+  const toggleVibeTag = (tag: VibeTag) => {
     setVibeTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
