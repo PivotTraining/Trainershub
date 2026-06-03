@@ -137,7 +137,7 @@ export default function SignIn() {
     }
     setSubmitting(true);
     try {
-      await signInWithOtp(normalizedEmail);
+      await signInWithOtp(normalizedEmail, { role: mode });
       setLastSendAt((m) => ({ ...m, [normalizedEmail]: Date.now() }));
       setNow(Date.now());
       setStage('token');
@@ -263,6 +263,10 @@ export default function SignIn() {
               onChangeText={setEmail}
               editable={!submitting}
             />
+            <Text style={[s.hint, { color: colors.muted }]}>
+              New here? Just enter your email — we&apos;ll create your{' '}
+              {isTrainerMode ? 'trainer' : 'client'} account.
+            </Text>
 
             {method === 'password' ? (
               <>
@@ -482,6 +486,10 @@ const s = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 8,
     textTransform: 'uppercase',
+  },
+  hint: {
+    fontSize: 12,
+    marginTop: 8,
   },
   helperText: {
     fontSize: 12,

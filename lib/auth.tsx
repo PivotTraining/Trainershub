@@ -112,8 +112,14 @@ export function useAuth(): AuthState {
   return useContext(AuthContext);
 }
 
-export async function signInWithOtp(email: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithOtp({ email });
+export async function signInWithOtp(
+  email: string,
+  options?: { role?: 'client' | 'trainer' },
+): Promise<void> {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: options?.role ? { data: { role: options.role } } : undefined,
+  });
   if (error) throw new Error(error.message);
 }
 
