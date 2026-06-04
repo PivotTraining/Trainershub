@@ -133,6 +133,9 @@ Deno.serve(async (req: Request) => {
       currency: 'usd',
       application_fee_amount: feeCents,
       transfer_data: { destination: trainerProfile.stripe_account_id },
+      // Accept cards + US bank account (ACH). ACH is ~0.8% capped at $5
+      // vs ~2.9% + $0.30 for cards, with 3–5 business day settlement.
+      payment_method_types: ['card', 'us_bank_account'],
       metadata: {
         booking_id: bookingId,
         client_id: user.id,
