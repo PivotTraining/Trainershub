@@ -1,4 +1,5 @@
 import { Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { registerPushToken } from './notifications';
 import { supabase } from './supabase';
@@ -157,6 +158,48 @@ export async function verifyOtp(email: string, token: string): Promise<void> {
 
 export async function signInWithPassword(email: string, password: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+}
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  const redirectTo = Linking.createURL('reset-password');
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) throw new Error(error.message);
+}
+
+export async function establishRecoverySession(url: string): Promise<void> {
+  // Supabase may return PKCE `code` in the query or an implicit session in the
+  // fragment depending on the project's Auth flow configuration.
+  const [base, fragment = ''] = url.split('#', 2);
+  const normalized = fragment
+    ? `${base}${base.includes('?') ? '&' : '?'}${fragment}`
+    : base;
+  const params = new URL(normalized).searchParams;
+  const authError = params.get('error_description') ?? params.get('error');
+  if (authError) throw new Error(authError);
+
+  const code = params.get('code');
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) {
+    throw new Error('This password reset link is incomplete or has expired.');
+  }
+
+  const { error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error(error.message);
 }
 

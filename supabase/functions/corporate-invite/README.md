@@ -18,7 +18,7 @@ injected automatically by the Supabase runtime.
 ## Deploy
 
 ```bash
-supabase functions deploy corporate-invite --project-ref rwemcpmykuctcsgmzupo
+supabase functions deploy corporate-invite --project-ref <trainerhub-project-ref>
 ```
 
 ## Local testing

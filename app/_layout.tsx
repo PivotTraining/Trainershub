@@ -60,6 +60,10 @@ function ThemedStack() {
           name="invite"
           options={{ presentation: 'modal', title: 'Join your team', headerShown: false }}
         />
+        <Stack.Screen
+          name="reset-password"
+          options={{ presentation: 'modal', title: 'Reset password', headerShown: false }}
+        />
       </Stack>
       <StatusBar style="dark" />
     </ThemeProvider>

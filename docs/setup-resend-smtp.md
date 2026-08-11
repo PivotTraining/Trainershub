@@ -18,7 +18,8 @@ The fix is to plug in your own SMTP provider. Resend is the simplest:
 3. Go to **API Keys → Create API Key** with "Sending access" only and copy
    the key.
 4. In Supabase Dashboard go to
-   <https://supabase.com/dashboard/project/rwemcpmykuctcsgmzupo/auth/providers>
+   Open the TrainerHub project in the Supabase dashboard, then go to
+   **Authentication → Providers**.
    → scroll to **SMTP Settings** → toggle **Enable Custom SMTP**.
 
    Fill in:

@@ -38,7 +38,7 @@ rejects apps that declare permissions they don't use.
 
 ## Sign in with Apple ⚠️ skip-able for now
 - Required only if we offer 3rd-party social logins (Google, Facebook,
-  Twitter). We currently use email-OTP only → not required.
+  Twitter). We currently use first-party email/password or email-code login → not required.
 - If you add Google sign-in later, you MUST add Sign in with Apple too.
 
 ## Push notifications ✅
@@ -75,19 +75,16 @@ Information, paste:
 
 ```
 Username: review@trainerhub.app
-Password: (use App Review notes field instead — sign-in is OTP)
+Password: enter the dedicated review account password
 Notes:
-  This app uses email OTP. Reviewer can request a code at sign-in,
-  then check the inbox at review@trainerhub.app.
-
-  For faster review, use the test bypass: tap "I'm a trainer" toggle
-  in the top-right, then sign in with apple-review@trainerhub.app.
+  Select Trainer, then use the username and password supplied above.
+  No OTP inbox access or hidden login bypass is required.
 
   Contact for questions: chris@trainerhub.app
 ```
 
-Or simpler: pre-create an account on Supabase, set up email forwarding to
-your inbox, share creds with reviewer.
+Create a dedicated least-privilege review account in Supabase and verify it on
+a clean device before submitting. Store its credentials only in App Store Connect.
 
 ## Age rating ✅
 - App targets 13+ (enforced at signup). Set to **17+** in App Store
@@ -102,7 +99,8 @@ your inbox, share creds with reviewer.
 - Quiz fully works (multi-sector + drill-down).
 - Calendar export, journal, streaks, weather all functional.
 - Booking creates a real Supabase row, payment is real Stripe Connect.
-- Sign-in with email OTP works end-to-end.
+- Password and one-time-code sign-in work end-to-end.
+- Forgot Password opens the native reset route and updates the password.
 - All tabs render without crashes (verified in simulator).
 
 ## Common things reviewers click that should NOT crash
@@ -118,7 +116,7 @@ your inbox, share creds with reviewer.
 
 - [ ] Privacy Policy URL filled in
 - [ ] Support URL filled in
-- [ ] App Review notes contain demo account/OTP instructions
+- [ ] App Review Sign-In Information contains working demo credentials
 - [ ] Age rating: 17+ selected
 - [ ] App icon 1024x1024 uploaded (already in project)
 - [ ] Screenshots: 6.7" (iPhone 17 Pro Max), 6.5" (iPhone 11 Pro Max sim)
@@ -131,7 +129,7 @@ your inbox, share creds with reviewer.
 1. **"App description doesn't match functionality"** — make sure the App
    Store description mentions ALL trainer types (basketball, tennis, golf,
    etc.), not just fitness.
-2. **"Could not log in"** — leave OTP flow guidance in App Review notes.
+2. **"Could not log in"** — verify the dedicated password account on a clean device.
 3. **"Privacy manifest missing for X SDK"** — Expo auto-generates this,
    but if reviewer flags it, run `npx expo install --check` and re-archive.
 

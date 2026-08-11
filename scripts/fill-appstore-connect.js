@@ -42,20 +42,20 @@ Book your trainer, view your upcoming sessions, and follow your custom programs 
 • Session History — Review completed sessions and notes from past workouts.
 
 SIMPLE. SECURE. PROFESSIONAL.
-TrainerHub uses industry-standard security to keep client data private and payments safe. Sign in with a one-tap email code — no password to remember.
+TrainerHub uses industry-standard security to keep client data private and payments safe. Sign in with a password or a one-time email code.
 
 Whether you're a solo trainer scaling your client base or a dedicated athlete following a personalized program, TrainerHub keeps everyone on the same page.
 
 Download free and get started today.`;
 
-  const REVIEW_NOTES = `Demo account for review (email OTP — no password):
+  const REVIEW_NOTES = `Demo account for review:
 
-Email: review@trainerhub.app
-Login: Enter the email on the Sign In screen → tap "Send Code" → enter the OTP sent to that inbox.
+Enter the reviewer username and password in App Store Connect's dedicated Sign-In Information fields.
+Login: Select Trainer, then use the supplied email and password on the Sign In screen.
 
 Pre-loaded with: 3 sample clients, 5 upcoming sessions, 2 training programs, Stripe in test mode.
 
-Note: TrainerHub uses Supabase email OTP — there is no password. If the review team cannot receive the OTP, please contact support@trainerhub.app and we will provide it within 1 business day.`;
+No OTP inbox access or hidden login bypass is required. Contact support@trainerhub.app if assistance is needed.`;
 
   setField('description',   DESCRIPTION);
   setField('keywords',      'personal trainer,fitness,workout,coaching,trainer app,clients,schedule,sessions,strength,gym');

@@ -21,10 +21,12 @@ STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-YOUR_STRIPE_WEBHOOK_SECRET}"
 
 PLATFORM_FEE_PERCENT="4"
 APP_SCHEME="trainerhub"
-REVIEW_SIGNIN_ENABLED="${REVIEW_SIGNIN_ENABLED:-false}"
 
 echo "🚀  Linking to Supabase project ${SUPABASE_PROJECT_REF}..."
 supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+# Remove the retired shared-secret review bypass if an older deployment exists.
+supabase functions delete review-signin --project-ref "$SUPABASE_PROJECT_REF" --yes || true
 
 echo ""
 echo "📦  Running DB migrations..."
@@ -37,7 +39,6 @@ supabase secrets set \
   STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" \
   PLATFORM_FEE_PERCENT="$PLATFORM_FEE_PERCENT" \
   APP_SCHEME="$APP_SCHEME" \
-  REVIEW_SIGNIN_ENABLED="$REVIEW_SIGNIN_ENABLED" \
   --project-ref "$SUPABASE_PROJECT_REF"
 
 echo ""
@@ -50,7 +51,6 @@ supabase functions deploy create-connect-account --project-ref "$SUPABASE_PROJEC
 supabase functions deploy create-payment-intent  --project-ref "$SUPABASE_PROJECT_REF"
 supabase functions deploy stripe-webhook         --project-ref "$SUPABASE_PROJECT_REF"
 supabase functions deploy notify-booking-created --project-ref "$SUPABASE_PROJECT_REF"
-supabase functions deploy review-signin          --project-ref "$SUPABASE_PROJECT_REF"
 
 echo ""
 echo "✅  Done!"

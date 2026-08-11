@@ -47,6 +47,17 @@ dependencies are now aligned and all 18 Doctor checks pass.
 - **Marketplace identity joins conflicted with profile privacy.** Narrow RPCs now
   return only public trainer fields and display-safe booking names instead of
   requiring exposure of profile email, phone, or push-token columns.
+- **App Review login exposed a bundled shared secret.** The production sign-in
+  screen contained a secret capable of minting a session for the reviewer
+  account whenever the matching function flag was enabled. The bypass and Edge
+  Function are removed; reviewer access now uses a normal password account whose
+  credentials live only in App Store Connect.
+- **Account deletion failures were reported as queued success.** No deletion
+  queue existed. The app now retains the signed-in session and reports an honest
+  failure; successful server deletion clears the local session immediately.
+- **Password recovery was missing.** Users can now request a reset email, return
+  through the native deep link, establish a recovery session, and set a new
+  password.
 
 ## P1 — next implementation slices
 
@@ -70,8 +81,9 @@ dependencies are now aligned and all 18 Doctor checks pass.
 
 ## P2 — release and operational hardening
 
-- Move EAS environment values to EAS-managed environments/secrets and maintain
-  distinct development, staging, and production Supabase/Stripe projects.
+- Populate the EAS-managed `development`, `preview`, and `production`
+  environments. Build profiles are now isolated and no longer commit live
+  Supabase/Stripe values, but distinct service projects must still be supplied.
 - Rotate and audit service credentials; verify Edge Function JWT settings and
   CORS policy; run Supabase database/security advisors after migration.
 - Reconcile App Store Connect build history with EAS remote versioning before
@@ -96,6 +108,11 @@ This branch intentionally does not mutate production services. Before release:
    and corporate-account flows with staging identities.
 7. Run a fresh iOS device build and TestFlight smoke test. Do not upload build 27
    until App Store Connect confirms the next accepted build number.
+8. Add `trainerhub://reset-password` to the Supabase Auth redirect allowlist,
+   test password recovery on a physical iPhone, and remove any previously
+   deployed `review-signin` function.
+9. Populate all three EAS environments, then verify preview uses a non-production
+   Supabase project and a Stripe test publishable key before creating a build.
 
 ## Known external blockers
 

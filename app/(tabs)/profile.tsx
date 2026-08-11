@@ -18,6 +18,7 @@ import * as WebBrowser from 'expo-web-browser';
 
 import { PerformanceDashboard } from '@/components/PerformanceDashboard';
 import { ShareableProfileCard } from '@/components/ShareableProfileCard';
+import { deleteCurrentAccount } from '@/lib/account';
 import { signOut, useAuth } from '@/lib/auth';
 import { useStartStripeOnboarding } from '@/lib/queries/stripe';
 import {
@@ -33,7 +34,6 @@ import {
 } from '@/lib/queries/profile';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions } from '@/lib/queries/sessions';
-import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing, typography } from '@/lib/theme';
 import type { SessionType, VibeTag } from '@/lib/types';
 import { useTheme } from '@/lib/useTheme';
@@ -80,6 +80,7 @@ export default function Profile() {
   const [vibeTags, setVibeTags] = useState<VibeTag[]>([]);
   const [shareOpen, setShareOpen] = useState(false);
   const [instantBook, setInstantBook] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // seed once the data arrives
   useEffect(() => {
@@ -171,24 +172,22 @@ export default function Profile() {
           text: 'Delete Account',
           style: 'destructive',
           onPress: async () => {
+            setDeletingAccount(true);
             try {
-              const { error } = await supabase.functions.invoke('delete-account', {
-                body: { userId },
-              });
-              if (error) {
-                throw error;
-              }
-              // Auth listener will redirect automatically when session is invalidated
-            } catch {
-              try {
-                await signOut();
-              } catch {
-                // ignore sign-out error
-              }
+              await deleteCurrentAccount();
               Alert.alert(
-                'Account flagged for deletion',
-                'Your account has been flagged for deletion. Contact support if not processed within 24 hours.',
+                'Account deleted',
+                'Your TrainerHub account and associated app data have been permanently deleted.',
               );
+            } catch (err: unknown) {
+              Alert.alert(
+                'Deletion failed',
+                err instanceof Error
+                  ? err.message
+                  : 'Your account was not deleted. Please try again or contact support@trainerhub.app.',
+              );
+            } finally {
+              setDeletingAccount(false);
             }
           },
         },
@@ -663,8 +662,19 @@ export default function Profile() {
           </TouchableOpacity>
 
           {/* ── Delete account ──────────────────────────────────────── */}
-          <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>
-            <Text style={styles.deleteAccountText}>Delete Account</Text>
+          <TouchableOpacity
+            style={[styles.deleteAccountButton, deletingAccount && styles.disabledButton]}
+            onPress={handleDeleteAccount}
+            disabled={deletingAccount}
+            accessibilityRole="button"
+            accessibilityLabel="Permanently delete account"
+            accessibilityState={{ disabled: deletingAccount, busy: deletingAccount }}
+          >
+            {deletingAccount ? (
+              <ActivityIndicator color={colors.danger} size="small" />
+            ) : (
+              <Text style={styles.deleteAccountText}>Delete Account</Text>
+            )}
           </TouchableOpacity>
 
         </ScrollView>
@@ -793,6 +803,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   deleteAccountText: { color: colors.danger, fontWeight: '600' },
+  disabledButton: { opacity: 0.5 },
   shareCardBtn: {
     flexDirection: 'row',
     alignItems: 'center',
