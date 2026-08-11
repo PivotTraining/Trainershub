@@ -2,6 +2,9 @@ import {
   availabilityForDay,
   fitsAvailability,
   mergePickerDateTime,
+  normalizeClockTime,
+  timeToMinutes,
+  validateAvailabilityRange,
   validateBookingTime,
   validateFutureSessionTime,
 } from '@/lib/scheduling';
@@ -57,5 +60,17 @@ describe('scheduling helpers', () => {
     const now = new Date(2026, 7, 10, 8, 0);
     expect(validateBookingTime(new Date(2026, 7, 10, 10, 0), 60, [], now)).toEqual({ valid: true });
     expect(validateFutureSessionTime(new Date(2026, 7, 10, 7, 59), now).valid).toBe(false);
+  });
+
+  it('validates clock input and rejects overlapping recurring availability', () => {
+    expect(timeToMinutes('09:30')).toBe(570);
+    expect(timeToMinutes('24:00')).toBeNull();
+    expect(timeToMinutes('09:75')).toBeNull();
+    expect(normalizeClockTime('9:30')).toBe('09:30:00');
+
+    expect(validateAvailabilityRange(1, '08:00', '09:00', [mondaySlot])).toEqual({ valid: true });
+    expect(validateAvailabilityRange(1, '08:30', '09:30', [mondaySlot]).valid).toBe(false);
+    expect(validateAvailabilityRange(1, '12:00', '11:00', [mondaySlot]).valid).toBe(false);
+    expect(validateAvailabilityRange(2, '09:00', '10:00', [mondaySlot])).toEqual({ valid: true });
   });
 });

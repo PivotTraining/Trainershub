@@ -10,7 +10,7 @@ at iOS/Android build 27, but the EAS account currently shows its most recent
 cloud iOS build as build 20; later TestFlight builds therefore need to be
 reconciled with App Store Connect before the next upload.
 
-Lint, TypeScript, and all 58 Jest tests pass. Expo Doctor initially found three
+Lint, TypeScript, and all 59 Jest tests pass. Expo Doctor initially found three
 SDK patch mismatches; those dependencies are now aligned and all 18 Doctor
 checks pass.
 
@@ -67,6 +67,7 @@ checks pass.
    cancellation/refund policy UX. New booking requests now enforce published
    recurring availability, reject past/last-minute times, preserve date and time
    components across native pickers, and recover from schedule-loading errors.
+   Availability editing now rejects malformed, reversed, and overlapping slots.
 3. Add Stripe customer records, saved payment methods, payment receipts, payout
    status, disputes, and refund controls.
 4. Add notification delivery receipts, invalid-token cleanup, booking-status push

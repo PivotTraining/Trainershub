@@ -13,13 +13,49 @@ export function mergePickerDateTime(current: Date, selected: Date, mode: PickerM
   return merged;
 }
 
-function timeToMinutes(value: string): number | null {
+export function timeToMinutes(value: string): number | null {
   const match = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(value);
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
   if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
   return hours * 60 + minutes;
+}
+
+export function normalizeClockTime(value: string): string | null {
+  const totalMinutes = timeToMinutes(value);
+  if (totalMinutes === null) return null;
+  const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+  const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}:00`;
+}
+
+export function validateAvailabilityRange(
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
+  existingSlots: AvailabilitySlot[],
+): BookingTimeValidation {
+  const start = timeToMinutes(startTime);
+  const end = timeToMinutes(endTime);
+  if (start === null || end === null) {
+    return { valid: false, message: 'Enter a valid 24-hour time such as 09:00 or 17:30.' };
+  }
+  if (start >= end) {
+    return { valid: false, message: 'Start time must be before end time.' };
+  }
+
+  const overlaps = existingSlots.some((slot) => {
+    if (slot.day_of_week !== dayOfWeek) return false;
+    const existingStart = timeToMinutes(slot.start_time);
+    const existingEnd = timeToMinutes(slot.end_time);
+    return existingStart !== null && existingEnd !== null && start < existingEnd && existingStart < end;
+  });
+  if (overlaps) {
+    return { valid: false, message: 'This time overlaps availability already published for that day.' };
+  }
+
+  return { valid: true };
 }
 
 export function availabilityForDay(slots: AvailabilitySlot[], date: Date): AvailabilitySlot[] {
