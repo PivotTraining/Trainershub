@@ -30,13 +30,13 @@ export function TrainerCard({ trainer, isFavorite = false, onPress, onFavoritePr
     >
       {/* Top row: avatar + content + favorite */}
       <View style={styles.topRow}>
-        <Avatar seed={trainer.user_id} size={50} initial={trainer.full_name ?? trainer.email} />
+        <Avatar seed={trainer.user_id} size={50} initial={trainer.full_name ?? 'Trainer'} />
 
         <View style={styles.content}>
           {/* Name + verified */}
           <View style={styles.nameRow}>
             <Text style={[styles.name, { color: colors.ink, fontSize: typography.base }]} numberOfLines={1}>
-              {trainer.full_name ?? trainer.email}
+              {trainer.full_name ?? 'Trainer'}
             </Text>
             {trainer.is_verified && (
               <Ionicons name="checkmark-circle" size={15} color={colors.info} style={styles.verifiedIcon} />

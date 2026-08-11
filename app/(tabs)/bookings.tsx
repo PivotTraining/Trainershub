@@ -51,7 +51,7 @@ function ReviewModal({ visible, booking, clientId, onClose }: ReviewModalProps) 
     }
     try {
       await createReview.mutateAsync({
-        session_id: booking.id,
+        booking_id: booking.id,
         client_id: clientId,
         trainer_id: booking.trainer_id,
         rating,
@@ -224,7 +224,7 @@ export default function Bookings() {
   const { data: isCorporateMember = false } = useCorporateMember();
 
   const bookingsQuery = useMyBookingsAsClient(userId);
-  const updateStatus = useUpdateBookingStatus(userId);
+  const updateStatus = useUpdateBookingStatus(userId, 'client');
   const createPaymentIntent = useCreatePaymentIntent();
 
   const [reviewBooking, setReviewBooking] = useState<BookingWithNames | null>(null);

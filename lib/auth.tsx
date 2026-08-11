@@ -8,18 +8,25 @@ interface AuthState {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileError: string | null;
+  retryProfile: () => void;
 }
 
 const AuthContext = createContext<AuthState>({
   session: null,
   profile: null,
   loading: true,
+  profileError: null,
+  retryProfile: () => undefined,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -36,10 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('[auth] getSession failed:', err);
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setSessionLoading(false);
       });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+      setProfile(null);
+      setProfileError(null);
+      setProfileLoading(!!next?.user);
       setSession(next);
       if (next?.user) {
         // Silent registration only — never prompt at sign-in. The prompt
@@ -59,50 +69,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!session?.user) {
       setProfile(null);
+      setProfileLoading(false);
+      setProfileError(null);
       return;
     }
     let active = true;
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
+    setProfile(null);
+    setProfileLoading(true);
+    setProfileError(null);
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
         if (!active) return;
         if (error) {
           console.warn('[auth] profile fetch failed:', error.message);
+          setProfileError(error.message);
           return;
         }
         if (data) {
           setProfile(data as Profile);
-        } else {
-          // No profile row yet (e.g. user created via dashboard before
-          // the auth.users → profiles trigger existed). Create a minimal one.
-          supabase
+          return;
+        }
+
+        // No profile row yet (e.g. user created via dashboard before the
+        // auth.users → profiles trigger existed). Create a minimal one.
+        const { data: created, error: createErr } = await supabase
             .from('profiles')
             .upsert(
               { id: session.user.id, email: session.user.email ?? '', role: 'client' },
               { onConflict: 'id' },
             )
             .select('*')
-            .maybeSingle()
-            .then(({ data: created, error: createErr }) => {
-              if (!active) return;
-              if (createErr) {
-                console.warn('[auth] profile bootstrap failed:', createErr.message);
-              } else if (created) {
-                setProfile(created as Profile);
-              }
-            });
+            .maybeSingle();
+        if (!active) return;
+        if (createErr) {
+          console.warn('[auth] profile bootstrap failed:', createErr.message);
+          setProfileError(createErr.message);
+        } else if (created) {
+          setProfile(created as Profile);
         }
-      });
+      } finally {
+        if (active) setProfileLoading(false);
+      }
+    })();
     return () => {
       active = false;
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, profileRefreshKey]);
+
+  // Do not route an authenticated user to onboarding until their existing
+  // profile lookup has completed. On a slow connection, treating `null` as a
+  // missing profile caused a false onboarding screen and could overwrite role
+  // data before the real profile arrived.
+  const loading = sessionLoading || (!!session?.user && profileLoading);
+  const retryProfile = () => setProfileRefreshKey((key) => key + 1);
 
   return (
-    <AuthContext.Provider value={{ session, profile, loading }}>
+    <AuthContext.Provider value={{ session, profile, loading, profileError, retryProfile }}>
       {children}
     </AuthContext.Provider>
   );

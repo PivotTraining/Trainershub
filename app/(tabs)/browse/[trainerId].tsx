@@ -19,7 +19,6 @@ import {
   useTrainerReviewsPublic,
 } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
-import { usePurchasePackage } from '@/lib/queries/packages';
 import { useTheme } from '@/lib/useTheme';
 import type { VibeTag } from '@/lib/types';
 
@@ -49,36 +48,15 @@ export default function TrainerProfile() {
 
   const isFav = useIsFavorite(userId, trainerId);
   const toggleFav = useToggleFavorite(userId ?? '');
-  const purchasePackage = usePurchasePackage();
 
   const handlePackagePress = (pkg: { id: string; title: string; session_count: number; price_cents: number }) => {
     if (!userId) {
       Alert.alert('Sign in required', 'Please sign in to purchase a package.');
       return;
     }
-    const totalPrice = (pkg.price_cents / 100).toFixed(2);
     Alert.alert(
-      'Purchase package?',
-      `${pkg.title}\n${pkg.session_count} sessions for $${totalPrice}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async () => {
-            try {
-              await purchasePackage.mutateAsync({
-                package_id: pkg.id,
-                client_id: userId,
-                trainer_id: trainerId,
-                sessions_remaining: pkg.session_count,
-              });
-              Alert.alert('Package purchased', 'Your sessions are now available. Your trainer will collect payment at your next session.');
-            } catch (err) {
-              Alert.alert('Purchase failed', err instanceof Error ? err.message : 'Please try again.');
-            }
-          },
-        },
-      ],
+      'Secure checkout required',
+      `${pkg.title} is $${(pkg.price_cents / 100).toFixed(2)}. Package checkout is temporarily unavailable while secure payment processing is completed. You can still book a single session.`,
     );
   };
 
@@ -92,7 +70,7 @@ export default function TrainerProfile() {
     );
   }
 
-  const displayName = trainer.full_name ?? trainer.email;
+  const displayName = trainer.full_name ?? 'Trainer';
   const rateLabel =
     trainer.hourly_rate_cents != null
       ? `$${Math.round(trainer.hourly_rate_cents / 100)}/hr`
@@ -269,7 +247,6 @@ export default function TrainerProfile() {
                   <TouchableOpacity
                     key={pkg.id}
                     onPress={() => handlePackagePress(pkg)}
-                    disabled={purchasePackage.isPending}
                     activeOpacity={0.7}
                     style={[
                       styles.packageCard,

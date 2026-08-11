@@ -12,27 +12,11 @@ export interface BrowseFilters {
   availableToday?: boolean;
 }
 
-type TrainerListingRow = Omit<TrainerListing, 'full_name' | 'email'> & {
-  profiles?: {
-    full_name: string | null;
-    email: string | null;
-  } | null;
-};
-
 type ReviewRow = Review & {
   profiles?: {
     full_name: string | null;
   } | null;
 };
-
-function toTrainerListing(row: TrainerListingRow): TrainerListing {
-  const { profiles, ...trainer } = row;
-  return {
-    ...trainer,
-    full_name: profiles?.full_name ?? null,
-    email: profiles?.email ?? '',
-  };
-}
 
 function matchesSearch(trainer: TrainerListing, rawSearch: string | undefined): boolean {
   const search = rawSearch?.trim().toLowerCase();
@@ -40,7 +24,6 @@ function matchesSearch(trainer: TrainerListing, rawSearch: string | undefined): 
 
   const searchable = [
     trainer.full_name,
-    trainer.email,
     trainer.bio,
     trainer.location,
     ...trainer.specialties,
@@ -70,37 +53,20 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
         // Limit the marketplace query to trainers who have any recurring slot today.
       }
 
-      // Join trainer_profiles with profiles to get full_name + email
-      let q = supabase
-        .from('trainer_profiles')
-        .select('*, profiles!user_id(full_name, email)')
-        .order('avg_rating', { ascending: false });
-
-      if (filters.specialty) {
-        q = q.contains('specialties', [filters.specialty]);
-      }
-      if (filters.sessionType) {
-        q = q.contains('session_types', [filters.sessionType]);
-      }
-      if (filters.maxRateCents != null) {
-        q = q.lte('hourly_rate_cents', filters.maxRateCents);
-      }
-      if (filters.minRateCents != null) {
-        q = q.gte('hourly_rate_cents', filters.minRateCents);
-      }
-      if (filters.language) {
-        q = q.contains('languages', [filters.language]);
-      }
-      if (availableTrainerIds) {
-        q = q.in('user_id', availableTrainerIds);
-      }
-
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc('get_trainer_directory', {
+        p_trainer_id: null,
+      });
       if (error) throw new Error(error.message);
 
-      return ((data ?? []) as TrainerListingRow[])
-        .map(toTrainerListing)
-        .filter((trainer) => matchesSearch(trainer, filters.search));
+      return ((data ?? []) as TrainerListing[]).filter((trainer) =>
+        matchesSearch(trainer, filters.search)
+        && (!filters.specialty || trainer.specialties.includes(filters.specialty))
+        && (!filters.sessionType || trainer.session_types.includes(filters.sessionType))
+        && (filters.maxRateCents == null || (trainer.hourly_rate_cents != null && trainer.hourly_rate_cents <= filters.maxRateCents))
+        && (filters.minRateCents == null || (trainer.hourly_rate_cents != null && trainer.hourly_rate_cents >= filters.minRateCents))
+        && (!filters.language || trainer.languages.includes(filters.language))
+        && (!availableTrainerIds || availableTrainerIds.includes(trainer.user_id)),
+      );
     },
   });
 }
@@ -110,14 +76,11 @@ export function usePublicTrainerProfile(trainerId: string | undefined) {
     enabled: !!trainerId,
     queryKey: ['trainer_public', trainerId],
     queryFn: async (): Promise<TrainerListing | null> => {
-      const { data, error } = await supabase
-        .from('trainer_profiles')
-        .select('*, profiles!user_id(full_name, email)')
-        .eq('user_id', trainerId!)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_trainer_directory', {
+        p_trainer_id: trainerId!,
+      });
       if (error) throw new Error(error.message);
-      if (!data) return null;
-      return toTrainerListing(data as TrainerListingRow);
+      return ((data ?? [])[0] as TrainerListing | undefined) ?? null;
     },
   });
 }
@@ -129,14 +92,14 @@ export function useTrainerReviewsPublic(trainerId: string | undefined) {
     queryFn: async (): Promise<Review[]> => {
       const { data, error } = await supabase
         .from('reviews')
-        .select('*, profiles!client_id(full_name)')
+        .select('*')
         .eq('trainer_id', trainerId!)
         .order('created_at', { ascending: false })
         .limit(20);
       if (error) throw new Error(error.message);
       return ((data ?? []) as ReviewRow[]).map((r) => ({
         ...r,
-        clientName: r.profiles?.full_name ?? null,
+        clientName: null,
       })) as Review[];
     },
   });

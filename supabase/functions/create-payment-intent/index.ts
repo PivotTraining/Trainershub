@@ -47,6 +47,7 @@ interface BookingForPayment {
   status: string;
   payment_intent_id: string | null;
   payment_status: string | null;
+  package_purchase_id: string | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -97,6 +98,10 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'Booking has already been paid' }, 400);
     }
 
+    if (booking.package_purchase_id) {
+      return json({ error: 'This booking uses a prepaid package session' }, 400);
+    }
+
     if (booking.payment_intent_id) {
       // Already has a payment intent — retrieve and return
       const existing = await stripe.paymentIntents.retrieve(booking.payment_intent_id);
@@ -105,19 +110,20 @@ Deno.serve(async (req: Request) => {
 
     const { data: trainerProfile, error: trainerError } = await supabase
       .from('trainer_profiles')
-      .select('hourly_rate_cents, stripe_account_id')
+      .select('hourly_rate_cents, stripe_account_id, stripe_onboarded')
       .eq('user_id', booking.trainer_id)
       .single<{
         hourly_rate_cents: number | null;
         stripe_account_id: string | null;
+        stripe_onboarded: boolean;
       }>();
 
     if (trainerError || !trainerProfile) {
       return json({ error: 'Trainer payment profile not found' }, 400);
     }
 
-    if (!trainerProfile?.stripe_account_id) {
-      return json({ error: 'Trainer has not connected a payment account yet' }, 400);
+    if (!trainerProfile?.stripe_account_id || !trainerProfile.stripe_onboarded) {
+      return json({ error: 'Trainer payment account is not ready yet' }, 400);
     }
 
     const rateCents = trainerProfile.hourly_rate_cents ?? 0;
@@ -128,20 +134,23 @@ Deno.serve(async (req: Request) => {
 
     const feeCents = Math.round(amountCents * (PLATFORM_FEE_PERCENT / 100));
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountCents,
-      currency: 'usd',
-      application_fee_amount: feeCents,
-      transfer_data: { destination: trainerProfile.stripe_account_id },
-      // Accept cards + US bank account (ACH). ACH is ~0.8% capped at $5
-      // vs ~2.9% + $0.30 for cards, with 3–5 business day settlement.
-      payment_method_types: ['card', 'us_bank_account'],
-      metadata: {
-        booking_id: bookingId,
-        client_id: user.id,
-        trainer_id: booking.trainer_id,
+    const paymentIntent = await stripe.paymentIntents.create(
+      {
+        amount: amountCents,
+        currency: 'usd',
+        application_fee_amount: feeCents,
+        transfer_data: { destination: trainerProfile.stripe_account_id },
+        // Accept cards + US bank account (ACH). ACH is ~0.8% capped at $5
+        // vs ~2.9% + $0.30 for cards, with 3–5 business day settlement.
+        payment_method_types: ['card', 'us_bank_account'],
+        metadata: {
+          booking_id: bookingId,
+          client_id: user.id,
+          trainer_id: booking.trainer_id,
+        },
       },
-    });
+      { idempotencyKey: `trainerhub-booking-${bookingId}` },
+    );
 
     // Persist payment_intent_id on booking
     const { error: updateError } = await supabase

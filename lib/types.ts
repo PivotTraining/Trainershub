@@ -92,9 +92,8 @@ export interface TrainerProfileFull {
   stripe_onboarded: boolean;
 }
 
-export interface TrainerListing extends TrainerProfileFull {
+export interface TrainerListing extends Omit<TrainerProfileFull, 'stripe_account_id' | 'stripe_onboarded'> {
   full_name: string | null;
-  email: string;
 }
 
 export interface AvailabilitySlot {
@@ -111,6 +110,7 @@ export interface Review {
   trainer_id: string;
   client_id: string | null;
   session_id: string | null;
+  booking_id: string | null;
   rating: number;
   body: string | null;
   created_at: string;

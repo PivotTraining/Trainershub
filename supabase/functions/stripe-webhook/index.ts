@@ -49,27 +49,40 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    const updateBookingPayment = async (
+      paymentIntentId: string,
+      paymentStatus: 'paid' | 'failed' | 'refunded',
+    ): Promise<void> => {
+      const { data, error } = await supabase
+        .from('bookings')
+        .update({ payment_status: paymentStatus })
+        .eq('payment_intent_id', paymentIntentId)
+        .select('id')
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error(`No booking found for PaymentIntent ${paymentIntentId}`);
+    };
+
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent;
-        const bookingId = pi.metadata?.booking_id;
-        if (bookingId) {
-          await supabase
-            .from('bookings')
-            .update({ payment_status: 'paid' })
-            .eq('id', bookingId);
-        }
+        await updateBookingPayment(pi.id, 'paid');
         break;
       }
 
       case 'payment_intent.payment_failed': {
         const pi = event.data.object as Stripe.PaymentIntent;
-        const bookingId = pi.metadata?.booking_id;
-        if (bookingId) {
-          await supabase
-            .from('bookings')
-            .update({ payment_status: 'failed' })
-            .eq('id', bookingId);
+        await updateBookingPayment(pi.id, 'failed');
+        break;
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        const paymentIntentId = typeof charge.payment_intent === 'string'
+          ? charge.payment_intent
+          : charge.payment_intent?.id;
+        if (paymentIntentId && charge.amount_refunded >= charge.amount) {
+          await updateBookingPayment(paymentIntentId, 'refunded');
         }
         break;
       }
@@ -80,10 +93,11 @@ Deno.serve(async (req: Request) => {
           account.details_submitted === true &&
           account.charges_enabled === true;
         // Find trainer by stripe_account_id
-        await supabase
+        const { error } = await supabase
           .from('trainer_profiles')
           .update({ stripe_onboarded: onboarded })
           .eq('stripe_account_id', account.id);
+        if (error) throw new Error(error.message);
         break;
       }
 
