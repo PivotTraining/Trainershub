@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
 import { useClients } from '@/lib/queries/clients';
 import { useCreateSession } from '@/lib/queries/sessions';
+import { mergePickerDateTime, validateFutureSessionTime } from '@/lib/scheduling';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import { sessionCreateSchema } from '@/lib/validators/session';
@@ -45,12 +46,18 @@ export default function NewSession() {
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
 
   const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    const mode = pickerMode;
     if (Platform.OS === 'android') setPickerMode(null);
-    if (event.type === 'dismissed' || !selected) return;
-    setStartsAt(selected);
+    if (event.type === 'dismissed' || !selected || !mode) return;
+    setStartsAt((current) => mergePickerDateTime(current, selected, mode));
   };
 
   const handleSubmit = async () => {
+    const timeValidation = validateFutureSessionTime(startsAt);
+    if (!timeValidation.valid) {
+      Alert.alert('Choose another time', timeValidation.message);
+      return;
+    }
     const parsed = sessionCreateSchema.safeParse({
       client_id: clientId,
       starts_at: startsAt.toISOString(),
@@ -74,41 +81,56 @@ export default function NewSession() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={[styles.container]}>
           <Text style={[styles.label, { color: colors.muted }]}>Client</Text>
-          <FlatList
-            data={clients.data ?? []}
-            keyExtractor={(c) => c.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingVertical: spacing.xs }}
-            scrollEnabled
-            renderItem={({ item }) => {
-              const selected = item.id === clientId;
-              const name = item.profile?.full_name ?? item.profile?.email ?? item.id.slice(0, 6);
-              return (
-                <TouchableOpacity
-                  onPress={() => setClientId(item.id)}
-                  style={[
-                    styles.chip,
-                    { borderColor: colors.borderInput },
-                    selected && { backgroundColor: accent, borderColor: accent },
-                  ]}
-                >
-                  <Text style={[styles.chipText, { color: selected ? '#fff' : colors.ink }]}>
-                    {name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            }}
-            ListEmptyComponent={
-              <Text style={[styles.empty, { color: colors.muted }]}>Add a client first.</Text>
-            }
-          />
+          {clients.isError ? (
+            <View style={[styles.inlineError, { borderColor: colors.border }]}>
+              <Text accessibilityRole="alert" style={{ color: colors.danger }}>Clients could not be loaded.</Text>
+              <TouchableOpacity onPress={() => clients.refetch()} accessibilityRole="button">
+                <Text style={{ color: accent, fontWeight: '700' }}>Try again</Text>
+              </TouchableOpacity>
+            </View>
+          ) : clients.isLoading ? (
+            <ActivityIndicator />
+          ) : (
+            <FlatList
+              data={clients.data ?? []}
+              keyExtractor={(c) => c.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingVertical: spacing.xs }}
+              scrollEnabled
+              renderItem={({ item }) => {
+                const selected = item.id === clientId;
+                const name = item.profile?.full_name ?? item.profile?.email ?? item.id.slice(0, 6);
+                return (
+                  <TouchableOpacity
+                    onPress={() => setClientId(item.id)}
+                    style={[
+                      styles.chip,
+                      { borderColor: colors.borderInput },
+                      selected && { backgroundColor: accent, borderColor: accent },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                  >
+                    <Text style={[styles.chipText, { color: selected ? '#fff' : colors.ink }]}>
+                      {name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <Text style={[styles.empty, { color: colors.muted }]}>Add a client first.</Text>
+              }
+            />
+          )}
 
           <Text style={[styles.label, { color: colors.muted }]}>Date &amp; time</Text>
           <View style={styles.row}>
             <TouchableOpacity
               style={[styles.pickerButton, { borderColor: colors.borderInput }]}
               onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose session date"
             >
               <Text style={[styles.pickerButtonText, { color: colors.ink }]}>
                 {startsAt.toLocaleDateString()}
@@ -117,6 +139,8 @@ export default function NewSession() {
             <TouchableOpacity
               style={[styles.pickerButton, { borderColor: colors.borderInput }]}
               onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose session time"
             >
               <Text style={[styles.pickerButtonText, { color: colors.ink }]}>
                 {startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -129,6 +153,7 @@ export default function NewSession() {
               mode={pickerMode}
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={handlePickerChange}
+              minimumDate={pickerMode === 'date' ? new Date() : undefined}
             />
           )}
 
@@ -155,6 +180,8 @@ export default function NewSession() {
             style={[styles.button, { backgroundColor: accent }, create.isPending && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={create.isPending}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: create.isPending, busy: create.isPending }}
           >
             {create.isPending ? (
               <ActivityIndicator color="#fff" />
@@ -183,6 +210,7 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   empty:   {},
+  inlineError: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

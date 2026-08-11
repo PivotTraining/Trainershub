@@ -16,13 +16,15 @@ import {
 
 import { useTheme } from '@/lib/useTheme';
 import { useSession, useUpdateSession } from '@/lib/queries/sessions';
+import { mergePickerDateTime, validateFutureSessionTime } from '@/lib/scheduling';
 import { sessionUpdateSchema } from '@/lib/validators/session';
 
 export default function EditSession() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();
-  const { data, isLoading } = useSession(id);
+  const sessionQuery = useSession(id);
+  const { data, isLoading } = sessionQuery;
   const update = useUpdateSession();
   const { colors, accent } = useTheme();
 
@@ -43,12 +45,18 @@ export default function EditSession() {
   }, [data, seeded, navigation]);
 
   const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    const mode = pickerMode;
     if (Platform.OS === 'android') setPickerMode(null);
-    if (event.type === 'dismissed' || !selected) return;
-    setStartsAt(selected);
+    if (event.type === 'dismissed' || !selected || !mode) return;
+    setStartsAt((current) => mergePickerDateTime(current, selected, mode));
   };
 
   const handleSave = async () => {
+    const timeValidation = validateFutureSessionTime(startsAt);
+    if (!timeValidation.valid) {
+      Alert.alert('Choose another time', timeValidation.message);
+      return;
+    }
     const parsed = sessionUpdateSchema.safeParse({
       starts_at: startsAt.toISOString(),
       duration_min: Number(duration),
@@ -66,10 +74,25 @@ export default function EditSession() {
     }
   };
 
-  if (isLoading || !data) {
+  if (isLoading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (sessionQuery.isError || !data) {
+    return (
+      <View style={[styles.center, styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Text accessibilityRole="alert" style={{ color: colors.danger }}>Session could not be loaded.</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { borderColor: colors.borderInput }]}
+          onPress={() => sessionQuery.refetch()}
+          accessibilityRole="button"
+        >
+          <Text style={{ color: colors.ink }}>Try again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -85,12 +108,16 @@ export default function EditSession() {
           <TouchableOpacity
             style={[styles.pickerButton, { borderColor: colors.borderInput }]}
             onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
+            accessibilityRole="button"
+            accessibilityLabel="Choose session date"
           >
             <Text style={[styles.pickerButtonText, { color: colors.ink }]}>{startsAt.toLocaleDateString()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.pickerButton, { borderColor: colors.borderInput }]}
             onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
+            accessibilityRole="button"
+            accessibilityLabel="Choose session time"
           >
             <Text style={[styles.pickerButtonText, { color: colors.ink }]}>
               {startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -103,6 +130,7 @@ export default function EditSession() {
             mode={pickerMode}
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handlePickerChange}
+            minimumDate={pickerMode === 'date' ? new Date() : undefined}
           />
         )}
 
@@ -127,6 +155,8 @@ export default function EditSession() {
           style={[styles.button, { backgroundColor: accent }, update.isPending && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={update.isPending}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: update.isPending, busy: update.isPending }}
         >
           {update.isPending ? (
             <ActivityIndicator color={colors.white} />
@@ -142,6 +172,8 @@ export default function EditSession() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorContainer: { padding: 24, gap: 12 },
+  retryButton: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
   container: { padding: 24, flexGrow: 1 },
   label: { fontSize: 13, marginBottom: 6, marginTop: 16 },
   row: { flexDirection: 'row', gap: 8 },

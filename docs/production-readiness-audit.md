@@ -10,9 +10,9 @@ at iOS/Android build 27, but the EAS account currently shows its most recent
 cloud iOS build as build 20; later TestFlight builds therefore need to be
 reconciled with App Store Connect before the next upload.
 
-The baseline lint, TypeScript, and 44 existing Jest tests passed before this
-hardening slice. Expo Doctor initially found three SDK patch mismatches; those
-dependencies are now aligned and all 18 Doctor checks pass.
+Lint, TypeScript, and all 58 Jest tests pass. Expo Doctor initially found three
+SDK patch mismatches; those dependencies are now aligned and all 18 Doctor
+checks pass.
 
 ## P0 — financial, authorization, and data-integrity risks
 
@@ -63,8 +63,10 @@ dependencies are now aligned and all 18 Doctor checks pass.
 
 1. Build package checkout with a server-created Stripe PaymentIntent, webhook-only
    package credit issuance, refunds, receipts, and idempotent fulfillment.
-2. Add booking reschedule workflows, trainer availability enforcement, time-zone
-   display/selection, and explicit cancellation/refund policy UX.
+2. Add booking reschedule workflows, time-zone display/selection, and explicit
+   cancellation/refund policy UX. New booking requests now enforce published
+   recurring availability, reject past/last-minute times, preserve date and time
+   components across native pickers, and recover from schedule-loading errors.
 3. Add Stripe customer records, saved payment methods, payment receipts, payout
    status, disputes, and refund controls.
 4. Add notification delivery receipts, invalid-token cleanup, booking-status push
@@ -98,7 +100,9 @@ dependencies are now aligned and all 18 Doctor checks pass.
 
 This branch intentionally does not mutate production services. Before release:
 
-1. Authenticate the Supabase CLI for project `lluhpxjngcyxlmezuxks`.
+1. Confirm the actual TrainerHub Supabase project, then authenticate the CLI. The
+   repository currently references `lluhpxjngcyxlmezuxks`, but it is not visible
+   through the connected Supabase account and must not be assumed to be correct.
 2. Review current production schema drift and existing overlapping bookings.
 3. Apply the new migration to staging, run RLS/advisor tests, then promote it.
 4. Deploy `notify-booking-created`, `create-payment-intent`, and `stripe-webhook`.
