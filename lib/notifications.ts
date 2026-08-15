@@ -112,33 +112,14 @@ export async function registerPushToken(
   if (error) console.warn('Failed to store push token:', error.message);
 }
 
-/**
- * Send a push notification to a user via the Expo Push API.
- * Fetches their token from the profiles table, then POSTs to Expo.
- * Fire-and-forget — errors are logged, not thrown.
- */
-export async function sendPushToUser(
-  recipientUserId: string,
-  title: string,
-  body: string,
-  data?: Record<string, unknown>,
-): Promise<void> {
+/** Notify the trainer about a booking through the authenticated Edge Function. */
+export async function sendBookingCreatedNotification(bookingId: string): Promise<void> {
   try {
     const { supabase } = await import('./supabase');
-    const { data: row } = await supabase
-      .from('profiles')
-      .select('expo_push_token')
-      .eq('id', recipientUserId)
-      .maybeSingle<{ expo_push_token: string | null }>();
-
-    const token = row?.expo_push_token;
-    if (!token) return;
-
-    await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: token, title, body, data: data ?? {} }),
+    const { error } = await supabase.functions.invoke('notify-booking-created', {
+      body: { bookingId },
     });
+    if (error) throw error;
   } catch (err) {
     console.warn('Push notification failed:', err);
   }

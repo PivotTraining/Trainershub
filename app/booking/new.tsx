@@ -16,15 +16,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
+import { useAvailabilitySlots } from '@/lib/queries/availability';
 import { useCreateBooking } from '@/lib/queries/bookings';
 import { usePublicTrainerProfile } from '@/lib/queries/browse';
 import { useMyPackagePurchases } from '@/lib/queries/packages';
+import { availabilityForDay, mergePickerDateTime, validateBookingTime } from '@/lib/scheduling';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { SessionType } from '@/lib/types';
 
 const DURATIONS = [30, 45, 60, 90] as const;
 type Duration = (typeof DURATIONS)[number];
+
+function formatTime(value: string): string {
+  const [hourValue, minute = '00'] = value.split(':');
+  const hour = Number(hourValue);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minute} ${period}`;
+}
 
 function defaultStart(): Date {
   const d = new Date();
@@ -41,6 +51,7 @@ export default function BookingNew() {
   const { colors, accent } = useTheme();
 
   const trainerQuery = usePublicTrainerProfile(trainerId);
+  const availabilityQuery = useAvailabilitySlots(trainerId);
   const packagesQuery = useMyPackagePurchases(clientId);
   const createBooking = useCreateBooking();
 
@@ -64,16 +75,35 @@ export default function BookingNew() {
   const eligiblePurchases = (packagesQuery.data ?? []).filter(
     (p) => p.trainer_id === trainerId && p.sessions_remaining > 0,
   );
+  const availability = availabilityQuery.data ?? [];
+  const selectedDaySlots = availabilityForDay(availability, startsAt);
 
-  const handlePickerChange = (_event: DateTimePickerEvent, selected?: Date) => {
+  const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
+    const mode = pickerMode;
     if (Platform.OS === 'android') setPickerMode(null);
-    if (!selected) return;
-    setStartsAt(selected);
+    if (event.type === 'dismissed' || !selected || !mode) return;
+    setStartsAt((current) => mergePickerDateTime(current, selected, mode));
   };
 
   const handleSubmit = async () => {
     if (!clientId || !trainerId) {
       Alert.alert('Error', 'Missing required information.');
+      return;
+    }
+    if (availabilityQuery.isLoading || availabilityQuery.isFetching) {
+      Alert.alert('Checking availability', 'Wait a moment while the trainer’s schedule loads.');
+      return;
+    }
+    if (availabilityQuery.isError) {
+      Alert.alert(
+        'Availability unavailable',
+        'TrainerHub could not verify this time. Refresh availability before requesting the session.',
+      );
+      return;
+    }
+    const timeValidation = validateBookingTime(startsAt, duration, availability);
+    if (!timeValidation.valid) {
+      Alert.alert('Choose another time', timeValidation.message);
       return;
     }
     try {
@@ -104,6 +134,23 @@ export default function BookingNew() {
     );
   }
 
+  if (trainerQuery.isError || !trainerProfile) {
+    return (
+      <View style={[styles.center, styles.loadError, { backgroundColor: colors.background }]}>
+        <Text accessibilityRole="alert" style={[styles.loadErrorText, { color: colors.danger }]}>
+          Trainer details could not be loaded.
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { borderColor: colors.borderInput }]}
+          onPress={() => trainerQuery.refetch()}
+          accessibilityRole="button"
+        >
+          <Text style={{ color: colors.ink }}>Try again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -120,6 +167,8 @@ export default function BookingNew() {
             <TouchableOpacity
               style={[styles.pickerBtn, { borderColor: colors.borderInput }]}
               onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose booking date"
             >
               <Text style={[styles.pickerBtnText, { color: colors.ink }]}>
                 {startsAt.toLocaleDateString()}
@@ -128,6 +177,8 @@ export default function BookingNew() {
             <TouchableOpacity
               style={[styles.pickerBtn, { borderColor: colors.borderInput }]}
               onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
+              accessibilityRole="button"
+              accessibilityLabel="Choose booking time"
             >
               <Text style={[styles.pickerBtnText, { color: colors.ink }]}>
                 {startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -140,8 +191,37 @@ export default function BookingNew() {
               mode={pickerMode}
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={handlePickerChange}
+              minimumDate={pickerMode === 'date' ? new Date() : undefined}
             />
           )}
+
+          <View style={[styles.availabilityCard, { backgroundColor: colors.surfaceRaised }]}>
+            <Text style={[styles.availabilityTitle, { color: colors.ink }]}>Trainer availability</Text>
+            {availabilityQuery.isLoading ? (
+              <ActivityIndicator size="small" />
+            ) : availabilityQuery.isError ? (
+              <View>
+                <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger }]}>
+                  Availability could not be loaded.
+                </Text>
+                <TouchableOpacity onPress={() => availabilityQuery.refetch()} accessibilityRole="button">
+                  <Text style={[styles.retryText, { color: accent }]}>Refresh availability</Text>
+                </TouchableOpacity>
+              </View>
+            ) : availability.length === 0 ? (
+              <Text style={[styles.availabilityText, { color: colors.muted }]}>
+                No recurring hours published. You can still request a time.
+              </Text>
+            ) : selectedDaySlots.length === 0 ? (
+              <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger }]}>
+                No availability published for {startsAt.toLocaleDateString(undefined, { weekday: 'long' })}.
+              </Text>
+            ) : (
+              <Text style={[styles.availabilityText, { color: colors.muted }]}>
+                {selectedDaySlots.map((slot) => `${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`).join(', ')}
+              </Text>
+            )}
+          </View>
 
           {/* Duration */}
           <Text style={[styles.label, { color: colors.muted }]}>Duration</Text>
@@ -155,6 +235,8 @@ export default function BookingNew() {
                   duration === d && { backgroundColor: accent, borderColor: accent },
                 ]}
                 onPress={() => setDuration(d)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: duration === d }}
               >
                 <Text
                   style={[
@@ -180,6 +262,8 @@ export default function BookingNew() {
                   sessionType === type && { backgroundColor: accent, borderColor: accent },
                 ]}
                 onPress={() => setSessionType(type)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sessionType === type }}
               >
                 <Text
                   style={[
@@ -267,6 +351,8 @@ export default function BookingNew() {
             style={[styles.button, { backgroundColor: accent }, createBooking.isPending && styles.buttonDisabled]}
             onPress={handleSubmit}
             disabled={createBooking.isPending}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: createBooking.isPending, busy: createBooking.isPending }}
           >
             {createBooking.isPending ? (
               <ActivityIndicator color="#fff" />
@@ -284,6 +370,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadError: { padding: spacing.lg, gap: spacing.md },
+  loadErrorText: { fontSize: typography.md, textAlign: 'center' },
+  retryButton: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10 },
   container: { padding: spacing.lg, flexGrow: 1 },
   trainerName: { fontSize: typography.xl, fontWeight: '700', marginBottom: spacing.md },
   label: { fontSize: typography.sm, marginTop: spacing.md, marginBottom: spacing.xs },
@@ -297,6 +386,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pickerBtnText: { fontSize: typography.base },
+  availabilityCard: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
+  availabilityTitle: { fontSize: typography.sm, fontWeight: '700', marginBottom: 4 },
+  availabilityText: { fontSize: typography.sm, lineHeight: 20 },
+  retryText: { fontSize: typography.sm, fontWeight: '700', marginTop: spacing.xs },
   segment: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

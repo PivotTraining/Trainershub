@@ -24,13 +24,17 @@ cd Trainershub
 npm install --legacy-peer-deps
 ```
 
-Then create `.env` in the project root with these three lines:
+For local development, copy `.env.example` to `.env` and use development/test
+service values. Never place production values in a committed file.
 
+```bash
+cp .env.example .env
 ```
-EXPO_PUBLIC_SUPABASE_URL=https://rwemcpmykuctcsgmzupo.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_OlRC1cuDgjeUgo_VIkfcDg_ZLKeOQUq
-EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51MYXwyERWdPcDJ1Zp45qUdV744DUe25WGukDNx8VOdzpx1DnSX9FGRUMh0DkRUwQ6YF5fVcyqcvrpbEhCia7CTOz00p0C2Ofa3
-```
+
+Cloud builds select EAS-managed `development`, `preview`, or `production`
+variables through `eas.json`. Before a production build, confirm the intended
+values with `eas env:list --environment production`. Before preview builds,
+confirm the Supabase project and Stripe key are non-production/test values.
 
 ## 2 · Create the App Store Connect record
 
@@ -42,8 +46,8 @@ EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51MYXwyERWdPcDJ1Zp45qUdV744DUe25WGukD
    - Primary language: English (US)
    - Bundle ID: pick **`com.trainerhub.app`** (must match `app.json` exactly)
    - SKU: anything unique, e.g. `TRAINERHUB001`
-4. Save — note the **Apple ID** (a 10-digit number) shown on the app page;
-   we'll wire that into `eas.json` later if you ever switch to EAS Submit.
+4. Save — confirm the **Apple ID** (a 10-digit number) shown on the app page
+   matches `submit.production.ios.ascAppId` in `eas.json`.
 
 ## 3 · Make sure the Bundle ID is registered
 

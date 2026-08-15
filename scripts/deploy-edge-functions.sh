@@ -21,10 +21,12 @@ STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-YOUR_STRIPE_WEBHOOK_SECRET}"
 
 PLATFORM_FEE_PERCENT="4"
 APP_SCHEME="trainerhub"
-REVIEW_SIGNIN_ENABLED="${REVIEW_SIGNIN_ENABLED:-false}"
 
 echo "🚀  Linking to Supabase project ${SUPABASE_PROJECT_REF}..."
 supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+# Remove the retired shared-secret review bypass if an older deployment exists.
+supabase functions delete review-signin --project-ref "$SUPABASE_PROJECT_REF" --yes || true
 
 echo ""
 echo "📦  Running DB migrations..."
@@ -37,7 +39,6 @@ supabase secrets set \
   STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" \
   PLATFORM_FEE_PERCENT="$PLATFORM_FEE_PERCENT" \
   APP_SCHEME="$APP_SCHEME" \
-  REVIEW_SIGNIN_ENABLED="$REVIEW_SIGNIN_ENABLED" \
   --project-ref "$SUPABASE_PROJECT_REF"
 
 echo ""
@@ -49,7 +50,7 @@ supabase functions deploy accept-corporate-invite --project-ref "$SUPABASE_PROJE
 supabase functions deploy create-connect-account --project-ref "$SUPABASE_PROJECT_REF"
 supabase functions deploy create-payment-intent  --project-ref "$SUPABASE_PROJECT_REF"
 supabase functions deploy stripe-webhook         --project-ref "$SUPABASE_PROJECT_REF"
-supabase functions deploy review-signin          --project-ref "$SUPABASE_PROJECT_REF"
+supabase functions deploy notify-booking-created --project-ref "$SUPABASE_PROJECT_REF"
 
 echo ""
 echo "✅  Done!"
@@ -57,7 +58,7 @@ echo ""
 echo "Next steps:"
 echo "  1. In Stripe Dashboard → Webhooks, add endpoint:"
 echo "     https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/stripe-webhook"
-echo "     Events: payment_intent.succeeded, payment_intent.payment_failed, account.updated"
+echo "     Events: payment_intent.succeeded, payment_intent.payment_failed, charge.refunded, account.updated"
 echo ""
 echo "  2. Add to your .env:"
 echo "     EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_..."

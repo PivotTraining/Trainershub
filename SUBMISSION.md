@@ -8,35 +8,42 @@ This guide walks through submitting TrainerHub to App Store Connect (TestFlight 
 - App Store Connect record created for bundle id `com.trainerhub.app`
 - An EAS account (`npm i -g eas-cli && eas login`)
 
-## 2. Fill in placeholder IDs
+## 2. Verify release configuration
 
 ### `app.json`
-- `extra.eas.projectId` — replace `REPLACE_WITH_EAS_PROJECT_ID` (run `eas init` to populate automatically)
+- `extra.eas.projectId` must identify the TrainerHub EAS project.
 
 ### `eas.json` → `submit.production.ios`
 - `appleId` — Apple ID email used for App Store Connect
 - `ascAppId` — numeric "Apple ID" from App Store Connect → App Information
 - `appleTeamId` — 10-char team ID from developer.apple.com → Membership
 
-### `eas.json` → `build.production.env`
+### EAS-managed environments
+
+Configure these variables in each EAS environment (`development`, `preview`,
+and `production`) rather than committing values to `eas.json`:
+
 - `EXPO_PUBLIC_SUPABASE_URL`
 - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+- `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
-(or set via `eas secret:create`)
+Use separate non-production Supabase and Stripe projects for development and
+preview. Verify with `eas env:list --environment <name>` before building. Values
+embedded in client apps are public; database authorization still depends on RLS.
 
 ## 3. Pre-flight checks
 
 ```bash
 npm run typecheck   # passes
-npm test            # 44 tests passing
+npm test -- --runInBand
 npm run lint
+npx expo-doctor
 ```
 
 ## 4. Build & submit
 
 ```bash
-# First-time setup
-eas init
+# First-time setup (only if the project is not already linked)
 eas credentials   # generate / sync iOS distribution cert + provisioning profile
 
 # Production build
@@ -71,7 +78,7 @@ After the build is processed (~15 min):
 - ✅ Encryption export compliance flag set
 - ✅ Universal app (iPad supported)
 - ✅ Edge-to-edge / safe area handled (`react-native-safe-area-context`)
-- ✅ Account deletion path (Profile → Sign out + Supabase row deletion via RLS)
+- ✅ Account deletion path (Profile → Delete Account → authenticated Edge Function)
 - ⚠️ You must host a public privacy policy before submission.
 
 ## 7. Over-the-air updates
@@ -79,7 +86,7 @@ After the build is processed (~15 min):
 After 1.0.0 ships, ship JS-only fixes via:
 
 ```bash
-eas update --branch production --message "fix: ..."
+eas update --environment production --branch production --message "fix: ..."
 ```
 
 Native changes (new permissions, plugins) require a fresh build + submit.

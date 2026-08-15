@@ -74,25 +74,13 @@ export function useCreateCorporateAccount() {
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) throw new Error('Not authenticated');
 
-      // 1. Create account
-      const { data: acct, error: acctErr } = await supabase
-        .from('corporate_accounts')
-        .insert({
-          name:          payload.name,
-          domain:        payload.domain ?? null,
-          billing_email: payload.billing_email ?? user.email ?? null,
-          seat_count:    payload.seat_count ?? 10,
-        })
-        .select()
-        .single();
+      const { data: acct, error: acctErr } = await supabase.rpc('create_corporate_account', {
+        p_name: payload.name,
+        p_domain: payload.domain ?? null,
+        p_billing_email: payload.billing_email ?? user.email ?? null,
+        p_seat_count: payload.seat_count ?? 10,
+      });
       if (acctErr) throw new Error(acctErr.message);
-
-      // 2. Make the creator an owner-admin
-      const { error: adminErr } = await supabase
-        .from('corporate_admins')
-        .insert({ corporate_account_id: acct.id, user_id: user.id, role: 'owner' });
-      if (adminErr) throw new Error(adminErr.message);
-
       return acct as CorporateAccount;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: corpKeys.myAccount() }),

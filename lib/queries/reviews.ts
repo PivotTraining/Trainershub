@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import type { Review } from '../types';
 
-export function useMyReviewForSession(sessionId: string | undefined, clientId: string | undefined) {
+export function useMyReviewForBooking(bookingId: string | undefined, clientId: string | undefined) {
   return useQuery({
-    enabled: !!sessionId && !!clientId,
-    queryKey: ['my_review', sessionId],
+    enabled: !!bookingId && !!clientId,
+    queryKey: ['my_review', bookingId],
     queryFn: async (): Promise<Review | null> => {
       const { data, error } = await supabase
         .from('reviews')
         .select('*')
-        .eq('session_id', sessionId!)
+        .eq('booking_id', bookingId!)
         .eq('client_id', clientId!)
         .maybeSingle();
       if (error) throw new Error(error.message);
@@ -25,7 +25,7 @@ export function useCreateReview() {
     mutationFn: async (input: {
       trainer_id: string;
       client_id: string;
-      session_id: string;
+      booking_id: string;
       rating: number;
       body?: string | null;
     }): Promise<Review> => {
@@ -39,7 +39,7 @@ export function useCreateReview() {
     },
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['reviews', r.trainer_id] });
-      qc.invalidateQueries({ queryKey: ['my_review', r.session_id] });
+      qc.invalidateQueries({ queryKey: ['my_review', r.booking_id] });
     },
   });
 }

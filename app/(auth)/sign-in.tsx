@@ -26,8 +26,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Logo } from '@/components/Logo';
-import { signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
+import { requestPasswordReset, signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
 import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
@@ -190,6 +189,28 @@ export default function SignIn() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.includes('@')) {
+      Alert.alert('Enter your email', 'Enter the email address for your TrainerHub account first.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(normalizedEmail);
+      Alert.alert(
+        'Check your email',
+        'If an account exists for that address, a secure password reset link is on the way.',
+      );
+    } catch (error: unknown) {
+      Alert.alert(
+        'Reset unavailable',
+        error instanceof Error ? error.message : 'Please try again later.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleVerify = async () => {
     // Supabase OTP length is configurable per project (6–10 digits). Accept
     // any length in that range so the app keeps working if the project
@@ -307,43 +328,13 @@ export default function SignIn() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={async () => {
-                    if (submitting) return;
-                    setSubmitting(true);
-                    try {
-                      const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/review-signin`;
-                      const res = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          apikey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
-                        },
-                        body: JSON.stringify({ secret: 'trainerhub-review-2026' }),
-                      });
-                      const payload = await res.json();
-                      if (!res.ok || !payload.access_token || !payload.refresh_token) {
-                        throw new Error(payload.error ?? `Status ${res.status}`);
-                      }
-                      const { error } = await supabase.auth.setSession({
-                        access_token: payload.access_token,
-                        refresh_token: payload.refresh_token,
-                      });
-                      if (error) throw error;
-                    } catch (error: unknown) {
-                      Alert.alert(
-                        'Demo sign-in failed',
-                        error instanceof Error ? error.message : 'Please try again.',
-                      );
-                    } finally {
-                      setSubmitting(false);
-                    }
-                  }}
+                  onPress={handleForgotPassword}
                   disabled={submitting}
                   style={{ marginTop: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reset forgotten password"
                 >
-                  <Text style={[s.linkText, { color: colors.muted, fontSize: 12 }]}>
-                    App Review demo sign-in
-                  </Text>
+                  <Text style={[s.linkText, { color: colors.muted, fontSize: 12 }]}>Forgot password?</Text>
                 </TouchableOpacity>
               </>
             ) : (

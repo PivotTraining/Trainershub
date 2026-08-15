@@ -20,6 +20,7 @@ import {
   useCreateSlot,
   useDeleteSlot,
 } from '@/lib/queries/availability';
+import { normalizeClockTime, validateAvailabilityRange } from '@/lib/scheduling';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { AvailabilitySlot, DayOfWeek } from '@/lib/types';
@@ -39,10 +40,11 @@ function formatTime(hhmm: string): string {
 interface AddSlotModalProps {
   visible: boolean;
   trainerId: string;
+  existingSlots: AvailabilitySlot[];
   onClose: () => void;
 }
 
-function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
+function AddSlotModal({ visible, trainerId, existingSlots, onClose }: AddSlotModalProps) {
   const { colors, accent } = useTheme();
   const createSlot = useCreateSlot(trainerId);
   const [day, setDay] = useState<DayOfWeek>(1);
@@ -50,19 +52,19 @@ function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
   const [endTime, setEndTime] = useState('10:00');
 
   const handleAdd = async () => {
-    if (!startTime.match(/^\d{1,2}:\d{2}$/) || !endTime.match(/^\d{1,2}:\d{2}$/)) {
-      Alert.alert('Invalid time', 'Enter times in HH:MM format (e.g. 09:00).');
-      return;
-    }
-    if (startTime >= endTime) {
-      Alert.alert('Invalid range', 'Start time must be before end time.');
+    const validation = validateAvailabilityRange(day, startTime, endTime, existingSlots);
+    if (!validation.valid) {
+      Alert.alert('Check availability', validation.message);
       return;
     }
     try {
+      const normalizedStart = normalizeClockTime(startTime);
+      const normalizedEnd = normalizeClockTime(endTime);
+      if (!normalizedStart || !normalizedEnd) return;
       await createSlot.mutateAsync({
         day_of_week: day,
-        start_time: `${startTime}:00`,
-        end_time: `${endTime}:00`,
+        start_time: normalizedStart,
+        end_time: normalizedEnd,
       });
       onClose();
     } catch (err: unknown) {
@@ -74,11 +76,16 @@ function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[styles.modalSafe, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose}>
+          <TouchableOpacity onPress={onClose} accessibilityRole="button">
             <Text style={[styles.modalCancel, { color: colors.muted }]}>Cancel</Text>
           </TouchableOpacity>
           <Text style={[styles.modalTitle, { color: colors.ink }]}>Add Slot</Text>
-          <TouchableOpacity onPress={handleAdd} disabled={createSlot.isPending}>
+          <TouchableOpacity
+            onPress={handleAdd}
+            disabled={createSlot.isPending}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: createSlot.isPending, busy: createSlot.isPending }}
+          >
             {createSlot.isPending ? (
               <ActivityIndicator size="small" />
             ) : (
@@ -98,6 +105,9 @@ function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
                   day === d && { backgroundColor: accent, borderColor: accent },
                 ]}
                 onPress={() => setDay(d)}
+                accessibilityRole="button"
+                accessibilityLabel={DAY_NAMES[d]}
+                accessibilityState={{ selected: day === d }}
               >
                 <Text
                   style={[
@@ -118,6 +128,7 @@ function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
             placeholder="09:00"
             placeholderTextColor={colors.placeholder}
             keyboardType="numbers-and-punctuation"
+            accessibilityLabel="Availability start time in 24-hour format"
           />
           <Text style={[styles.label, { color: colors.muted }]}>End Time (HH:MM)</Text>
           <TextInput
@@ -127,6 +138,7 @@ function AddSlotModal({ visible, trainerId, onClose }: AddSlotModalProps) {
             placeholder="10:00"
             placeholderTextColor={colors.placeholder}
             keyboardType="numbers-and-punctuation"
+            accessibilityLabel="Availability end time in 24-hour format"
           />
         </ScrollView>
       </SafeAreaView>
@@ -165,7 +177,13 @@ function SlotRow({ slot, trainerId }: SlotRowProps) {
       <Text style={[styles.slotTime, { color: colors.ink }]}>
         {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
       </Text>
-      <TouchableOpacity onPress={handleDelete} disabled={deleteSlot.isPending}>
+      <TouchableOpacity
+        onPress={handleDelete}
+        disabled={deleteSlot.isPending}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove availability ${formatTime(slot.start_time)} to ${formatTime(slot.end_time)}`}
+        accessibilityState={{ disabled: deleteSlot.isPending, busy: deleteSlot.isPending }}
+      >
         {deleteSlot.isPending ? (
           <ActivityIndicator size="small" />
         ) : (
@@ -228,12 +246,15 @@ export default function Availability() {
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: accent }]}
         onPress={() => setShowModal(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Add availability slot"
       >
         <Text style={styles.fabText}>+ Add Slot</Text>
       </TouchableOpacity>
       <AddSlotModal
         visible={showModal}
         trainerId={trainerId}
+        existingSlots={allSlots}
         onClose={() => setShowModal(false)}
       />
     </SafeAreaView>

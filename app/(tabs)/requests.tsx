@@ -84,7 +84,7 @@ export default function Requests() {
   const { colors } = useTheme();
 
   const bookingsQuery = useMyBookingsAsTrainer(userId);
-  const updateStatus = useUpdateBookingStatus(userId);
+  const updateStatus = useUpdateBookingStatus(userId, 'trainer');
 
   const allBookings = bookingsQuery.data ?? [];
   const pending = allBookings.filter((b) => b.status === 'pending');

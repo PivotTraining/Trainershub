@@ -45,7 +45,7 @@ Book your trainer, view your upcoming sessions, and follow your custom programs 
 • Session History — Review completed sessions and notes from past workouts.
 
 SIMPLE. SECURE. PROFESSIONAL.
-TrainerHub uses industry-standard security (Supabase + Stripe) to keep client data private and payments safe. Sign in with a one-tap email code — no password to remember.
+TrainerHub uses industry-standard security (Supabase + Stripe) to keep client data private and payments safe. Sign in with a password or a one-time email code.
 
 Whether you're a solo trainer scaling your client base or a dedicated athlete following a personalized program, TrainerHub keeps everyone on the same page.
 
@@ -102,16 +102,15 @@ Steps in App Store Connect:
 ## App Review Notes
 
 ```
-Demo account for review (email OTP login — no password needed):
+Demo account for review:
 
-Email: review@trainerhub.app
+Enter the reviewer username and password in App Store Connect's dedicated
+Sign-In Information fields.
 
 Login steps:
-1. Enter the email above on the Sign In screen and tap "Send Code"
-2. The 6-digit OTP will be sent to that inbox. For App Review access,
-   use code: 123456 (demo bypass enabled for review builds)
-   — OR —
-   Contact support@trainerhub.app and we will provide the OTP within 1 business day.
+1. Select Trainer on the Sign In screen.
+2. Enter the supplied username and password.
+3. Tap Sign in.
 
 The demo account is pre-populated with:
 • 3 sample clients
@@ -119,11 +118,12 @@ The demo account is pre-populated with:
 • 2 training programs
 • Stripe Connect in test mode (no real payments)
 
-Note: The app uses Supabase email OTP authentication. There is no password.
+No OTP inbox access or hidden login bypass is required.
 ```
 
-> ⚠️  Before submitting: confirm whether your Supabase instance has a demo OTP bypass
-> or set up a real email (review@trainerhub.app) that you can forward the OTP from.
+> ⚠️ Before submitting: create a dedicated least-privilege review account, verify
+> its password sign-in on a clean device, and enter the credentials only in App
+> Store Connect. Never bundle reviewer credentials in the application.
 
 ---
 
@@ -153,7 +153,7 @@ Initial release of TrainerHub.
 • Smart availability scheduling and instant booking
 • Custom training programs and client assignment
 • Stripe Connect payouts
-• Secure email OTP authentication
+• Secure password and email-code authentication
 ```
 
 ---
