@@ -1,4 +1,5 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
@@ -15,13 +16,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import { useAuth } from '@/lib/auth';
 import { useAvailabilitySlots } from '@/lib/queries/availability';
 import { useCreateBooking } from '@/lib/queries/bookings';
 import { usePublicTrainerProfile } from '@/lib/queries/browse';
 import { useMyPackagePurchases } from '@/lib/queries/packages';
 import { availabilityForDay, mergePickerDateTime, validateBookingTime } from '@/lib/scheduling';
-import { radius, spacing, typography } from '@/lib/theme';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { AvailabilitySlot, SessionType } from '@/lib/types';
 
@@ -31,40 +33,32 @@ type Duration = (typeof DURATIONS)[number];
 function formatTime(value: string): string {
   const [hourValue, minute = '00'] = value.split(':');
   const hour = Number(hourValue);
-  const period = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minute} ${period}`;
+  return `${hour % 12 || 12}:${minute} ${hour >= 12 ? 'PM' : 'AM'}`;
 }
-
 function defaultStart(): Date {
   const d = new Date();
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() + 1);
   return d;
 }
-
 function dateAtTime(day: Date, value: string): Date {
   const [hours, minutes = '00'] = value.split(':');
   const next = new Date(day);
   next.setHours(Number(hours), Number(minutes), 0, 0);
   return next;
 }
-
 function quickStartsForDay(slots: AvailabilitySlot[], day: Date, durationMin: number): Date[] {
   const now = new Date();
   const starts: Date[] = [];
-
   for (const slot of slots) {
     const windowStart = dateAtTime(day, slot.start_time);
     const windowEnd = dateAtTime(day, slot.end_time);
     const latestStart = new Date(windowEnd.getTime() - durationMin * 60_000);
-
     for (let cursor = new Date(windowStart); cursor <= latestStart; cursor = new Date(cursor.getTime() + 30 * 60_000)) {
       if (cursor > now) starts.push(cursor);
       if (starts.length >= 6) return starts;
     }
   }
-
   return starts;
 }
 
@@ -92,16 +86,10 @@ export default function BookingNew() {
   const rateCents = trainerProfile?.hourly_rate_cents ?? null;
   const estimatedCents = rateCents != null ? Math.round(rateCents * (duration / 60)) : null;
   const estimatedLabel = estimatedCents != null ? `$${(estimatedCents / 100).toFixed(2)}` : null;
-
-  const eligiblePurchases = (packagesQuery.data ?? []).filter(
-    (purchase) => purchase.trainer_id === trainerId && purchase.sessions_remaining > 0,
-  );
+  const eligiblePurchases = (packagesQuery.data ?? []).filter((purchase) => purchase.trainer_id === trainerId && purchase.sessions_remaining > 0);
   const availability = availabilityQuery.data ?? [];
   const selectedDaySlots = availabilityForDay(availability, startsAt);
-  const quickStarts = useMemo(
-    () => quickStartsForDay(selectedDaySlots, startsAt, duration),
-    [selectedDaySlots, startsAt, duration],
-  );
+  const quickStarts = useMemo(() => quickStartsForDay(selectedDaySlots, startsAt, duration), [selectedDaySlots, startsAt, duration]);
 
   const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
     const mode = pickerMode;
@@ -111,24 +99,11 @@ export default function BookingNew() {
   };
 
   const handleSubmit = async () => {
-    if (!clientId || !trainerId) {
-      Alert.alert('Error', 'Missing required information.');
-      return;
-    }
-    if (availabilityQuery.isLoading || availabilityQuery.isFetching) {
-      Alert.alert('Checking availability', 'Wait a moment while the trainer’s schedule loads.');
-      return;
-    }
-    if (availabilityQuery.isError) {
-      Alert.alert('Availability unavailable', 'TrainerHub could not verify this time. Refresh availability before requesting the session.');
-      return;
-    }
-
+    if (!clientId || !trainerId) return Alert.alert('Error', 'Missing required information.');
+    if (availabilityQuery.isLoading || availabilityQuery.isFetching) return Alert.alert('Checking availability', 'Wait a moment while the trainer’s schedule loads.');
+    if (availabilityQuery.isError) return Alert.alert('Availability unavailable', 'TrainerHub could not verify this time. Refresh availability before requesting the session.');
     const timeValidation = validateBookingTime(startsAt, duration, availability);
-    if (!timeValidation.valid) {
-      Alert.alert('Choose another time', timeValidation.message);
-      return;
-    }
+    if (!timeValidation.valid) return Alert.alert('Choose another time', timeValidation.message);
 
     try {
       await createBooking.mutateAsync({
@@ -140,270 +115,115 @@ export default function BookingNew() {
         package_purchase_id: selectedPurchaseId,
         notes: notes.trim() || null,
       });
-
-      router.replace({
-        pathname: '/booking/success',
-        params: {
-          trainerName: trainerProfile?.full_name ?? 'Your trainer',
-          startsAt: startsAt.toISOString(),
-          duration: String(duration),
-          sessionType,
-        },
-      });
-    } catch (err: unknown) {
-      Alert.alert('Booking failed', err instanceof Error ? err.message : 'Unknown error');
+      router.replace({ pathname: '/booking/success', params: { trainerName: trainerProfile?.full_name ?? 'Your trainer', startsAt: startsAt.toISOString(), duration: String(duration), sessionType } });
+    } catch (error: unknown) {
+      Alert.alert('Booking failed', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
-  if (trainerQuery.isLoading) {
-    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
+  if (trainerQuery.isLoading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
+  if (trainerQuery.isError || !trainerProfile) {
+    return <View style={[styles.center, { backgroundColor: colors.background }]}><Text style={{ color: colors.danger }}>Trainer details could not be loaded.</Text><TouchableOpacity style={[styles.retryBtn, { borderColor: colors.border }]} onPress={() => trainerQuery.refetch()}><Text style={{ color: colors.ink }}>Try again</Text></TouchableOpacity></View>;
   }
 
-  if (trainerQuery.isError || !trainerProfile) {
-    return (
-      <View style={[styles.center, styles.loadError, { backgroundColor: colors.background }]}>
-        <Text accessibilityRole="alert" style={[styles.loadErrorText, { color: colors.danger }]}>Trainer details could not be loaded.</Text>
-        <TouchableOpacity style={[styles.retryButton, { borderColor: colors.borderInput }]} onPress={() => trainerQuery.refetch()} accessibilityRole="button">
-          <Text style={{ color: colors.ink }}>Try again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const trainerName = trainerProfile.full_name ?? 'Trainer';
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.kicker, { color: accent }]}>REQUEST A SESSION</Text>
-          <Text style={[styles.trainerName, { color: colors.ink }]}>{trainerProfile.full_name ?? 'Trainer'}</Text>
-          <Text style={[styles.intro, { color: colors.muted }]}>Choose a time that works. The trainer must confirm before the session is officially booked.</Text>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <EnergyHero eyebrow="BOOK A SESSION" title={`Train with ${trainerName.split(' ')[0]}.`} subtitle="Choose the session details. Your request becomes official when the trainer confirms it." icon="calendar-outline" compact />
 
-          <Text style={[styles.label, { color: colors.muted }]}>Date</Text>
-          <TouchableOpacity
-            style={[styles.dateBtn, { borderColor: colors.borderInput, backgroundColor: colors.surface }]}
-            onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
-            accessibilityRole="button"
-            accessibilityLabel="Choose booking date"
-          >
-            <Text style={[styles.pickerBtnText, { color: colors.ink }]}>
-              {startsAt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </Text>
+          <Section title="When" number="01" accent={accent} colors={colors} />
+          <TouchableOpacity style={[styles.dateLine, { borderColor: colors.border }]} onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}>
+            <View><Text style={[styles.lineLabel, { color: colors.muted }]}>DATE</Text><Text style={[styles.lineValue, { color: colors.ink }]}>{startsAt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</Text></View>
+            <Ionicons name="calendar-outline" size={18} color={accent} />
           </TouchableOpacity>
+          {pickerMode === 'date' ? <DateTimePicker value={startsAt} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handlePickerChange} minimumDate={new Date()} /> : null}
 
-          {pickerMode === 'date' && (
-            <DateTimePicker
-              value={startsAt}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handlePickerChange}
-              minimumDate={new Date()}
-            />
-          )}
-
-          <View style={[styles.availabilityCard, { backgroundColor: colors.surfaceRaised }]}>
-            <View style={styles.availabilityHeaderRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.availabilityTitle, { color: colors.ink }]}>Available times</Text>
-                <Text style={[styles.availabilityText, { color: colors.muted }]}>Tap a time to select it.</Text>
-              </View>
-              {selectedDaySlots.length > 0 && (
-                <Text style={[styles.windowText, { color: colors.muted }]}>
-                  {selectedDaySlots.map((slot) => `${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`).join(', ')}
-                </Text>
-              )}
+          <View style={[styles.availability, { borderColor: colors.border }]}>
+            <View style={styles.availabilityTop}>
+              <View><Text style={[styles.lineLabel, { color: accent }]}>AVAILABLE STARTS</Text><Text style={[styles.availabilityHint, { color: colors.muted }]}>{selectedDaySlots.length ? selectedDaySlots.map((slot) => `${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`).join(', ') : 'Published trainer availability'}</Text></View>
+              <View style={styles.availabilityBeam} />
             </View>
+            {availabilityQuery.isLoading ? <ActivityIndicator style={{ marginTop: 12 }} /> : availabilityQuery.isError ? (
+              <TouchableOpacity onPress={() => availabilityQuery.refetch()}><Text style={[styles.errorText, { color: colors.danger }]}>Couldn’t load availability. Tap to retry.</Text></TouchableOpacity>
+            ) : quickStarts.length ? (
+              <View style={styles.quickGrid}>{quickStarts.map((time) => {
+                const selected = Math.abs(time.getTime() - startsAt.getTime()) < 60_000;
+                return <TouchableOpacity key={time.toISOString()} style={[styles.quickTime, { borderColor: selected ? accent : colors.border, backgroundColor: selected ? BRAND.navy : 'transparent' }]} onPress={() => { setStartsAt(time); setPickerMode(null); }}><View style={[styles.quickRail, { backgroundColor: selected ? accent : colors.border }]} /><Text style={[styles.quickTimeText, { color: selected ? '#FFFFFF' : colors.ink }]}>{time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></TouchableOpacity>;
+              })}</View>
+            ) : <Text style={[styles.availabilityHint, { color: colors.muted, marginTop: 12 }]}>No {duration}-minute starts available for this day.</Text>}
+          </View>
+          <TouchableOpacity onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}><Text style={[styles.manualLink, { color: accent }]}>Choose a different time manually</Text></TouchableOpacity>
+          {pickerMode === 'time' ? <DateTimePicker value={startsAt} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={handlePickerChange} /> : null}
 
-            {availabilityQuery.isLoading ? (
-              <ActivityIndicator size="small" style={{ marginTop: 10 }} />
-            ) : availabilityQuery.isError ? (
-              <View style={{ marginTop: 8 }}>
-                <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger }]}>Availability could not be loaded.</Text>
-                <TouchableOpacity onPress={() => availabilityQuery.refetch()} accessibilityRole="button">
-                  <Text style={[styles.retryText, { color: accent }]}>Refresh availability</Text>
-                </TouchableOpacity>
-              </View>
-            ) : availability.length === 0 ? (
-              <Text style={[styles.availabilityText, { color: colors.muted, marginTop: 8 }]}>No recurring hours published. Use manual time selection below.</Text>
-            ) : selectedDaySlots.length === 0 ? (
-              <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger, marginTop: 8 }]}>No availability published for this day.</Text>
-            ) : quickStarts.length > 0 ? (
-              <View style={styles.quickTimeGrid}>
-                {quickStarts.map((time) => {
-                  const selected = Math.abs(time.getTime() - startsAt.getTime()) < 60_000;
-                  return (
-                    <TouchableOpacity
-                      key={time.toISOString()}
-                      style={[
-                        styles.quickTime,
-                        { borderColor: selected ? accent : colors.borderInput, backgroundColor: selected ? accent : colors.surface },
-                      ]}
-                      onPress={() => {
-                        setStartsAt(time);
-                        setPickerMode(null);
-                      }}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                    >
-                      <Text style={[styles.quickTimeText, { color: selected ? colors.white : colors.ink }]}>
-                        {time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ) : (
-              <Text style={[styles.availabilityText, { color: colors.muted, marginTop: 8 }]}>No {duration}-minute starts remain for this day.</Text>
-            )}
+          <Section title="Session" number="02" accent={accent} colors={colors} />
+          <Text style={[styles.lineLabel, { color: colors.muted }]}>DURATION</Text>
+          <View style={styles.optionRow}>{DURATIONS.map((value) => <Option key={value} selected={duration === value} label={`${value} min`} onPress={() => setDuration(value)} accent={accent} colors={colors} />)}</View>
+          <Text style={[styles.lineLabel, { color: colors.muted, marginTop: 17 }]}>FORMAT</Text>
+          <View style={styles.optionRow}>{supportedTypes.map((type) => <Option key={type} selected={sessionType === type} label={type === 'in-person' ? 'In-person' : 'Virtual'} onPress={() => setSessionType(type)} accent={accent} colors={colors} />)}</View>
+
+          {eligiblePurchases.length ? <><Text style={[styles.lineLabel, { color: colors.muted, marginTop: 17 }]}>PAYMENT OPTION</Text><View style={styles.packageList}><Option selected={selectedPurchaseId === null} label="Single session" onPress={() => setSelectedPurchaseId(null)} accent={accent} colors={colors} />{eligiblePurchases.map((purchase) => <Option key={purchase.id} selected={selectedPurchaseId === purchase.id} label={`${purchase.package?.title ?? 'Package'} · ${purchase.sessions_remaining} left`} onPress={() => setSelectedPurchaseId(purchase.id)} accent={accent} colors={colors} />)}</View></> : null}
+
+          <Section title="Anything to know?" number="03" accent={accent} colors={colors} />
+          <TextInput style={[styles.notes, { borderColor: colors.border, backgroundColor: colors.surfaceCard, color: colors.ink }]} value={notes} onChangeText={setNotes} placeholder="Goals, injuries, questions, or context for your trainer…" placeholderTextColor={colors.placeholder} multiline />
+
+          <View style={[styles.summary, { borderColor: colors.border }]}>
+            <View style={[styles.summaryRail, { backgroundColor: accent }]} />
+            <View><Text style={[styles.lineLabel, { color: accent }]}>{selectedPurchaseId ? 'PACKAGE SESSION' : 'ESTIMATED TOTAL'}</Text><Text style={[styles.summaryHint, { color: colors.muted }]}>{startsAt.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {duration} min · {sessionType === 'in-person' ? 'In-person' : 'Virtual'}</Text></View>
+            <Text style={[styles.price, { color: colors.ink }]}>{selectedPurchaseId ? '–1 session' : estimatedLabel ?? '—'}</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.manualTimeToggle}
-            onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
-          >
-            <Text style={[styles.manualTimeText, { color: accent }]}>Choose a different time manually</Text>
+          <TouchableOpacity style={[styles.primary, createBooking.isPending && { opacity: 0.6 }]} onPress={handleSubmit} disabled={createBooking.isPending}>
+            {createBooking.isPending ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Send session request</Text><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></>}
           </TouchableOpacity>
-
-          {pickerMode === 'time' && (
-            <DateTimePicker
-              value={startsAt}
-              mode="time"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={handlePickerChange}
-            />
-          )}
-
-          <Text style={[styles.label, { color: colors.muted }]}>Duration</Text>
-          <View style={styles.row}>
-            {DURATIONS.map((value) => (
-              <TouchableOpacity
-                key={value}
-                style={[styles.segment, { borderColor: colors.borderInput }, duration === value && { backgroundColor: accent, borderColor: accent }]}
-                onPress={() => setDuration(value)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: duration === value }}
-              >
-                <Text style={[styles.segmentText, { color: duration === value ? colors.white : colors.muted }]}>{value}m</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={[styles.label, { color: colors.muted }]}>Session Type</Text>
-          <View style={styles.row}>
-            {supportedTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[styles.segment, { borderColor: colors.borderInput }, sessionType === type && { backgroundColor: accent, borderColor: accent }]}
-                onPress={() => setSessionType(type)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sessionType === type }}
-              >
-                <Text style={[styles.segmentText, { color: sessionType === type ? colors.white : colors.muted }]}>{type === 'in-person' ? 'In-Person' : 'Virtual'}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {eligiblePurchases.length > 0 && (
-            <>
-              <Text style={[styles.label, { color: colors.muted }]}>Use a Package</Text>
-              <TouchableOpacity style={[styles.packageOption, { borderColor: selectedPurchaseId === null ? accent : colors.borderInput }]} onPress={() => setSelectedPurchaseId(null)}>
-                <Text style={[styles.packageOptionText, { color: colors.ink }]}>Single session</Text>
-                {selectedPurchaseId === null && <Text style={{ color: accent, fontWeight: '700' }}>✓</Text>}
-              </TouchableOpacity>
-              {eligiblePurchases.map((purchase) => (
-                <TouchableOpacity key={purchase.id} style={[styles.packageOption, { borderColor: selectedPurchaseId === purchase.id ? accent : colors.borderInput }]} onPress={() => setSelectedPurchaseId(purchase.id)}>
-                  <View style={styles.packageOptionLeft}>
-                    <Text style={[styles.packageOptionText, { color: colors.ink }]}>{purchase.package?.title ?? 'Package'}</Text>
-                    <Text style={[styles.packageOptionSub, { color: colors.muted }]}>{purchase.sessions_remaining} sessions remaining</Text>
-                  </View>
-                  {selectedPurchaseId === purchase.id && <Text style={{ color: accent, fontWeight: '700' }}>✓</Text>}
-                </TouchableOpacity>
-              ))}
-            </>
-          )}
-
-          <Text style={[styles.label, { color: colors.muted }]}>Notes (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surface }]}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Goals, injuries, questions, or anything your trainer should know…"
-            placeholderTextColor={colors.placeholder}
-            multiline
-          />
-
-          {estimatedLabel && !selectedPurchaseId && (
-            <View style={[styles.priceRow, { backgroundColor: colors.surfaceRaised, borderRadius: radius.md }]}>
-              <View>
-                <Text style={[styles.priceLabel, { color: colors.muted }]}>Estimated session price</Text>
-                <Text style={[styles.priceHint, { color: colors.placeholder }]}>Based on this trainer’s current hourly rate</Text>
-              </View>
-              <Text style={[styles.priceValue, { color: colors.ink }]}>{estimatedLabel}</Text>
-            </View>
-          )}
-
-          {selectedPurchaseId && (
-            <View style={[styles.priceRow, { backgroundColor: colors.successBg, borderRadius: radius.md }]}>
-              <Text style={[styles.priceLabel, { color: colors.success }]}>Using package session</Text>
-              <Text style={[styles.priceValue, { color: colors.success }]}>–1 session</Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: accent }, createBooking.isPending && styles.buttonDisabled]}
-            onPress={handleSubmit}
-            disabled={createBooking.isPending}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: createBooking.isPending, busy: createBooking.isPending }}
-          >
-            {createBooking.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send Session Request</Text>}
-          </TouchableOpacity>
-          <Text style={[styles.pendingNote, { color: colors.placeholder }]}>You are sending a request. You’ll see the final status in Bookings after the trainer responds.</Text>
+          <Text style={[styles.pendingNote, { color: colors.placeholder }]}>This sends a request, not an automatic confirmation.</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+function Section({ title, number, accent, colors }: { title: string; number: string; accent: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return <View style={styles.section}><Text style={[styles.sectionNumber, { color: accent }]}>{number}</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>{title}</Text><View style={styles.sectionBeam} /></View>;
+}
+function Option({ selected, label, onPress, accent, colors }: { selected: boolean; label: string; onPress: () => void; accent: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return <TouchableOpacity style={[styles.option, { borderColor: selected ? accent : colors.border, backgroundColor: selected ? BRAND.navy : colors.surfaceCard }]} onPress={onPress}><View style={[styles.optionRail, { backgroundColor: selected ? accent : colors.border }]} /><Text style={[styles.optionText, { color: selected ? '#FFFFFF' : colors.ink }]}>{label}</Text></TouchableOpacity>;
+}
+
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  flex: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadError: { padding: spacing.lg, gap: spacing.md },
-  loadErrorText: { fontSize: typography.md, textAlign: 'center' },
-  retryButton: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10 },
-  container: { padding: spacing.lg, flexGrow: 1 },
-  kicker: { fontSize: 10, fontWeight: '900', letterSpacing: 1.4, marginBottom: 4 },
-  trainerName: { fontSize: typography.xl, fontWeight: '900', marginBottom: 5 },
-  intro: { fontSize: typography.sm, lineHeight: 20, marginBottom: spacing.sm },
-  label: { fontSize: typography.sm, marginTop: spacing.md, marginBottom: spacing.xs, fontWeight: '700' },
-  row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  dateBtn: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 12, alignItems: 'center' },
-  pickerBtnText: { fontSize: typography.base, fontWeight: '700' },
-  availabilityCard: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
-  availabilityHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  availabilityTitle: { fontSize: typography.sm, fontWeight: '800', marginBottom: 2 },
-  availabilityText: { fontSize: typography.sm, lineHeight: 20 },
-  windowText: { maxWidth: '50%', fontSize: typography.xs, lineHeight: 17, textAlign: 'right' },
-  retryText: { fontSize: typography.sm, fontWeight: '800', marginTop: spacing.xs },
-  quickTimeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  quickTime: { minWidth: 92, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10, alignItems: 'center' },
-  quickTimeText: { fontSize: typography.sm, fontWeight: '800' },
-  manualTimeToggle: { alignSelf: 'flex-start', paddingVertical: 10 },
-  manualTimeText: { fontSize: typography.sm, fontWeight: '800' },
-  segment: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1 },
-  segmentText: { fontSize: typography.sm, fontWeight: '700' },
-  packageOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.xs },
-  packageOptionLeft: { flex: 1 },
-  packageOptionText: { fontSize: typography.md, fontWeight: '700' },
-  packageOptionSub: { fontSize: typography.xs, marginTop: 2 },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10, fontSize: typography.base },
-  multiline: { minHeight: 90, textAlignVertical: 'top' },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingHorizontal: spacing.md, paddingVertical: 12, marginTop: spacing.lg },
-  priceLabel: { fontSize: typography.sm, fontWeight: '700' },
-  priceHint: { fontSize: typography.xs, marginTop: 2 },
-  priceValue: { fontSize: typography.lg, fontWeight: '900' },
-  button: { borderRadius: radius.md, paddingVertical: 15, alignItems: 'center', marginTop: spacing.lg },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: typography.base, fontWeight: '900' },
-  pendingNote: { fontSize: typography.xs, lineHeight: 17, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.sm },
+  safe: { flex: 1 }, flex: { flex: 1 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  container: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20, paddingBottom: 52 },
+  retryBtn: { borderWidth: 1, borderRadius: 9, paddingHorizontal: 14, paddingVertical: 9 },
+  section: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, marginTop: 27, marginBottom: 13 },
+  sectionNumber: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  sectionTitle: { fontSize: 20, fontWeight: '900' },
+  sectionBeam: { flex: 1, height: 1, backgroundColor: BRAND.blue, opacity: 0.2, marginBottom: 5 },
+  lineLabel: { fontSize: 8, fontWeight: '900', letterSpacing: 1.1 },
+  lineValue: { fontSize: 16, fontWeight: '900', marginTop: 3 },
+  dateLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 14 },
+  availability: { borderBottomWidth: 1, paddingVertical: 14 },
+  availabilityTop: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  availabilityHint: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  availabilityBeam: { flex: 1, height: 1, backgroundColor: BRAND.purple, opacity: 0.2, marginBottom: 5 },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 },
+  quickTime: { position: 'relative', overflow: 'hidden', minWidth: 96, borderWidth: 1, borderRadius: 9, paddingHorizontal: 12, paddingVertical: 10, alignItems: 'center' },
+  quickRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 2 },
+  quickTimeText: { fontSize: 13, fontWeight: '800' },
+  manualLink: { fontSize: 12, fontWeight: '800', marginTop: 10 },
+  errorText: { fontSize: 12, fontWeight: '700', marginTop: 10 },
+  optionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
+  option: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderRadius: 9, paddingHorizontal: 13, paddingVertical: 10 },
+  optionRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 2 },
+  optionText: { fontSize: 12, fontWeight: '800' },
+  packageList: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
+  notes: { borderWidth: 1, borderRadius: 10, minHeight: 105, padding: 13, fontSize: 14, textAlignVertical: 'top' },
+  summary: { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 16, marginTop: 22 },
+  summaryRail: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 2 },
+  summaryHint: { fontSize: 11, marginTop: 3 },
+  price: { fontSize: 22, fontWeight: '900' },
+  primary: { marginTop: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: BRAND.navy, borderRadius: 10, paddingVertical: 15 },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  pendingNote: { textAlign: 'center', fontSize: 11, lineHeight: 16, marginTop: 9 },
 });
