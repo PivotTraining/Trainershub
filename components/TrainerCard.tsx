@@ -33,7 +33,12 @@ export function TrainerCard({ trainer, isFavorite = false, onPress, onFavoritePr
       accessibilityLabel={`View ${trainer.full_name ?? 'trainer'} profile`}
     >
       <View style={styles.topRow}>
-        <Avatar seed={trainer.user_id} size={58} initial={trainer.full_name ?? 'Trainer'} />
+        <Avatar
+          seed={trainer.user_id}
+          size={58}
+          initial={trainer.full_name ?? 'Trainer'}
+          imageUrl={trainer.avatar_url}
+        />
 
         <View style={styles.content}>
           <View style={styles.nameRow}>
