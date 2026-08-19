@@ -3,8 +3,10 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Logo } from '@/components/Logo';
+import { BrandLockup } from '@/components/BrandLockup';
+import { EnergyField } from '@/components/EnergyField';
 import { useAuth } from '@/lib/auth';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
 export default function Welcome() {
@@ -22,37 +24,33 @@ export default function Welcome() {
     : [
         ['search-outline', 'Discover trainers who fit your goals'],
         ['calendar-outline', 'Book sessions from your phone or computer'],
-        ['sparkles-outline', 'Track your progress and come back anytime'],
+        ['sparkles-outline', 'Track progress and build momentum'],
       ] as const;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <View style={styles.wrap}>
-        <View style={[styles.logoWrap, { backgroundColor: accent }]}>
-          <Logo size={48} color="#fff" background="none" />
+        <View style={styles.hero}>
+          <EnergyField />
+          <BrandLockup compact dark />
+          <View style={styles.heroCopy}>
+            <Text style={styles.eyebrow}>YOU’RE IN</Text>
+            <Text style={styles.title}>Welcome to TrainerHub.</Text>
+            <Text style={styles.subtitle}>Your account is live. Let’s turn it into momentum.</Text>
+          </View>
         </View>
 
-        <Text style={styles.confetti}>🎉</Text>
-        <Text style={[styles.eyebrow, { color: accent }]}>YOU’RE IN</Text>
-        <Text style={[styles.title, { color: colors.ink }]}>Welcome to TrainerHub.</Text>
-        <Text style={[styles.subtitle, { color: colors.muted }]}>Your account is live. Let’s make it useful in about two minutes.</Text>
-
         <View style={styles.list}>
-          {bullets.map(([icon, label]) => (
-            <View key={label} style={[styles.row, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-              <View style={[styles.iconWrap, { backgroundColor: colors.surfaceRaised }]}>
-                <Ionicons name={icon} size={22} color={accent} />
-              </View>
+          {bullets.map(([icon, label], index) => (
+            <View key={label} style={[styles.row, { borderColor: colors.border, backgroundColor: colors.surfaceCard }]}>
+              <View style={[styles.rowRail, { backgroundColor: index === 0 ? BRAND.purple : index === 1 ? BRAND.blue : accent }]} />
+              <Ionicons name={icon} size={21} color={accent} />
               <Text style={[styles.rowText, { color: colors.ink }]}>{label}</Text>
             </View>
           ))}
         </View>
 
-        <TouchableOpacity
-          style={[styles.primary, { backgroundColor: accent }]}
-          onPress={() => router.replace('/(auth)/onboarding')}
-          activeOpacity={0.86}
-        >
+        <TouchableOpacity style={styles.primary} onPress={() => router.replace('/(auth)/onboarding')} activeOpacity={0.86}>
           <Text style={styles.primaryText}>{isTrainer ? 'Set up my trainer profile' : 'Set up my profile'}</Text>
           <Ionicons name="arrow-forward" size={19} color="#fff" />
         </TouchableOpacity>
@@ -65,17 +63,17 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  wrap: { flex: 1, width: '100%', maxWidth: 620, alignSelf: 'center', paddingHorizontal: 26, paddingTop: 34, paddingBottom: 30 },
-  logoWrap: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  confetti: { fontSize: 48, marginTop: 24, marginBottom: 6 },
-  eyebrow: { fontSize: 12, fontWeight: '900', letterSpacing: 2.1 },
-  title: { fontSize: 38, lineHeight: 43, fontWeight: '900', letterSpacing: -1, marginTop: 8 },
-  subtitle: { fontSize: 17, lineHeight: 25, marginTop: 10, maxWidth: 520 },
-  list: { gap: 10, marginTop: 30 },
-  row: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 16, padding: 14 },
-  iconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 13 },
-  rowText: { flex: 1, fontSize: 15, fontWeight: '700', lineHeight: 20 },
-  primary: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 15, paddingVertical: 16 },
+  wrap: { flex: 1, width: '100%', maxWidth: 680, alignSelf: 'center', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 30 },
+  hero: { position: 'relative', overflow: 'hidden', minHeight: 300, justifyContent: 'space-between', backgroundColor: BRAND.navy, borderRadius: 26, borderWidth: 1, borderColor: '#193857', padding: 22 },
+  heroCopy: { zIndex: 2 },
+  eyebrow: { color: '#7ED3FF', fontSize: 10, fontWeight: '900', letterSpacing: 2.1 },
+  title: { color: '#FFFFFF', fontSize: 39, lineHeight: 43, fontWeight: '900', letterSpacing: -1, marginTop: 8 },
+  subtitle: { color: '#AEBFD2', fontSize: 16, lineHeight: 24, marginTop: 10, maxWidth: 520 },
+  list: { gap: 9, marginTop: 20 },
+  row: { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 13, padding: 14 },
+  rowRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.7 },
+  rowText: { flex: 1, fontSize: 15, fontWeight: '800', lineHeight: 20 },
+  primary: { marginTop: 'auto', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 11, paddingVertical: 16, backgroundColor: BRAND.navy },
   primaryText: { color: '#fff', fontSize: 16, fontWeight: '900' },
   note: { textAlign: 'center', fontSize: 12, marginTop: 12 },
 });
