@@ -9,6 +9,7 @@ export interface Profile {
   full_name: string | null;
   role: UserRole;
   created_at: string;
+  avatar_url?: string | null;
   date_of_birth?: string | null;
   phone?: string | null;
   location_city?: string | null;
@@ -94,6 +95,7 @@ export interface TrainerProfileFull {
 
 export interface TrainerListing extends Omit<TrainerProfileFull, 'stripe_account_id' | 'stripe_onboarded'> {
   full_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface AvailabilitySlot {
