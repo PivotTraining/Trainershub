@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { EnergyField } from '@/components/EnergyField';
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
@@ -24,8 +25,8 @@ export function FindMatchCard() {
   if (!completed) {
     return (
       <View style={styles.hero}>
-        <View style={styles.purpleGlow} />
-        <View style={styles.blueGlow} />
+        <EnergyField opacity={0.72} flip />
+        <View style={styles.lightRail} />
         <View style={{ flex: 1, zIndex: 2 }}>
           <Text style={styles.heroEyebrow}>YOUR NEXT MOVE</Text>
           <Text style={styles.heroTitle}>Find a trainer who fits.</Text>
@@ -37,18 +38,17 @@ export function FindMatchCard() {
             <Ionicons name="arrow-forward" size={15} color="#fff" />
           </TouchableOpacity>
         </View>
-        <View style={styles.targetWrap}>
-          <Ionicons name="locate-outline" size={34} color="#fff" />
-        </View>
+        <Ionicons name="locate-outline" size={38} color="#A9DFFF" style={styles.heroIcon} />
       </View>
     );
   }
 
   return (
     <View style={[styles.returningCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+      <View style={styles.returningRail} />
       <View style={styles.returningHeader}>
-        <View style={[styles.iconWrap, { backgroundColor: BRAND.navy }]}>
-          <Ionicons name="search-outline" size={21} color="#fff" />
+        <View style={styles.iconLine}>
+          <Ionicons name="search-outline" size={20} color={accent} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.returningEyebrow, { color: accent }]}>FIND YOUR NEXT TRAINER</Text>
@@ -85,7 +85,8 @@ export async function markQuizComplete() {
 
 const styles = StyleSheet.create({
   hero: {
-    borderRadius: 24,
+    position: 'relative',
+    borderRadius: 22,
     padding: 22,
     marginBottom: 18,
     flexDirection: 'row',
@@ -97,27 +98,27 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: BRAND.navy,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.14,
     shadowRadius: 18,
     elevation: 5,
   },
-  purpleGlow: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: BRAND.purple, opacity: 0.22, right: 40, top: -115 },
-  blueGlow: { position: 'absolute', width: 150, height: 150, borderRadius: 75, backgroundColor: BRAND.blue, opacity: 0.24, right: -65, bottom: -90 },
+  lightRail: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, backgroundColor: BRAND.purple, opacity: 0.78 },
   heroEyebrow: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
   heroTitle: { color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 5, letterSpacing: -0.5 },
   heroBody: { color: '#B7C6D7', fontSize: 13, marginTop: 6, lineHeight: 19 },
-  heroBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, marginTop: 15 },
+  heroBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.09)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, marginTop: 15 },
   heroBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
-  targetWrap: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#5BB8FF', backgroundColor: 'rgba(139,36,255,0.23)', zIndex: 2 },
-  returningCard: { borderWidth: 1, borderRadius: 20, padding: 17, marginBottom: 18, shadowColor: BRAND.navy, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12 },
+  heroIcon: { zIndex: 2, opacity: 0.9 },
+  returningCard: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderRadius: 18, padding: 17, marginBottom: 18, shadowColor: BRAND.navy, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12 },
+  returningRail: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, backgroundColor: BRAND.blue, opacity: 0.62 },
   returningHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  iconWrap: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  iconLine: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderLeftWidth: 2, borderLeftColor: BRAND.purple },
   returningEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.3 },
   returningTitle: { fontSize: 19, fontWeight: '900', marginTop: 3 },
   returningBody: { fontSize: 12, lineHeight: 18, marginTop: 3 },
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 15 },
-  primaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10 },
+  primaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 10 },
   primaryBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  secondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10 },
+  secondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 10 },
   secondaryBtnText: { fontSize: 12, fontWeight: '900' },
 });
