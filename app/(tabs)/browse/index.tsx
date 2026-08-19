@@ -105,7 +105,7 @@ export default function BrowseIndex() {
 
   const renderHeader = () => (
     <View>
-      <View style={[styles.hero, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.xl, marginHorizontal: spacing.md, marginTop: spacing.md }]}>
+      <View style={[styles.hero, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.lg, marginHorizontal: spacing.md, marginTop: spacing.md }]}>
         <View style={[styles.heroIcon, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
           <Ionicons name="sparkles-outline" size={22} color={accent} />
         </View>
