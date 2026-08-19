@@ -1,25 +1,31 @@
-/**
- * Avatar — shows an initial letter in a colour determined by the seed string.
- * Passing the same name always produces the same colour, so clients feel
- * personally identified without needing a profile photo.
- */
+import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 import { avatarSwatch } from '@/lib/theme';
 
 interface AvatarProps {
-  /** Text used to derive the colour (name, email, or id). */
   seed: string;
-  /** Size of the circle in dp. Defaults to 40. */
   size?: number;
-  /** Override the displayed letter (defaults to first char of seed). */
   initial?: string;
+  imageUrl?: string | null;
 }
 
-export function Avatar({ seed, size = 40, initial }: AvatarProps) {
+export function Avatar({ seed, size = 40, initial, imageUrl }: AvatarProps) {
   const { bg, fg } = avatarSwatch(seed);
   const letter = (initial ?? seed).charAt(0).toUpperCase();
   const fontSize = Math.round(size * 0.42);
   const borderRadius = size / 2;
+
+  if (imageUrl) {
+    return (
+      <Image
+        source={{ uri: imageUrl }}
+        style={{ width: size, height: size, borderRadius, backgroundColor: bg }}
+        contentFit="cover"
+        transition={140}
+        accessibilityLabel={`${initial ?? seed} profile photo`}
+      />
+    );
+  }
 
   return (
     <View

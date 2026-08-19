@@ -88,7 +88,7 @@ export default function TrainerProfile() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 118 }} showsVerticalScrollIndicator={false}>
         <View style={[styles.hero, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Avatar seed={trainer.user_id} size={88} initial={displayName} />
+          <Avatar seed={trainer.user_id} size={88} initial={displayName} imageUrl={trainer.avatar_url} />
 
           <View style={styles.heroInfo}>
             <View style={styles.heroNameRow}>
