@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs } from 'expo-router';
-import { Platform, useWindowDimensions } from 'react-native';
+import { Redirect, Tabs, useRouter } from 'expo-router';
+import { Platform, TouchableOpacity, useWindowDimensions } from 'react-native';
 
 import { TabBar } from '@/components/TabBar';
 import { useAuth } from '@/lib/auth';
@@ -10,6 +10,7 @@ export default function TabsLayout() {
   const { session, profile, loading } = useAuth();
   const { colors, accent } = useTheme();
   const { width } = useWindowDimensions();
+  const router = useRouter();
 
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/sign-in" />;
@@ -17,8 +18,6 @@ export default function TabsLayout() {
   const isTrainer = profile?.role === 'trainer';
   const useSidebar = Platform.OS === 'web' && width >= 900;
 
-  // Phones keep the five-item bottom navigation. Wider browser windows expose
-  // the trainer-management routes that were intentionally hidden on mobile.
   const mobileRouteNames = isTrainer
     ? (['index', 'clients', 'requests', 'schedule', 'profile'] as const)
     : (['index', 'browse', 'bookings', 'journal', 'profile'] as const);
@@ -31,14 +30,8 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      // Keep the JS-rendered tab bar that avoids the iOS native tab hit-test
-      // regression, but position it as a real sidebar on desktop web.
       tabBar={(props) => (
-        <TabBar
-          {...props}
-          visibleRouteNames={visibleRouteNames}
-          sidebar={useSidebar}
-        />
+        <TabBar {...props} visibleRouteNames={visibleRouteNames} sidebar={useSidebar} />
       )}
       screenOptions={{
         tabBarPosition: useSidebar ? 'left' : 'bottom',
@@ -61,9 +54,7 @@ export default function TabsLayout() {
           fontSize: useSidebar ? 14 : 11,
           fontWeight: '600',
         },
-        headerStyle: {
-          backgroundColor: colors.surface,
-        },
+        headerStyle: { backgroundColor: colors.surface },
         headerTintColor: colors.ink,
         headerShadowVisible: false,
       }}
@@ -145,29 +136,32 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push('/(tabs)/personalize')}
+              style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Personalize TrainerHub"
+            >
+              <Ionicons name="color-palette-outline" size={22} color={accent} />
+            </TouchableOpacity>
+          ),
         }}
       />
 
+      <Tabs.Screen name="personalize" options={{ title: 'Personalize', href: null }} />
+
       <Tabs.Screen
         name="programs"
-        options={{
-          href: useSidebar && isTrainer ? '/(tabs)/programs' : null,
-          title: 'Programs',
-        }}
+        options={{ href: useSidebar && isTrainer ? '/(tabs)/programs' : null, title: 'Programs' }}
       />
       <Tabs.Screen
         name="packages"
-        options={{
-          href: useSidebar && isTrainer ? '/(tabs)/packages' : null,
-          title: 'Packages',
-        }}
+        options={{ href: useSidebar && isTrainer ? '/(tabs)/packages' : null, title: 'Packages' }}
       />
       <Tabs.Screen
         name="availability"
-        options={{
-          href: useSidebar && isTrainer ? '/(tabs)/availability' : null,
-          title: 'Availability',
-        }}
+        options={{ href: useSidebar && isTrainer ? '/(tabs)/availability' : null, title: 'Availability' }}
       />
     </Tabs>
   );
