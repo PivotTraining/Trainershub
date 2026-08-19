@@ -1,13 +1,16 @@
 /** TrainerDashboard — truthful, action-first overview for trainers. */
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { EnergyField } from '@/components/EnergyField';
 import { useAvailabilitySlots } from '@/lib/queries/availability';
 import { useBookings } from '@/lib/queries/bookings';
 import { usePublicTrainerProfile } from '@/lib/queries/browse';
 import { useTrainerSessions } from '@/lib/queries/sessions';
+import { BRAND } from '@/lib/theme';
 import type { BookingWithNames } from '@/lib/types';
 import { useTheme } from '@/lib/useTheme';
 
@@ -69,109 +72,106 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
     if (wk >= 0 && wk < 4) weekBuckets[3 - wk]++;
   }
   const maxWeek = Math.max(1, ...weekBuckets);
-  const s = makeStyles(colors, accent);
 
   return (
     <View>
-      <View style={[s.readinessCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-        <View style={s.readinessTop}>
-          <View>
-            <Text style={[s.readinessEyebrow, { color: accent }]}>MARKETPLACE READINESS</Text>
-            <Text style={[s.readinessTitle, { color: colors.ink }]}>{readinessPercent}% ready to get booked</Text>
-          </View>
-          <View style={[s.scoreBadge, { backgroundColor: colors.surfaceRaised }]}>
-            <Text style={[s.scoreText, { color: colors.ink }]}>{completedReadiness}/{readinessItems.length}</Text>
-          </View>
+      <View style={styles.heroCard}>
+        <EnergyField opacity={0.9} />
+        <View style={styles.heroCopy}>
+          <Text style={styles.heroEyebrow}>TRAINER BUSINESS</Text>
+          <Text style={styles.heroValue}>{paidThisMonth.length}</Text>
+          <Text style={styles.heroLabel}>paid sessions this month</Text>
+          <Text style={styles.heroSub}>Stripe-confirmed sessions only.</Text>
         </View>
-        <View style={[s.progressTrack, { backgroundColor: colors.border }]}>
-          <View style={[s.progressFill, { backgroundColor: accent, width: `${readinessPercent}%` }]} />
+        <View style={styles.heroStats}>
+          <View><Text style={styles.heroStatValue}>{completedThisMonth}</Text><Text style={styles.heroStatLabel}>completed</Text></View>
+          <View style={styles.heroDivider} />
+          <View><Text style={styles.heroStatValue}>{upcoming.length}</Text><Text style={styles.heroStatLabel}>upcoming</Text></View>
+          <View style={styles.heroDivider} />
+          <TouchableOpacity onPress={() => router.push('/(tabs)/requests')}>
+            <Text style={[styles.heroStatValue, pendingRequests > 0 && { color: '#7ED3FF' }]}>{pendingRequests}</Text>
+            <Text style={styles.heroStatLabel}>requests</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={[styles.readinessCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+        <View style={[styles.readinessRail, { backgroundColor: accent }]} />
+        <View style={styles.readinessTop}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.readinessEyebrow, { color: accent }]}>MARKETPLACE READINESS</Text>
+            <Text style={[styles.readinessTitle, { color: colors.ink }]}>{readinessPercent}% ready to get booked</Text>
+          </View>
+          <Text style={[styles.scoreText, { color: colors.muted }]}>{completedReadiness}/{readinessItems.length}</Text>
+        </View>
+        <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
+          <View style={[styles.progressFill, { backgroundColor: accent, width: `${readinessPercent}%` }]} />
         </View>
         {nextReadiness ? (
-          <TouchableOpacity style={s.nextAction} onPress={() => router.push(nextReadiness.route)}>
-            <Text style={[s.nextActionText, { color: colors.ink }]}>Next: {nextReadiness.label}</Text>
-            <Text style={[s.nextActionArrow, { color: accent }]}>→</Text>
+          <TouchableOpacity style={styles.nextAction} onPress={() => router.push(nextReadiness.route)}>
+            <Text style={[styles.nextActionText, { color: colors.ink }]}>Next: {nextReadiness.label}</Text>
+            <Ionicons name="arrow-forward" size={16} color={accent} />
           </TouchableOpacity>
         ) : (
-          <Text style={[s.readyText, { color: colors.muted }]}>Your core marketplace setup is complete. Keep availability current and respond quickly to requests.</Text>
+          <Text style={[styles.readyText, { color: colors.muted }]}>Your core marketplace setup is complete. Keep availability current and respond quickly to requests.</Text>
         )}
       </View>
 
-      <View style={s.heroRow}>
-        <View style={[s.heroCard, { backgroundColor: accent }]}>
-          <Text style={s.heroLabel}>Paid sessions this month</Text>
-          <Text style={s.heroValue}>{paidThisMonth.length}</Text>
-          <Text style={s.heroSub}>Confirmed by Stripe — no estimated revenue</Text>
-        </View>
+      <View style={styles.sectionHeader}>
+        <View><Text style={[styles.sectionEyebrow, { color: accent }]}>MOMENTUM</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>Paid sessions · 4 weeks</Text></View>
+        <View style={styles.sectionBeam} />
       </View>
-
-      <View style={s.statsRow}>
-        <View style={[s.statCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-          <Text style={[s.statVal, { color: colors.ink }]}>{completedThisMonth}</Text>
-          <Text style={[s.statLabel, { color: colors.muted }]}>Completed (mo)</Text>
-        </View>
-        <View style={[s.statCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-          <Text style={[s.statVal, { color: colors.ink }]}>{upcoming.length}</Text>
-          <Text style={[s.statLabel, { color: colors.muted }]}>Upcoming</Text>
-        </View>
-        <TouchableOpacity
-          style={[s.statCard, pendingRequests > 0 ? { backgroundColor: '#FFFAE6', borderColor: '#FF8B00' } : { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-          onPress={() => router.push('/(tabs)/requests')}
-        >
-          <Text style={[s.statVal, { color: pendingRequests > 0 ? '#FF8B00' : colors.ink }]}>{pendingRequests}</Text>
-          <Text style={[s.statLabel, { color: pendingRequests > 0 ? '#FF8B00' : colors.muted }]}>Requests</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={[s.sectionTitle, { color: colors.ink }]}>Paid sessions · last 4 weeks</Text>
-      <View style={[s.barsCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+      <View style={[styles.barsCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
         {weekBuckets.map((count, idx) => (
-          <View key={idx} style={s.barCol}>
-            <View style={[s.barTrack, { backgroundColor: colors.surfaceRaised }]}>
-              <View style={[s.barFill, { backgroundColor: accent, height: `${(count / maxWeek) * 100}%` }]} />
+          <View key={idx} style={styles.barCol}>
+            <View style={[styles.barTrack, { backgroundColor: colors.surfaceRaised }]}>
+              <View style={[styles.barFill, { backgroundColor: idx === 3 ? accent : BRAND.blue, height: `${(count / maxWeek) * 100}%` }]} />
             </View>
-            <Text style={[s.barLabel, { color: colors.muted }]}>{idx === 3 ? 'This wk' : `${4 - idx}w ago`}</Text>
-            <Text style={[s.barValue, { color: colors.ink }]}>{count}</Text>
+            <Text style={[styles.barLabel, { color: colors.muted }]}>{idx === 3 ? 'This wk' : `${4 - idx}w ago`}</Text>
+            <Text style={[styles.barValue, { color: colors.ink }]}>{count}</Text>
           </View>
         ))}
       </View>
 
-      <Text style={[s.sectionTitle, { color: colors.ink }]}>Grow your business</Text>
-      <View style={s.shortcutsGrid}>
-        <Shortcut emoji="📦" title="Packages" help="Sell session bundles" onPress={() => router.push('/(tabs)/packages')} colors={colors} />
-        <Shortcut emoji="📅" title="Availability" help="Open more bookable time" onPress={() => router.push('/(tabs)/availability')} colors={colors} />
-        <Shortcut emoji="📣" title="Profile" help="Improve discovery conversion" onPress={() => router.push('/(tabs)/profile')} colors={colors} />
-        <Shortcut emoji="💳" title="Payouts" help="Manage Stripe Connect" onPress={() => router.push('/(tabs)/profile')} colors={colors} />
+      <View style={styles.sectionHeader}>
+        <View><Text style={[styles.sectionEyebrow, { color: accent }]}>GROW</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>Your business</Text></View>
+        <View style={styles.sectionBeam} />
+      </View>
+      <View style={styles.shortcutsGrid}>
+        <Shortcut icon="layers-outline" title="Packages" help="Sell session bundles" onPress={() => router.push('/(tabs)/packages')} colors={colors} accent={accent} rail={BRAND.purple} />
+        <Shortcut icon="time-outline" title="Availability" help="Open more bookable time" onPress={() => router.push('/(tabs)/availability')} colors={colors} accent={accent} rail={BRAND.blue} />
+        <Shortcut icon="person-outline" title="Profile" help="Improve discovery conversion" onPress={() => router.push('/(tabs)/profile')} colors={colors} accent={accent} rail={accent} />
+        <Shortcut icon="card-outline" title="Payouts" help="Manage Stripe Connect" onPress={() => router.push('/(tabs)/profile')} colors={colors} accent={accent} rail="#05BFEA" />
       </View>
 
-      {upcoming.length > 0 && (
+      {upcoming.length > 0 ? (
         <>
-          <Text style={[s.sectionTitle, { color: colors.ink }]}>Upcoming</Text>
+          <View style={styles.sectionHeader}>
+            <View><Text style={[styles.sectionEyebrow, { color: accent }]}>NEXT</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>Upcoming sessions</Text></View>
+            <View style={styles.sectionBeam} />
+          </View>
           {upcoming.map((sess) => (
-            <TouchableOpacity
-              key={sess.id}
-              style={[s.upcomingRow, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-              onPress={() => router.push({ pathname: '/session/[id]', params: { id: sess.id } })}
-            >
+            <TouchableOpacity key={sess.id} style={[styles.upcomingRow, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]} onPress={() => router.push({ pathname: '/session/[id]', params: { id: sess.id } })}>
+              <View style={[styles.upcomingRail, { backgroundColor: accent }]} />
               {sess.clientName ? <Avatar seed={sess.clientName} size={36} /> : null}
               <View style={{ flex: 1 }}>
-                <Text style={[s.upcomingName, { color: colors.ink }]}>{sess.clientName ?? sess.clientEmail ?? 'Client'}</Text>
-                <Text style={[s.upcomingMeta, { color: colors.muted }]}>
-                  {new Date(sess.starts_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {sess.duration_min} min
-                </Text>
+                <Text style={[styles.upcomingName, { color: colors.ink }]}>{sess.clientName ?? sess.clientEmail ?? 'Client'}</Text>
+                <Text style={[styles.upcomingMeta, { color: colors.muted }]}>{new Date(sess.starts_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {sess.duration_min} min</Text>
               </View>
-              <Text style={[s.chevron, { color: colors.placeholder }]}>›</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.placeholder} />
             </TouchableOpacity>
           ))}
         </>
-      )}
+      ) : null}
     </View>
   );
 }
 
-function Shortcut({ emoji, title, help, onPress, colors }: { emoji: string; title: string; help: string; onPress: () => void; colors: ReturnType<typeof useTheme>['colors'] }) {
+function Shortcut({ icon, title, help, onPress, colors, accent, rail }: { icon: keyof typeof Ionicons.glyphMap; title: string; help: string; onPress: () => void; colors: ReturnType<typeof useTheme>['colors']; accent: string; rail: string }) {
   return (
     <TouchableOpacity style={[styles.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]} onPress={onPress}>
-      <Text style={styles.shortcutEmoji}>{emoji}</Text>
+      <View style={[styles.shortcutRail, { backgroundColor: rail }]} />
+      <Ionicons name={icon} size={21} color={accent} />
       <Text style={[styles.shortcutText, { color: colors.ink }]}>{title}</Text>
       <Text style={[styles.shortcutHelp, { color: colors.muted }]}>{help}</Text>
     </TouchableOpacity>
@@ -179,46 +179,44 @@ function Shortcut({ emoji, title, help, onPress, colors }: { emoji: string; titl
 }
 
 const styles = StyleSheet.create({
-  shortcut: { width: '48%', borderRadius: 14, borderWidth: 1, padding: 14 },
-  shortcutEmoji: { fontSize: 22, marginBottom: 6 },
-  shortcutText: { fontSize: 14, fontWeight: '800' },
+  heroCard: { position: 'relative', overflow: 'hidden', minHeight: 220, backgroundColor: BRAND.navy, borderRadius: 22, borderWidth: 1, borderColor: '#193857', padding: 20, marginBottom: 14 },
+  heroCopy: { zIndex: 2 },
+  heroEyebrow: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.8 },
+  heroValue: { color: '#FFFFFF', fontSize: 48, fontWeight: '900', letterSpacing: -1.5, marginTop: 8 },
+  heroLabel: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  heroSub: { color: '#879BB1', fontSize: 11, marginTop: 3 },
+  heroStats: { zIndex: 2, flexDirection: 'row', alignItems: 'center', gap: 18, marginTop: 24 },
+  heroStatValue: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
+  heroStatLabel: { color: '#7E92A9', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.7 },
+  heroDivider: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)' },
+  readinessCard: { position: 'relative', overflow: 'hidden', borderRadius: 15, borderWidth: 1, padding: 16, marginBottom: 18 },
+  readinessRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.72 },
+  readinessTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  readinessEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  readinessTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
+  scoreText: { fontSize: 12, fontWeight: '900' },
+  progressTrack: { height: 6, borderRadius: 3, marginTop: 14, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  nextAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
+  nextActionText: { fontSize: 13, fontWeight: '800' },
+  readyText: { fontSize: 12, lineHeight: 18, marginTop: 12 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginTop: 6, marginBottom: 10 },
+  sectionEyebrow: { fontSize: 8, fontWeight: '900', letterSpacing: 1.4 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 2 },
+  sectionBeam: { flex: 1, height: 1, backgroundColor: BRAND.blue, opacity: 0.22, marginBottom: 5 },
+  barsCard: { flexDirection: 'row', gap: 8, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 22, height: 130 },
+  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  barTrack: { width: 14, flex: 1, justifyContent: 'flex-end', borderRadius: 3, overflow: 'hidden' },
+  barFill: { width: '100%', borderRadius: 3 },
+  barLabel: { fontSize: 9, marginTop: 5 },
+  barValue: { fontSize: 11, fontWeight: '800' },
+  shortcutsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  shortcut: { position: 'relative', overflow: 'hidden', width: '48%', borderRadius: 13, borderWidth: 1, padding: 14 },
+  shortcutRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.7 },
+  shortcutText: { fontSize: 14, fontWeight: '900', marginTop: 9 },
   shortcutHelp: { fontSize: 11, marginTop: 2, lineHeight: 15 },
+  upcomingRow: { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 13, borderWidth: 1, padding: 12, marginBottom: 8 },
+  upcomingRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.68 },
+  upcomingName: { fontSize: 14, fontWeight: '800' },
+  upcomingMeta: { fontSize: 12, marginTop: 2 },
 });
-
-function makeStyles(colors: ReturnType<typeof useTheme>['colors'], accent: string) {
-  return StyleSheet.create({
-    readinessCard: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 14 },
-    readinessTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-    readinessEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
-    readinessTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
-    scoreBadge: { minWidth: 48, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    scoreText: { fontSize: 13, fontWeight: '900' },
-    progressTrack: { height: 8, borderRadius: 999, marginTop: 14, overflow: 'hidden' },
-    progressFill: { height: '100%', borderRadius: 999 },
-    nextAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
-    nextActionText: { fontSize: 13, fontWeight: '800' },
-    nextActionArrow: { fontSize: 18, fontWeight: '900' },
-    readyText: { fontSize: 12, lineHeight: 18, marginTop: 12 },
-    heroRow: { marginBottom: 12 },
-    heroCard: { borderRadius: 18, padding: 18, shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 10 },
-    heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-    heroValue: { color: '#fff', fontSize: 38, fontWeight: '900', marginTop: 4 },
-    heroSub: { color: 'rgba(255,255,255,0.82)', fontSize: 12, marginTop: 2 },
-    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-    statCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' },
-    statVal: { fontSize: 22, fontWeight: '900' },
-    statLabel: { fontSize: 11, marginTop: 2, textAlign: 'center' },
-    sectionTitle: { fontSize: 14, fontWeight: '800', marginBottom: 10, marginTop: 4 },
-    barsCard: { flexDirection: 'row', gap: 8, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 24, height: 130 },
-    barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-    barTrack: { width: 18, flex: 1, justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden' },
-    barFill: { width: '100%', borderRadius: 4 },
-    barLabel: { fontSize: 10, marginTop: 4 },
-    barValue: { fontSize: 12, fontWeight: '800' },
-    shortcutsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-    upcomingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8 },
-    upcomingName: { fontSize: 14, fontWeight: '700' },
-    upcomingMeta: { fontSize: 12, marginTop: 2 },
-    chevron: { fontSize: 20 },
-  });
-}
