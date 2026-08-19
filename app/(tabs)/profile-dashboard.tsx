@@ -13,6 +13,13 @@ import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
 import { useTheme } from '@/lib/useTheme';
 
+type Achievement = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  detail: string;
+  unlocked: boolean;
+};
+
 export default function ProfileDashboard() {
   const router = useRouter();
   const { session, profile } = useAuth();
@@ -40,11 +47,11 @@ export default function ProfileDashboard() {
   const levelProgress = Math.min(100, Math.round(((completedSessions - levelFloor) / 5) * 100));
   const sessionsToNextLevel = Math.max(0, level * 5 - completedSessions);
 
-  const achievements = useMemo(() => {
-    const items = [
-      { icon: 'rocket-outline' as const, title: 'First Step', detail: 'Complete your first session', unlocked: completedSessions >= 1 },
-      { icon: 'flame-outline' as const, title: 'Momentum', detail: 'Reach 5 completed sessions', unlocked: completedSessions >= 5 },
-      { icon: 'camera-outline' as const, title: 'Show Up', detail: 'Add your profile photo', unlocked: Boolean(profile?.avatar_url) },
+  const achievements = useMemo<Achievement[]>(() => {
+    const items: Achievement[] = [
+      { icon: 'rocket-outline', title: 'First Step', detail: 'Complete your first session', unlocked: completedSessions >= 1 },
+      { icon: 'flame-outline', title: 'Momentum', detail: 'Reach 5 completed sessions', unlocked: completedSessions >= 5 },
+      { icon: 'camera-outline', title: 'Show Up', detail: 'Add your profile photo', unlocked: Boolean(profile?.avatar_url) },
     ];
     if (isTrainer) {
       items.push({ icon: 'star-outline', title: 'Trusted', detail: 'Earn your first review', unlocked: reviews >= 1 });
