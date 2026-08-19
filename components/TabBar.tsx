@@ -1,16 +1,10 @@
-/**
- * Responsive JS-rendered navigation.
- *
- * Phones keep the five-item bottom bar that avoids the iOS native tab-bar
- * hit-test regression. Wider browser windows use the same routes as a left
- * sidebar so TrainerHub feels like a desktop SaaS product instead of a
- * stretched phone app.
- */
+/** Responsive TrainerHub navigation with official brand treatment. */
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrandLockup } from '@/components/BrandLockup';
 import { useTheme } from '@/lib/useTheme';
 
 const ICON_BY_ROUTE: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -26,6 +20,7 @@ const ICON_BY_ROUTE: Record<string, keyof typeof Ionicons.glyphMap> = {
   packages: 'layers-outline',
   corporate: 'business-outline',
   profile: 'person',
+  'profile-dashboard': 'person',
 };
 
 const LABEL_BY_ROUTE: Record<string, string> = {
@@ -41,6 +36,7 @@ const LABEL_BY_ROUTE: Record<string, string> = {
   packages: 'Packages',
   corporate: 'Corporate',
   profile: 'Profile',
+  'profile-dashboard': 'Profile',
 };
 
 interface TabBarExtraProps {
@@ -48,12 +44,7 @@ interface TabBarExtraProps {
   sidebar?: boolean;
 }
 
-export function TabBar({
-  state,
-  navigation,
-  visibleRouteNames,
-  sidebar = false,
-}: BottomTabBarProps & TabBarExtraProps) {
+export function TabBar({ state, navigation, visibleRouteNames, sidebar = false }: BottomTabBarProps & TabBarExtraProps) {
   const { colors, accent } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -67,8 +58,8 @@ export function TabBar({
         styles.bar,
         sidebar ? styles.sidebar : styles.bottomBar,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          backgroundColor: sidebar ? '#07172B' : colors.surface,
+          borderColor: sidebar ? '#18304D' : colors.border,
           paddingBottom: sidebar
             ? Math.max(insets.bottom, 16)
             : Math.max(insets.bottom, Platform.OS === 'ios' ? 6 : 8),
@@ -76,14 +67,8 @@ export function TabBar({
       ]}
     >
       {sidebar && (
-        <View style={[styles.brand, { borderBottomColor: colors.border }]}>
-          <View style={[styles.brandMark, { backgroundColor: accent }]}>
-            <Text style={styles.brandMarkText}>T</Text>
-          </View>
-          <View>
-            <Text style={[styles.brandName, { color: colors.ink }]}>TrainerHub</Text>
-            <Text style={[styles.brandSub, { color: colors.muted }]}>Training marketplace</Text>
-          </View>
+        <View style={styles.brandPanel}>
+          <BrandLockup compact dark />
         </View>
       )}
 
@@ -92,40 +77,34 @@ export function TabBar({
           const focused = state.index === state.routes.findIndex((r) => r.key === route.key);
           const iconName = ICON_BY_ROUTE[route.name] ?? 'ellipsis-horizontal';
           const label = LABEL_BY_ROUTE[route.name] ?? route.name;
-          const tint = focused ? accent : colors.muted;
+          const tint = focused ? (sidebar ? '#FFFFFF' : accent) : (sidebar ? '#8292A8' : colors.muted);
 
           return (
             <Pressable
               key={route.key}
               onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!focused && !event.defaultPrevented) {
-                  navigation.navigate(route.name as never);
-                }
+                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                if (!focused && !event.defaultPrevented) navigation.navigate(route.name as never);
               }}
-              android_ripple={{ color: colors.borderInput, borderless: false }}
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               accessibilityLabel={label}
               style={({ pressed }) => [
                 styles.item,
                 sidebar ? styles.sidebarItem : styles.bottomItem,
-                sidebar && focused ? { backgroundColor: colors.surfaceRaised } : null,
-                pressed ? { opacity: 0.72 } : null,
+                sidebar && focused ? styles.sidebarActive : null,
+                pressed ? { transform: [{ scale: 0.985 }], opacity: 0.82 } : null,
               ]}
               hitSlop={sidebar ? 0 : 8}
             >
+              {sidebar && focused ? <View style={[styles.activeRail, { backgroundColor: accent }]} /> : null}
               <Ionicons name={iconName} size={sidebar ? 20 : 22} color={tint} />
               <Text
                 numberOfLines={1}
                 style={[
                   styles.label,
                   sidebar ? styles.sidebarLabel : styles.bottomLabel,
-                  { color: sidebar && focused ? colors.ink : tint },
+                  { color: tint },
                 ]}
               >
                 {label}
@@ -134,89 +113,50 @@ export function TabBar({
           );
         })}
       </View>
+
+      {sidebar ? (
+        <View style={styles.sidebarFooter}>
+          <Text style={styles.footerBrand}>BETTER TOGETHER.</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    backgroundColor: '#fff',
+  bar: {},
+  bottomBar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 8 },
+  sidebar: { width: 236, borderRightWidth: StyleSheet.hairlineWidth, paddingTop: 16, paddingHorizontal: 12 },
+  brandPanel: {
+    paddingHorizontal: 7,
+    paddingVertical: 15,
+    marginBottom: 16,
+    borderRadius: 18,
+    backgroundColor: '#0B203A',
+    borderWidth: 1,
+    borderColor: '#183959',
   },
-  bottomBar: {
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 8,
-  },
-  sidebar: {
-    width: 236,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    paddingTop: 18,
-    paddingHorizontal: 12,
-  },
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 8,
-    paddingBottom: 18,
-    marginBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  brandMark: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  brandMarkText: {
-    color: '#fff',
-    fontWeight: '900',
-    fontSize: 18,
-  },
-  brandName: {
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  brandSub: {
-    marginTop: 1,
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  bottomItems: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  sidebarItems: {
-    gap: 4,
-  },
-  item: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomItem: {
-    flex: 1,
-    paddingVertical: 4,
-    gap: 2,
-  },
+  bottomItems: { flex: 1, flexDirection: 'row' },
+  sidebarItems: { gap: 5 },
+  item: { alignItems: 'center', justifyContent: 'center' },
+  bottomItem: { flex: 1, paddingVertical: 4, gap: 2 },
   sidebarItem: {
     width: '100%',
-    minHeight: 44,
+    minHeight: 46,
     flexDirection: 'row',
     justifyContent: 'flex-start',
     gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    borderRadius: 13,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  label: {
-    fontWeight: '600',
-  },
-  bottomLabel: {
-    fontSize: 11,
-  },
-  sidebarLabel: {
-    flexShrink: 1,
-    fontSize: 14,
-  },
+  sidebarActive: { backgroundColor: '#122A47' },
+  activeRail: { position: 'absolute', left: 0, top: 9, bottom: 9, width: 3, borderRadius: 3 },
+  label: { fontWeight: '700' },
+  bottomLabel: { fontSize: 11 },
+  sidebarLabel: { flexShrink: 1, fontSize: 14 },
+  sidebarFooter: { marginTop: 'auto', paddingVertical: 14, alignItems: 'center' },
+  footerBrand: { color: '#5F7188', fontSize: 8, fontWeight: '900', fontStyle: 'italic', letterSpacing: 2.1 },
 });
