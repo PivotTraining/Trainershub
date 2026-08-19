@@ -1,12 +1,4 @@
-/**
- * User preferences — persisted to AsyncStorage, available app-wide via context.
- *
- * Preferences:
- *   darkMode   — 'system' | 'light' | 'dark'
- *   showEmoji  — boolean (decorative emoji in greetings / tab labels)
- *   accentColor — one of the ACCENT_COLORS keys
- */
-
+/** User preferences — persisted to AsyncStorage, available app-wide via context. */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
@@ -17,21 +9,17 @@ import {
   type ReactNode,
 } from 'react';
 
-// ── Accent colours ─────────────────────────────────────────────────────────────
-
 export const ACCENT_COLORS = {
-  amber:      { label: 'Amber',      value: '#D97706' }, // warm gold — default
-  terracotta: { label: 'Terracotta', value: '#D05C38' }, // bold warm orange-red
-  sage:       { label: 'Sage',       value: '#4A7C6E' }, // health / wellness / nature
-  plum:       { label: 'Plum',       value: '#7C3D8C' }, // sophisticated, premium
-  slate:      { label: 'Slate',      value: '#475569' }, // Apple-ish neutral
-  crimson:    { label: 'Crimson',    value: '#BE1B48' }, // bold, passionate
+  amber:      { label: 'Electric Purple', value: '#8B24FF' },
+  terracotta: { label: 'Electric Blue',   value: '#168BFF' },
+  sage:       { label: 'Aqua',            value: '#05BFEA' },
+  plum:       { label: 'Deep Violet',     value: '#6C22C7' },
+  slate:      { label: 'Midnight',        value: '#334A68' },
+  crimson:    { label: 'Hot Magenta',     value: '#D51974' },
 } as const;
 
 export type AccentKey = keyof typeof ACCENT_COLORS;
 export type DarkModePreference = 'system' | 'light' | 'dark';
-
-// ── Types ──────────────────────────────────────────────────────────────────────
 
 export interface Preferences {
   darkMode: DarkModePreference;
@@ -46,8 +34,6 @@ interface PreferencesCtx extends Preferences {
   loaded: boolean;
 }
 
-// ── Defaults ───────────────────────────────────────────────────────────────────
-
 const DEFAULTS: Preferences = {
   darkMode: 'system',
   showEmoji: true,
@@ -55,8 +41,6 @@ const DEFAULTS: Preferences = {
 };
 
 const STORAGE_KEY = '@trainerhub/preferences';
-
-// ── Context ────────────────────────────────────────────────────────────────────
 
 const PreferencesContext = createContext<PreferencesCtx>({
   ...DEFAULTS,
@@ -66,22 +50,16 @@ const PreferencesContext = createContext<PreferencesCtx>({
   loaded: false,
 });
 
-// ── Provider ───────────────────────────────────────────────────────────────────
-
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULTS);
   const [loaded, setLoaded] = useState(false);
 
-  // Load on mount
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
         if (raw) {
           const parsed = JSON.parse(raw) as Partial<Preferences>;
-          // Migrate stale accent key — drop it so the default kicks in.
-          if (parsed.accentColor && !(parsed.accentColor in ACCENT_COLORS)) {
-            delete parsed.accentColor;
-          }
+          if (parsed.accentColor && !(parsed.accentColor in ACCENT_COLORS)) delete parsed.accentColor;
           setPrefs((prev) => ({ ...prev, ...parsed }));
         }
       })
@@ -118,15 +96,11 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   return (
-    <PreferencesContext.Provider
-      value={{ ...prefs, setDarkMode, setShowEmoji, setAccentColor, loaded }}
-    >
+    <PreferencesContext.Provider value={{ ...prefs, setDarkMode, setShowEmoji, setAccentColor, loaded }}>
       {children}
     </PreferencesContext.Provider>
   );
 }
-
-// ── Hook ───────────────────────────────────────────────────────────────────────
 
 export function usePreferences(): PreferencesCtx {
   return useContext(PreferencesContext);
