@@ -1,26 +1,18 @@
-/**
- * TrainerDashboard — money-first overview for trainers.
- *
- * Sections:
- *   1. Hero stat row: revenue this month, sessions completed, upcoming sessions
- *   2. Pending requests CTA (links to /requests tab)
- *   3. Revenue trend (last 4 weeks bar chart, simple inline render)
- *   4. Upcoming sessions list (next 3)
- *   5. Monetization shortcuts: edit packages, manage availability, share profile
- */
+/** TrainerDashboard — truthful, action-first overview for trainers. */
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { useAvailabilitySlots } from '@/lib/queries/availability';
 import { useBookings } from '@/lib/queries/bookings';
+import { usePublicTrainerProfile } from '@/lib/queries/browse';
 import { useTrainerSessions } from '@/lib/queries/sessions';
 import type { BookingWithNames } from '@/lib/types';
 import { useTheme } from '@/lib/useTheme';
 
-interface TrainerDashboardProps {
-  trainerId: string;
-}
+interface TrainerDashboardProps { trainerId: string; }
+interface UseBookingsResult { data: BookingWithNames[] | undefined; }
 
 function startOfWeek(d: Date): Date {
   const x = new Date(d);
@@ -33,47 +25,41 @@ function startOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-function dollars(cents: number): string {
-  return `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
-
-interface UseBookingsResult {
-  data: BookingWithNames[] | undefined;
-}
-
 export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
   const router = useRouter();
   const { colors, accent } = useTheme();
   const sessionsQ = useTrainerSessions(trainerId);
   const bookingsQ = useBookings(trainerId) as UseBookingsResult;
+  const profileQ = usePublicTrainerProfile(trainerId);
+  const availabilityQ = useAvailabilitySlots(trainerId);
 
   const sessions = useMemo(() => sessionsQ.data ?? [], [sessionsQ.data]);
   const bookings = useMemo(() => bookingsQ.data ?? [], [bookingsQ.data]);
+  const profile = profileQ.data;
+  const availability = availabilityQ.data ?? [];
 
-  // Revenue from confirmed + paid bookings this month
   const monthStart = startOfMonth(new Date());
-  const paidThisMonth = bookings.filter(
-    (b) => b.payment_status === 'paid' && new Date(b.starts_at) >= monthStart,
-  );
-  const revenueCentsMonth = paidThisMonth.reduce((sum, b) => {
-    // Without rate snapshot we approximate at $50 per session — wire actual price later.
-    return sum + 5000;
-  }, 0);
-
-  const completedThisMonth = sessions.filter(
-    (s) => s.status === 'completed' && new Date(s.starts_at) >= monthStart,
-  ).length;
+  const paidThisMonth = bookings.filter((b) => b.payment_status === 'paid' && new Date(b.starts_at) >= monthStart);
+  const completedThisMonth = sessions.filter((s) => s.status === 'completed' && new Date(s.starts_at) >= monthStart).length;
 
   const upcoming = useMemo(() => {
     const now = new Date();
-    return sessions
-      .filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now)
-      .slice(0, 3);
+    return sessions.filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now).slice(0, 3);
   }, [sessions]);
 
   const pendingRequests = bookings.filter((b) => b.status === 'pending').length;
 
-  // Last 4 weeks paid count for sparkline-ish bars
+  const readinessItems = [
+    { label: 'Add a strong bio', done: Boolean(profile?.bio?.trim()), route: '/(tabs)/profile' as const },
+    { label: 'Choose specialties', done: (profile?.specialties.length ?? 0) > 0, route: '/(tabs)/profile' as const },
+    { label: 'Set your hourly rate', done: (profile?.hourly_rate_cents ?? 0) > 0, route: '/(tabs)/profile' as const },
+    { label: 'Choose session types', done: (profile?.session_types.length ?? 0) > 0, route: '/(tabs)/profile' as const },
+    { label: 'Publish availability', done: availability.length > 0, route: '/(tabs)/availability' as const },
+  ];
+  const completedReadiness = readinessItems.filter((item) => item.done).length;
+  const readinessPercent = Math.round((completedReadiness / readinessItems.length) * 100);
+  const nextReadiness = readinessItems.find((item) => !item.done);
+
   const weekBuckets: number[] = [0, 0, 0, 0];
   const now = new Date();
   for (const b of bookings) {
@@ -83,17 +69,38 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
     if (wk >= 0 && wk < 4) weekBuckets[3 - wk]++;
   }
   const maxWeek = Math.max(1, ...weekBuckets);
-
   const s = makeStyles(colors, accent);
 
   return (
     <View>
-      {/* ── Headline stats ───────────────────────────────────────── */}
+      <View style={[s.readinessCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+        <View style={s.readinessTop}>
+          <View>
+            <Text style={[s.readinessEyebrow, { color: accent }]}>MARKETPLACE READINESS</Text>
+            <Text style={[s.readinessTitle, { color: colors.ink }]}>{readinessPercent}% ready to get booked</Text>
+          </View>
+          <View style={[s.scoreBadge, { backgroundColor: colors.surfaceRaised }]}>
+            <Text style={[s.scoreText, { color: colors.ink }]}>{completedReadiness}/{readinessItems.length}</Text>
+          </View>
+        </View>
+        <View style={[s.progressTrack, { backgroundColor: colors.border }]}>
+          <View style={[s.progressFill, { backgroundColor: accent, width: `${readinessPercent}%` }]} />
+        </View>
+        {nextReadiness ? (
+          <TouchableOpacity style={s.nextAction} onPress={() => router.push(nextReadiness.route)}>
+            <Text style={[s.nextActionText, { color: colors.ink }]}>Next: {nextReadiness.label}</Text>
+            <Text style={[s.nextActionArrow, { color: accent }]}>→</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={[s.readyText, { color: colors.muted }]}>Your core marketplace setup is complete. Keep availability current and respond quickly to requests.</Text>
+        )}
+      </View>
+
       <View style={s.heroRow}>
         <View style={[s.heroCard, { backgroundColor: accent }]}>
-          <Text style={s.heroLabel}>Revenue this month</Text>
-          <Text style={s.heroValue}>{dollars(revenueCentsMonth)}</Text>
-          <Text style={s.heroSub}>{paidThisMonth.length} paid sessions</Text>
+          <Text style={s.heroLabel}>Paid sessions this month</Text>
+          <Text style={s.heroValue}>{paidThisMonth.length}</Text>
+          <Text style={s.heroSub}>Confirmed by Stripe — no estimated revenue</Text>
         </View>
       </View>
 
@@ -115,65 +122,27 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
         </TouchableOpacity>
       </View>
 
-      {/* ── 4-week revenue bars ──────────────────────────────────── */}
-      <Text style={[s.sectionTitle, { color: colors.ink }]}>Last 4 weeks</Text>
+      <Text style={[s.sectionTitle, { color: colors.ink }]}>Paid sessions · last 4 weeks</Text>
       <View style={[s.barsCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
         {weekBuckets.map((count, idx) => (
           <View key={idx} style={s.barCol}>
-            <View style={s.barTrack}>
-              <View
-                style={[
-                  s.barFill,
-                  { backgroundColor: accent, height: `${(count / maxWeek) * 100}%` },
-                ]}
-              />
+            <View style={[s.barTrack, { backgroundColor: colors.surfaceRaised }]}>
+              <View style={[s.barFill, { backgroundColor: accent, height: `${(count / maxWeek) * 100}%` }]} />
             </View>
-            <Text style={[s.barLabel, { color: colors.muted }]}>
-              {idx === 3 ? 'This wk' : `${3 - idx + 1}w ago`}
-            </Text>
+            <Text style={[s.barLabel, { color: colors.muted }]}>{idx === 3 ? 'This wk' : `${4 - idx}w ago`}</Text>
             <Text style={[s.barValue, { color: colors.ink }]}>{count}</Text>
           </View>
         ))}
       </View>
 
-      {/* ── Monetization shortcuts ───────────────────────────────── */}
       <Text style={[s.sectionTitle, { color: colors.ink }]}>Grow your business</Text>
       <View style={s.shortcutsGrid}>
-        <TouchableOpacity
-          style={[s.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-          onPress={() => router.push('/(tabs)/packages')}
-        >
-          <Text style={s.shortcutEmoji}>📦</Text>
-          <Text style={[s.shortcutText, { color: colors.ink }]}>Packages</Text>
-          <Text style={[s.shortcutHelp, { color: colors.muted }]}>Sell session bundles</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-          onPress={() => router.push('/(tabs)/availability')}
-        >
-          <Text style={s.shortcutEmoji}>📅</Text>
-          <Text style={[s.shortcutText, { color: colors.ink }]}>Availability</Text>
-          <Text style={[s.shortcutHelp, { color: colors.muted }]}>Open more slots</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-          onPress={() => router.push('/(tabs)/profile')}
-        >
-          <Text style={s.shortcutEmoji}>📣</Text>
-          <Text style={[s.shortcutText, { color: colors.ink }]}>Share profile</Text>
-          <Text style={[s.shortcutHelp, { color: colors.muted }]}>Card for socials</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-          onPress={() => router.push('/(tabs)/profile')}
-        >
-          <Text style={s.shortcutEmoji}>💳</Text>
-          <Text style={[s.shortcutText, { color: colors.ink }]}>Payouts</Text>
-          <Text style={[s.shortcutHelp, { color: colors.muted }]}>Stripe Connect</Text>
-        </TouchableOpacity>
+        <Shortcut emoji="📦" title="Packages" help="Sell session bundles" onPress={() => router.push('/(tabs)/packages')} colors={colors} />
+        <Shortcut emoji="📅" title="Availability" help="Open more bookable time" onPress={() => router.push('/(tabs)/availability')} colors={colors} />
+        <Shortcut emoji="📣" title="Profile" help="Improve discovery conversion" onPress={() => router.push('/(tabs)/profile')} colors={colors} />
+        <Shortcut emoji="💳" title="Payouts" help="Manage Stripe Connect" onPress={() => router.push('/(tabs)/profile')} colors={colors} />
       </View>
 
-      {/* ── Upcoming list ────────────────────────────────────────── */}
       {upcoming.length > 0 && (
         <>
           <Text style={[s.sectionTitle, { color: colors.ink }]}>Upcoming</Text>
@@ -185,14 +154,9 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
             >
               {sess.clientName ? <Avatar seed={sess.clientName} size={36} /> : null}
               <View style={{ flex: 1 }}>
-                <Text style={[s.upcomingName, { color: colors.ink }]}>
-                  {sess.clientName ?? sess.clientEmail ?? 'Client'}
-                </Text>
+                <Text style={[s.upcomingName, { color: colors.ink }]}>{sess.clientName ?? sess.clientEmail ?? 'Client'}</Text>
                 <Text style={[s.upcomingMeta, { color: colors.muted }]}>
-                  {new Date(sess.starts_at).toLocaleString([], {
-                    weekday: 'short', month: 'short', day: 'numeric',
-                    hour: 'numeric', minute: '2-digit',
-                  })} · {sess.duration_min} min
+                  {new Date(sess.starts_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · {sess.duration_min} min
                 </Text>
               </View>
               <Text style={[s.chevron, { color: colors.placeholder }]}>›</Text>
@@ -204,43 +168,57 @@ export function TrainerDashboard({ trainerId }: TrainerDashboardProps) {
   );
 }
 
+function Shortcut({ emoji, title, help, onPress, colors }: { emoji: string; title: string; help: string; onPress: () => void; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return (
+    <TouchableOpacity style={[styles.shortcut, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]} onPress={onPress}>
+      <Text style={styles.shortcutEmoji}>{emoji}</Text>
+      <Text style={[styles.shortcutText, { color: colors.ink }]}>{title}</Text>
+      <Text style={[styles.shortcutHelp, { color: colors.muted }]}>{help}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  shortcut: { width: '48%', borderRadius: 14, borderWidth: 1, padding: 14 },
+  shortcutEmoji: { fontSize: 22, marginBottom: 6 },
+  shortcutText: { fontSize: 14, fontWeight: '800' },
+  shortcutHelp: { fontSize: 11, marginTop: 2, lineHeight: 15 },
+});
+
 function makeStyles(colors: ReturnType<typeof useTheme>['colors'], accent: string) {
   return StyleSheet.create({
-    heroRow:    { marginBottom: 12 },
-    heroCard:   {
-      borderRadius: 16, padding: 18,
-      shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10,
-    },
-    heroLabel:  { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-    heroValue:  { color: '#fff', fontSize: 36, fontWeight: '800', marginTop: 4 },
-    heroSub:    { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
-
-    statsRow:   { flexDirection: 'row', gap: 8, marginBottom: 20 },
-    statCard:   { flex: 1, borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' },
-    statVal:    { fontSize: 22, fontWeight: '800' },
-    statLabel:  { fontSize: 11, marginTop: 2, textAlign: 'center' },
-
-    sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 10, marginTop: 4 },
-
-    barsCard:   { flexDirection: 'row', gap: 8, padding: 14, borderRadius: 12, borderWidth: 1, marginBottom: 24, height: 130 },
-    barCol:     { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-    barTrack:   { width: 18, flex: 1, justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden' },
-    barFill:    { width: '100%', borderRadius: 4 },
-    barLabel:   { fontSize: 10, marginTop: 4 },
-    barValue:   { fontSize: 12, fontWeight: '700' },
-
+    readinessCard: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 14 },
+    readinessTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+    readinessEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+    readinessTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
+    scoreBadge: { minWidth: 48, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    scoreText: { fontSize: 13, fontWeight: '900' },
+    progressTrack: { height: 8, borderRadius: 999, marginTop: 14, overflow: 'hidden' },
+    progressFill: { height: '100%', borderRadius: 999 },
+    nextAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 13 },
+    nextActionText: { fontSize: 13, fontWeight: '800' },
+    nextActionArrow: { fontSize: 18, fontWeight: '900' },
+    readyText: { fontSize: 12, lineHeight: 18, marginTop: 12 },
+    heroRow: { marginBottom: 12 },
+    heroCard: { borderRadius: 18, padding: 18, shadowColor: accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.22, shadowRadius: 10 },
+    heroLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    heroValue: { color: '#fff', fontSize: 38, fontWeight: '900', marginTop: 4 },
+    heroSub: { color: 'rgba(255,255,255,0.82)', fontSize: 12, marginTop: 2 },
+    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    statCard: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 12, alignItems: 'center' },
+    statVal: { fontSize: 22, fontWeight: '900' },
+    statLabel: { fontSize: 11, marginTop: 2, textAlign: 'center' },
+    sectionTitle: { fontSize: 14, fontWeight: '800', marginBottom: 10, marginTop: 4 },
+    barsCard: { flexDirection: 'row', gap: 8, padding: 14, borderRadius: 14, borderWidth: 1, marginBottom: 24, height: 130 },
+    barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+    barTrack: { width: 18, flex: 1, justifyContent: 'flex-end', borderRadius: 4, overflow: 'hidden' },
+    barFill: { width: '100%', borderRadius: 4 },
+    barLabel: { fontSize: 10, marginTop: 4 },
+    barValue: { fontSize: 12, fontWeight: '800' },
     shortcutsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-    shortcut:   {
-      width: '48%',
-      borderRadius: 12, borderWidth: 1, padding: 14,
-    },
-    shortcutEmoji: { fontSize: 22, marginBottom: 6 },
-    shortcutText:  { fontSize: 14, fontWeight: '700' },
-    shortcutHelp:  { fontSize: 11, marginTop: 2 },
-
-    upcomingRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 10, borderWidth: 1, padding: 12, marginBottom: 8 },
-    upcomingName: { fontSize: 14, fontWeight: '600' },
+    upcomingRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12, marginBottom: 8 },
+    upcomingName: { fontSize: 14, fontWeight: '700' },
     upcomingMeta: { fontSize: 12, marginTop: 2 },
-    chevron:      { fontSize: 20 },
+    chevron: { fontSize: 20 },
   });
 }
