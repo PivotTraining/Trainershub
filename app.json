@@ -18,7 +18,6 @@
       "infoPlist": {
         "NSUserNotificationsUsageDescription": "TrainerHub sends you reminders before your training sessions.",
         "NSCameraUsageDescription": "TrainerHub uses the camera to scan payment cards when setting up Stripe payouts.",
-        "NSPhotoLibraryUsageDescription": "TrainerHub lets you choose a profile photo from your photo library.",
         "NSPhotoLibraryAddUsageDescription": "TrainerHub saves your shareable trainer card to your photo library when you tap Save.",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
@@ -70,14 +69,6 @@
           "icon": "./assets/images/icon.png",
           "color": "#111111",
           "defaultChannel": "default"
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "TrainerHub lets you choose a profile photo from your photo library.",
-          "cameraPermission": false,
-          "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
