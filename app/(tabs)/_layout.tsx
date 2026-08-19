@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
+import { Platform, useWindowDimensions } from 'react-native';
 
 import { TabBar } from '@/components/TabBar';
 import { useAuth } from '@/lib/auth';
@@ -8,36 +9,56 @@ import { useTheme } from '@/lib/useTheme';
 export default function TabsLayout() {
   const { session, profile, loading } = useAuth();
   const { colors, accent } = useTheme();
+  const { width } = useWindowDimensions();
 
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/sign-in" />;
 
   const isTrainer = profile?.role === 'trainer';
+  const useSidebar = Platform.OS === 'web' && width >= 900;
 
-  // The five visible tabs per role. Anything else (programs, packages,
-  // availability) stays routable but is omitted from the bar.
-  const visibleRouteNames = isTrainer
+  // Phones keep the five-item bottom navigation. Wider browser windows expose
+  // the trainer-management routes that were intentionally hidden on mobile.
+  const mobileRouteNames = isTrainer
     ? (['index', 'clients', 'requests', 'schedule', 'profile'] as const)
     : (['index', 'browse', 'bookings', 'journal', 'profile'] as const);
 
+  const desktopRouteNames = isTrainer
+    ? (['index', 'clients', 'requests', 'schedule', 'availability', 'programs', 'packages', 'corporate', 'profile'] as const)
+    : (['index', 'browse', 'bookings', 'journal', 'corporate', 'profile'] as const);
+
+  const visibleRouteNames = useSidebar ? desktopRouteNames : mobileRouteNames;
+
   return (
     <Tabs
-      // Use a JS-rendered tab bar instead of the native UITabBarController.
-      // The native bar (react-native-screens 4.16 + iOS 26.4) ships with a
-      // hit-test bug on real hardware that leaves bottom-tab buttons
-      // unresponsive after sign-in. The custom TabBar uses Pressable so
-      // taps go through the standard React Native responder system.
-      tabBar={(props) => <TabBar {...props} visibleRouteNames={visibleRouteNames} />}
+      // Keep the JS-rendered tab bar that avoids the iOS native tab hit-test
+      // regression, but position it as a real sidebar on desktop web.
+      tabBar={(props) => (
+        <TabBar
+          {...props}
+          visibleRouteNames={visibleRouteNames}
+          sidebar={useSidebar}
+        />
+      )}
       screenOptions={{
+        tabBarPosition: useSidebar ? 'left' : 'bottom',
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-        },
+        tabBarStyle: useSidebar
+          ? {
+              backgroundColor: colors.surface,
+              borderRightColor: colors.border,
+              borderRightWidth: 1,
+              borderTopWidth: 0,
+              width: 236,
+            }
+          : {
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+              borderTopWidth: 1,
+            },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: useSidebar ? 14 : 11,
           fontWeight: '600',
         },
         headerStyle: {
@@ -47,7 +68,6 @@ export default function TabsLayout() {
         headerShadowVisible: false,
       }}
     >
-      {/* ── Shared: Home ─────────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"
         options={{
@@ -56,7 +76,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Client: Discover trainers ─────────────────────────────────── */}
       <Tabs.Screen
         name="browse"
         options={{
@@ -67,7 +86,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Client: My bookings ───────────────────────────────────────── */}
       <Tabs.Screen
         name="bookings"
         options={{
@@ -77,7 +95,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Client: Progress journal ──────────────────────────────────── */}
       <Tabs.Screen
         name="journal"
         options={{
@@ -87,7 +104,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Trainer: Clients ─────────────────────────────────────────── */}
       <Tabs.Screen
         name="clients"
         options={{
@@ -97,7 +113,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Trainer: Booking requests ─────────────────────────────────── */}
       <Tabs.Screen
         name="requests"
         options={{
@@ -107,7 +122,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Trainer: Schedule (clients use Bookings tab instead) ─────── */}
       <Tabs.Screen
         name="schedule"
         options={{
@@ -117,18 +131,15 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Corporate (hidden from tab bar to keep ≤5 tabs;
-              accessible from Profile / direct deep-link) ─────────────── */}
       <Tabs.Screen
         name="corporate"
         options={{
           title: 'Corporate',
-          href: null,
+          href: useSidebar ? '/(tabs)/corporate' : null,
           tabBarIcon: ({ color, size }) => <Ionicons name="business-outline" color={color} size={size} />,
         }}
       />
 
-      {/* ── Shared: Profile ──────────────────────────────────────────── */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -137,25 +148,24 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Hidden routes (routing works, not shown in tab bar) ──────── */}
       <Tabs.Screen
         name="programs"
         options={{
-          href: null,
+          href: useSidebar && isTrainer ? '/(tabs)/programs' : null,
           title: 'Programs',
         }}
       />
       <Tabs.Screen
         name="packages"
         options={{
-          href: null,
+          href: useSidebar && isTrainer ? '/(tabs)/packages' : null,
           title: 'Packages',
         }}
       />
       <Tabs.Screen
         name="availability"
         options={{
-          href: null,
+          href: useSidebar && isTrainer ? '/(tabs)/availability' : null,
           title: 'Availability',
         }}
       />
