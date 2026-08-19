@@ -1,6 +1,6 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,7 +23,7 @@ import { useMyPackagePurchases } from '@/lib/queries/packages';
 import { availabilityForDay, mergePickerDateTime, validateBookingTime } from '@/lib/scheduling';
 import { radius, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
-import type { SessionType } from '@/lib/types';
+import type { AvailabilitySlot, SessionType } from '@/lib/types';
 
 const DURATIONS = [30, 45, 60, 90] as const;
 type Duration = (typeof DURATIONS)[number];
@@ -41,6 +41,31 @@ function defaultStart(): Date {
   d.setMinutes(0, 0, 0);
   d.setHours(d.getHours() + 1);
   return d;
+}
+
+function dateAtTime(day: Date, value: string): Date {
+  const [hours, minutes = '00'] = value.split(':');
+  const next = new Date(day);
+  next.setHours(Number(hours), Number(minutes), 0, 0);
+  return next;
+}
+
+function quickStartsForDay(slots: AvailabilitySlot[], day: Date, durationMin: number): Date[] {
+  const now = new Date();
+  const starts: Date[] = [];
+
+  for (const slot of slots) {
+    const windowStart = dateAtTime(day, slot.start_time);
+    const windowEnd = dateAtTime(day, slot.end_time);
+    const latestStart = new Date(windowEnd.getTime() - durationMin * 60_000);
+
+    for (let cursor = new Date(windowStart); cursor <= latestStart; cursor = new Date(cursor.getTime() + 30 * 60_000)) {
+      if (cursor > now) starts.push(cursor);
+      if (starts.length >= 6) return starts;
+    }
+  }
+
+  return starts;
 }
 
 export default function BookingNew() {
@@ -73,6 +98,10 @@ export default function BookingNew() {
   );
   const availability = availabilityQuery.data ?? [];
   const selectedDaySlots = availabilityForDay(availability, startsAt);
+  const quickStarts = useMemo(
+    () => quickStartsForDay(selectedDaySlots, startsAt, duration),
+    [selectedDaySlots, startsAt, duration],
+  );
 
   const handlePickerChange = (event: DateTimePickerEvent, selected?: Date) => {
     const mode = pickerMode;
@@ -149,45 +178,99 @@ export default function BookingNew() {
           <Text style={[styles.trainerName, { color: colors.ink }]}>{trainerProfile.full_name ?? 'Trainer'}</Text>
           <Text style={[styles.intro, { color: colors.muted }]}>Choose a time that works. The trainer must confirm before the session is officially booked.</Text>
 
-          <Text style={[styles.label, { color: colors.muted }]}>Date & Time</Text>
-          <View style={styles.row}>
-            <TouchableOpacity style={[styles.pickerBtn, { borderColor: colors.borderInput, backgroundColor: colors.surface }]} onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')} accessibilityRole="button" accessibilityLabel="Choose booking date">
-              <Text style={[styles.pickerBtnText, { color: colors.ink }]}>{startsAt.toLocaleDateString()}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.pickerBtn, { borderColor: colors.borderInput, backgroundColor: colors.surface }]} onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')} accessibilityRole="button" accessibilityLabel="Choose booking time">
-              <Text style={[styles.pickerBtnText, { color: colors.ink }]}>{startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={[styles.label, { color: colors.muted }]}>Date</Text>
+          <TouchableOpacity
+            style={[styles.dateBtn, { borderColor: colors.borderInput, backgroundColor: colors.surface }]}
+            onPress={() => setPickerMode(pickerMode === 'date' ? null : 'date')}
+            accessibilityRole="button"
+            accessibilityLabel="Choose booking date"
+          >
+            <Text style={[styles.pickerBtnText, { color: colors.ink }]}>
+              {startsAt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+            </Text>
+          </TouchableOpacity>
 
-          {pickerMode && (
+          {pickerMode === 'date' && (
             <DateTimePicker
               value={startsAt}
-              mode={pickerMode}
+              mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={handlePickerChange}
-              minimumDate={pickerMode === 'date' ? new Date() : undefined}
+              minimumDate={new Date()}
             />
           )}
 
           <View style={[styles.availabilityCard, { backgroundColor: colors.surfaceRaised }]}>
-            <Text style={[styles.availabilityTitle, { color: colors.ink }]}>Trainer availability</Text>
+            <View style={styles.availabilityHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.availabilityTitle, { color: colors.ink }]}>Available times</Text>
+                <Text style={[styles.availabilityText, { color: colors.muted }]}>Tap a time to select it.</Text>
+              </View>
+              {selectedDaySlots.length > 0 && (
+                <Text style={[styles.windowText, { color: colors.muted }]}>
+                  {selectedDaySlots.map((slot) => `${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`).join(', ')}
+                </Text>
+              )}
+            </View>
+
             {availabilityQuery.isLoading ? (
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" style={{ marginTop: 10 }} />
             ) : availabilityQuery.isError ? (
-              <View>
+              <View style={{ marginTop: 8 }}>
                 <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger }]}>Availability could not be loaded.</Text>
                 <TouchableOpacity onPress={() => availabilityQuery.refetch()} accessibilityRole="button">
                   <Text style={[styles.retryText, { color: accent }]}>Refresh availability</Text>
                 </TouchableOpacity>
               </View>
             ) : availability.length === 0 ? (
-              <Text style={[styles.availabilityText, { color: colors.muted }]}>No recurring hours published. You can still request a time.</Text>
+              <Text style={[styles.availabilityText, { color: colors.muted, marginTop: 8 }]}>No recurring hours published. Use manual time selection below.</Text>
             ) : selectedDaySlots.length === 0 ? (
-              <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger }]}>No availability published for {startsAt.toLocaleDateString(undefined, { weekday: 'long' })}.</Text>
+              <Text accessibilityRole="alert" style={[styles.availabilityText, { color: colors.danger, marginTop: 8 }]}>No availability published for this day.</Text>
+            ) : quickStarts.length > 0 ? (
+              <View style={styles.quickTimeGrid}>
+                {quickStarts.map((time) => {
+                  const selected = Math.abs(time.getTime() - startsAt.getTime()) < 60_000;
+                  return (
+                    <TouchableOpacity
+                      key={time.toISOString()}
+                      style={[
+                        styles.quickTime,
+                        { borderColor: selected ? accent : colors.borderInput, backgroundColor: selected ? accent : colors.surface },
+                      ]}
+                      onPress={() => {
+                        setStartsAt(time);
+                        setPickerMode(null);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                    >
+                      <Text style={[styles.quickTimeText, { color: selected ? colors.white : colors.ink }]}>
+                        {time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             ) : (
-              <Text style={[styles.availabilityText, { color: colors.muted }]}>{selectedDaySlots.map((slot) => `${formatTime(slot.start_time)}–${formatTime(slot.end_time)}`).join(', ')}</Text>
+              <Text style={[styles.availabilityText, { color: colors.muted, marginTop: 8 }]}>No {duration}-minute starts remain for this day.</Text>
             )}
           </View>
+
+          <TouchableOpacity
+            style={styles.manualTimeToggle}
+            onPress={() => setPickerMode(pickerMode === 'time' ? null : 'time')}
+          >
+            <Text style={[styles.manualTimeText, { color: accent }]}>Choose a different time manually</Text>
+          </TouchableOpacity>
+
+          {pickerMode === 'time' && (
+            <DateTimePicker
+              value={startsAt}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={handlePickerChange}
+            />
+          )}
 
           <Text style={[styles.label, { color: colors.muted }]}>Duration</Text>
           <View style={styles.row}>
@@ -294,12 +377,19 @@ const styles = StyleSheet.create({
   intro: { fontSize: typography.sm, lineHeight: 20, marginBottom: spacing.sm },
   label: { fontSize: typography.sm, marginTop: spacing.md, marginBottom: spacing.xs, fontWeight: '700' },
   row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  pickerBtn: { flex: 1, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 12, alignItems: 'center' },
+  dateBtn: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 12, alignItems: 'center' },
   pickerBtnText: { fontSize: typography.base, fontWeight: '700' },
   availabilityCard: { borderRadius: radius.md, padding: spacing.md, marginTop: spacing.sm },
-  availabilityTitle: { fontSize: typography.sm, fontWeight: '800', marginBottom: 4 },
+  availabilityHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  availabilityTitle: { fontSize: typography.sm, fontWeight: '800', marginBottom: 2 },
   availabilityText: { fontSize: typography.sm, lineHeight: 20 },
+  windowText: { maxWidth: '50%', fontSize: typography.xs, lineHeight: 17, textAlign: 'right' },
   retryText: { fontSize: typography.sm, fontWeight: '800', marginTop: spacing.xs },
+  quickTimeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  quickTime: { minWidth: 92, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10, alignItems: 'center' },
+  quickTimeText: { fontSize: typography.sm, fontWeight: '800' },
+  manualTimeToggle: { alignSelf: 'flex-start', paddingVertical: 10 },
+  manualTimeText: { fontSize: typography.sm, fontWeight: '800' },
   segment: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, borderWidth: 1 },
   segmentText: { fontSize: typography.sm, fontWeight: '700' },
   packageOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, marginTop: spacing.xs },
