@@ -2,14 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../supabase';
 import type { Profile, TrainerProfileFull } from '../types';
 
-// Re-export TrainerProfileFull under the legacy name for backward compatibility
 export type { TrainerProfileFull as TrainerProfile } from '../types';
-
-// ── Profile ───────────────────────────────────────────────────────────────────
 
 interface ProfileUpdate {
   id: string;
   full_name?: string;
+  avatar_url?: string | null;
   date_of_birth?: string | null;
   phone?: string | null;
   location_city?: string | null;
@@ -26,6 +24,7 @@ export function useUpdateProfile() {
       const { id, ...rest } = args;
       const patch: Record<string, unknown> = {};
       if (rest.full_name !== undefined) patch.full_name = rest.full_name.trim() || null;
+      if (rest.avatar_url !== undefined) patch.avatar_url = rest.avatar_url;
       if (rest.date_of_birth !== undefined) patch.date_of_birth = rest.date_of_birth;
       if (rest.phone !== undefined) patch.phone = rest.phone?.trim() || null;
       if (rest.location_city !== undefined) patch.location_city = rest.location_city;
@@ -34,9 +33,6 @@ export function useUpdateProfile() {
       if (rest.streak_unit !== undefined) patch.streak_unit = rest.streak_unit;
       if (rest.liability_accepted_at !== undefined) patch.liability_accepted_at = rest.liability_accepted_at;
 
-      // Try update first (the auth.users → profiles trigger normally creates
-      // the row). If it returns no row, fall back to insert so users created
-      // without a trigger-fired profile still work.
       const { data, error } = await supabase
         .from('profiles')
         .update(patch)
@@ -54,15 +50,13 @@ export function useUpdateProfile() {
       if (insertErr) throw new Error(insertErr.message);
       return inserted as Profile;
     },
-    onSuccess: () => {
-      // Auth context re-fetches profile on next render; also bust the clients list
-      // so any display-name references refresh.
+    onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['browse'] });
+      qc.invalidateQueries({ queryKey: ['trainer_public', updated.id] });
     },
   });
 }
-
-// ── Trainer profile ───────────────────────────────────────────────────────────
 
 export function useTrainerProfile(userId: string | undefined) {
   return useQuery({
