@@ -1,10 +1,4 @@
-/**
- * Home tab — role-aware dashboard.
- *
- * Trainer: greeting + stats row (clients, sessions this week, upcoming) +
- *          next-session countdown card + recent client activity.
- * Client:  greeting + next-session countdown + assigned programs summary.
- */
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
@@ -17,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Avatar } from '@/components/Avatar';
 import { FindMatchCard } from '@/components/FindMatchCard';
 import { NotificationsNudge } from '@/components/NotificationsNudge';
 import { StreakCard } from '@/components/StreakCard';
@@ -27,9 +20,8 @@ import { useAuth } from '@/lib/auth';
 import { usePreferences } from '@/lib/preferences';
 import { useClientAssignedProgramsByUserId } from '@/lib/queries/programs';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatCountdown(target: Date): string {
   const diffMs = target.getTime() - Date.now();
@@ -42,8 +34,6 @@ function formatCountdown(target: Date): string {
   return diffDay === 1 ? 'Tomorrow' : `${diffDay} days`;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export default function Home() {
   const router = useRouter();
   const { session, profile } = useAuth();
@@ -53,14 +43,13 @@ export default function Home() {
   const isTrainer = profile?.role === 'trainer';
 
   const trainerSessionsQ = useTrainerSessions(isTrainer ? userId : undefined);
-  const clientSessionsQ  = useClientSessions(!isTrainer ? userId : undefined);
-  const programsQ        = useClientAssignedProgramsByUserId(!isTrainer ? userId : undefined);
+  const clientSessionsQ = useClientSessions(!isTrainer ? userId : undefined);
+  const programsQ = useClientAssignedProgramsByUserId(!isTrainer ? userId : undefined);
 
   const sessions = useMemo(
     () => (isTrainer ? trainerSessionsQ.data : clientSessionsQ.data) ?? [],
     [isTrainer, trainerSessionsQ.data, clientSessionsQ.data],
   );
-
   const upcoming = useMemo(() => {
     const now = new Date();
     return sessions.filter((s) => s.status === 'scheduled' && new Date(s.starts_at) >= now);
@@ -68,12 +57,9 @@ export default function Home() {
   const nextSession = upcoming[0] ?? null;
 
   const isLoading = isTrainer ? trainerSessionsQ.isLoading : clientSessionsQ.isLoading;
-  const refetch   = isTrainer ? trainerSessionsQ.refetch : clientSessionsQ.refetch;
-
+  const refetch = isTrainer ? trainerSessionsQ.refetch : clientSessionsQ.refetch;
   const firstName = profile?.full_name?.split(' ')[0] ?? null;
-  const greeting = firstName
-    ? `Hey, ${firstName}${showEmoji ? ' 👋' : ''}`
-    : `Welcome${showEmoji ? ' 👋' : ''}`;
+  const greeting = firstName ? `Hey, ${firstName}${showEmoji ? ' 👋' : ''}` : `Welcome${showEmoji ? ' 👋' : ''}`;
 
   const s = makeStyles(colors, accent, isDark);
 
@@ -84,149 +70,130 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={isLoading} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Hero header — accent colour band ─────────────────────── */}
-        <View style={s.hero}>
-          <View style={s.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.greeting}>{greeting}</Text>
-              <Text style={s.subtitle}>
-                {isTrainer ? 'Your training dashboard' : 'Your training journey'}
-              </Text>
+        <View style={s.heroShell}>
+          <View style={s.glowPurple} />
+          <View style={s.glowBlue} />
+          <View style={s.heroInner}>
+            <View style={s.headerRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.brandEyebrow}>FIND  •  BOOK  •  TRAIN</Text>
+                <Text style={s.greeting}>{greeting}</Text>
+                <Text style={s.subtitle}>
+                  {isTrainer ? 'Build momentum. Grow your training business.' : 'Your next move starts here.'}
+                </Text>
+              </View>
+              <WeatherWidget
+                lat={profile?.location_lat}
+                lng={profile?.location_lng}
+                city={profile?.location_city}
+              />
             </View>
-            <WeatherWidget
-              lat={profile?.location_lat}
-              lng={profile?.location_lng}
-              city={profile?.location_city}
-            />
+
+            <View style={s.heroMetaRow}>
+              <View style={s.heroChip}>
+                <Ionicons name={isTrainer ? 'people-outline' : 'flash-outline'} size={14} color="#fff" />
+                <Text style={s.heroChipText}>{isTrainer ? `${upcoming.length} upcoming` : 'Keep your streak alive'}</Text>
+              </View>
+              <View style={s.heroChipMuted}>
+                <Text style={s.heroChipMutedText}>BETTER TOGETHER.</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         <View style={s.content}>
-        {/* ── Notifications nudge ──────────────────────────────────── */}
-        <NotificationsNudge />
+          <NotificationsNudge />
 
-        {/* ── Find-your-match (clients only) ───────────────────────── */}
-        {!isTrainer && <FindMatchCard />}
+          {!isTrainer && <FindMatchCard />}
 
-        {/* ── Streak (clients only) ────────────────────────────────── */}
-        {!isTrainer && userId && (
-          <StreakCard
-            userId={userId}
-            count={profile?.streak_count ?? 0}
-            unit={profile?.streak_unit ?? 'days'}
-            lastLogged={profile?.streak_last_logged}
-          />
-        )}
+          {!isTrainer && userId && (
+            <StreakCard
+              userId={userId}
+              count={profile?.streak_count ?? 0}
+              unit={profile?.streak_unit ?? 'days'}
+              lastLogged={profile?.streak_last_logged}
+            />
+          )}
 
-        {/* ── Trainer dashboard (revenue / monetization focus) ─────── */}
-        {isTrainer && userId && <TrainerDashboard trainerId={userId} />}
+          {isTrainer && userId && <TrainerDashboard trainerId={userId} />}
 
-        {/* ── Next session card (clients only — trainer dashboard has its own) ─ */}
-        {!isTrainer && (
-          <>
-        <Text style={s.sectionTitle}>Next session</Text>
-        {nextSession ? (
-          <TouchableOpacity
-            style={s.nextCard}
-            onPress={() => router.push({ pathname: '/session/[id]', params: { id: nextSession.id } })}
-            activeOpacity={0.85}
-          >
-            <View style={s.nextCardTop}>
-              {isTrainer && nextSession.clientName ? (
-                <Avatar seed={nextSession.clientName} size={44} />
-              ) : null}
-              <View style={{ flex: 1 }}>
-                <Text style={s.nextCardTime}>
-                  {new Date(nextSession.starts_at).toLocaleString([], {
-                    weekday: 'short', month: 'short', day: 'numeric',
-                    hour: 'numeric', minute: '2-digit',
-                  })}
-                </Text>
-                {isTrainer && nextSession.clientName ? (
-                  <Text style={s.nextCardClient}>{nextSession.clientName}</Text>
-                ) : null}
-                <Text style={s.nextCardDuration}>{nextSession.duration_min} min</Text>
-              </View>
-              <View style={s.countdownBadge}>
-                <Text style={s.countdownText}>
-                  {formatCountdown(new Date(nextSession.starts_at))}
-                </Text>
-              </View>
-            </View>
-            {nextSession.notes ? (
-              <Text style={s.nextCardNotes} numberOfLines={2}>{nextSession.notes}</Text>
-            ) : null}
-          </TouchableOpacity>
-        ) : (
-          <View style={s.emptyCard}>
-            <Text style={s.emptyText}>
-              {isTrainer
-                ? 'No upcoming sessions. Schedule one with a client.'
-                : 'No upcoming sessions. Your trainer will add one here.'}
-            </Text>
-            {isTrainer ? (
-              <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/session/new')}>
-                <Text style={s.emptyBtnText}>{showEmoji ? '+ ' : ''}New session</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        )}
-
-          </>
-        )}
-
-        {/* ── Upcoming queue (trainer) ──────────────────────────────── */}
-        {isTrainer && false && upcoming.length > 1 && (
-          <>
-            <Text style={s.sectionTitle}>Up next</Text>
-            {upcoming.slice(1, 4).map((sess) => (
-              <TouchableOpacity
-                key={sess.id}
-                style={s.upNextRow}
-                onPress={() => router.push({ pathname: '/session/[id]', params: { id: sess.id } })}
-              >
-                {sess.clientName ? <Avatar seed={sess.clientName} size={34} /> : null}
-                <View style={{ flex: 1 }}>
-                  <Text style={s.upNextName}>{sess.clientName ?? sess.clientEmail ?? 'Client'}</Text>
-                  <Text style={s.upNextTime}>
-                    {new Date(sess.starts_at).toLocaleString([], {
-                      weekday: 'short', month: 'short', day: 'numeric',
-                      hour: 'numeric', minute: '2-digit',
-                    })}  ·  {sess.duration_min} min
-                  </Text>
+          {!isTrainer && (
+            <>
+              <View style={s.sectionHeader}>
+                <View>
+                  <Text style={s.sectionEyebrow}>UP NEXT</Text>
+                  <Text style={s.sectionTitle}>Your next session</Text>
                 </View>
-                <Text style={s.chevron}>›</Text>
-              </TouchableOpacity>
-            ))}
-            {upcoming.length > 4 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/schedule')}>
-                <Text style={s.seeAll}>See all {upcoming.length} sessions →</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        )}
-
-        {/* ── Client: assigned programs ─────────────────────────────── */}
-        {!isTrainer && (programsQ.data?.length ?? 0) > 0 && (
-          <>
-            <Text style={s.sectionTitle}>My programs</Text>
-            {(programsQ.data ?? []).map((p) => (
-              <View key={p.id} style={s.programCard}>
-                <Text style={s.programTitle}>{p.title}</Text>
-                {p.description ? (
-                  <Text style={s.programDesc} numberOfLines={2}>{p.description}</Text>
-                ) : null}
+                <View style={s.sectionDotRow}>
+                  <View style={[s.sectionDot, { backgroundColor: BRAND.purple }]} />
+                  <View style={[s.sectionDot, { backgroundColor: BRAND.blue }]} />
+                </View>
               </View>
-            ))}
-          </>
-        )}
-        </View>{/* end content */}
+
+              {nextSession ? (
+                <TouchableOpacity
+                  style={s.nextCard}
+                  onPress={() => router.push({ pathname: '/session/[id]', params: { id: nextSession.id } })}
+                  activeOpacity={0.88}
+                >
+                  <View style={s.nextAccentRail} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.nextCardKicker}>SESSION LOCKED IN</Text>
+                    <Text style={s.nextCardTime}>
+                      {new Date(nextSession.starts_at).toLocaleString([], {
+                        weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                      })}
+                    </Text>
+                    <Text style={s.nextCardDuration}>{nextSession.duration_min} minute session</Text>
+                    {nextSession.notes ? <Text style={s.nextCardNotes} numberOfLines={2}>{nextSession.notes}</Text> : null}
+                  </View>
+                  <View style={s.countdownBadge}>
+                    <Text style={s.countdownText}>{formatCountdown(new Date(nextSession.starts_at))}</Text>
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <View style={s.emptyCard}>
+                  <View style={s.emptyIconWrap}>
+                    <Ionicons name="calendar-outline" size={24} color={accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.emptyTitle}>Nothing booked yet.</Text>
+                    <Text style={s.emptyText}>Find the right trainer and put your next session on the calendar.</Text>
+                  </View>
+                  <TouchableOpacity style={s.emptyBtn} onPress={() => router.push('/(tabs)/browse')}>
+                    <Text style={s.emptyBtnText}>Discover</Text>
+                    <Ionicons name="arrow-forward" size={14} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+
+          {!isTrainer && (programsQ.data?.length ?? 0) > 0 && (
+            <>
+              <View style={s.sectionHeader}>
+                <View>
+                  <Text style={s.sectionEyebrow}>KEEP BUILDING</Text>
+                  <Text style={s.sectionTitle}>My programs</Text>
+                </View>
+              </View>
+              {(programsQ.data ?? []).map((p) => (
+                <View key={p.id} style={s.programCard}>
+                  <View style={s.programIcon}><Ionicons name="layers-outline" size={18} color={accent} /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.programTitle}>{p.title}</Text>
+                    {p.description ? <Text style={s.programDesc} numberOfLines={2}>{p.description}</Text> : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={colors.placeholder} />
+                </View>
+              ))}
+            </>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-// ── Dynamic styles ─────────────────────────────────────────────────────────────
 
 function makeStyles(
   colors: ReturnType<typeof useTheme>['colors'],
@@ -234,127 +201,63 @@ function makeStyles(
   isDark: boolean,
 ) {
   return StyleSheet.create({
-    safe:   { flex: 1, backgroundColor: colors.background },
-    scroll: { paddingBottom: 40 },
-
-    // ── Hero header — solid accent band, matches sign-in top ───────
-    hero: {
-      backgroundColor: accent,
-      paddingHorizontal: 24,
-      paddingTop: 16,
-      paddingBottom: 32,
+    safe: { flex: 1, backgroundColor: colors.background },
+    scroll: { paddingBottom: 48, backgroundColor: colors.background },
+    heroShell: {
+      marginHorizontal: 18,
+      marginTop: 14,
+      borderRadius: 28,
+      backgroundColor: BRAND.navy,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: '#193857',
+      shadowColor: '#07172B',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.18,
+      shadowRadius: 24,
+      elevation: 8,
     },
-    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    greeting:  { fontSize: 30, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-    subtitle:  { fontSize: 14, color: 'rgba(255,255,255,0.80)', marginTop: 4, fontWeight: '500' },
-
-    // ── Content area — white card slides over accent band ──────────
-    content: {
-      backgroundColor: colors.background,
-      borderTopLeftRadius: 28,
-      borderTopRightRadius: 28,
-      paddingHorizontal: 24,
-      paddingTop: 24,
-      // Shadow casting up onto the colour band
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: -4 },
-      shadowOpacity: 0.10,
-      shadowRadius: 16,
-      elevation: 12,
+    glowPurple: {
+      position: 'absolute', width: 240, height: 240, borderRadius: 120,
+      backgroundColor: BRAND.purple, opacity: 0.22, right: 120, top: -150,
     },
-
-    // ── Stats ──────────────────────────────────────────────────────
-    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-    statCard: {
-      flex: 1, backgroundColor: colors.surfaceCard, borderRadius: 16,
-      borderWidth: 1, borderColor: colors.border,
-      padding: 14, alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.35 : 0.06,
-      shadowRadius: 6,
+    glowBlue: {
+      position: 'absolute', width: 210, height: 210, borderRadius: 105,
+      backgroundColor: BRAND.blue, opacity: 0.20, right: -90, bottom: -125,
     },
-    statVal:   { fontSize: 26, fontWeight: '900', color: colors.ink },
-    statLabel: { fontSize: 11, color: colors.muted, marginTop: 3, textAlign: 'center', fontWeight: '600' },
-
-    // ── Section titles — editorial uppercase (Apple/Calm style) ────
-    sectionTitle: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.muted,
-      letterSpacing: 1.4,
-      textTransform: 'uppercase',
-      marginBottom: 12,
-    },
-
-    // ── Next session card ──────────────────────────────────────────
-    nextCard: {
-      backgroundColor: accent,
-      borderRadius: 24,
-      padding: 22,
-      marginBottom: 28,
-      shadowColor: accent,
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.30,
-      shadowRadius: 16,
-      elevation: 6,
-    },
-    nextCardTop:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    nextCardTime:     { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.2 },
-    nextCardClient:   { fontSize: 13, color: 'rgba(255,255,255,0.82)', marginTop: 2 },
-    nextCardDuration: { fontSize: 12, color: 'rgba(255,255,255,0.72)', marginTop: 2, fontWeight: '600' },
-    nextCardNotes:    { fontSize: 13, color: 'rgba(255,255,255,0.80)', marginTop: 12, fontStyle: 'italic', lineHeight: 18 },
-    countdownBadge: {
-      backgroundColor: 'rgba(255,255,255,0.22)',
-      borderRadius: 12,
-      paddingHorizontal: 12, paddingVertical: 7,
-    },
-    countdownText: { fontSize: 13, fontWeight: '800', color: '#fff' },
-
-    // ── Empty states ───────────────────────────────────────────────
-    emptyCard: {
-      backgroundColor: colors.surfaceCard,
-      borderRadius: 18, borderWidth: 1, borderColor: colors.border,
-      padding: 28, alignItems: 'center', gap: 12, marginBottom: 28,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: isDark ? 0.25 : 0.05,
-      shadowRadius: 8,
-    },
-    emptyText: { fontSize: 14, color: colors.muted, textAlign: 'center', lineHeight: 22 },
-    emptyBtn: {
-      backgroundColor: accent, borderRadius: 12,
-      paddingHorizontal: 22, paddingVertical: 12,
-    },
-    emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-    // ── Up next rows (trainer) ─────────────────────────────────────
-    upNextRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: colors.surfaceCard,
-      borderRadius: 14, borderWidth: 1, borderColor: colors.border,
-      padding: 14, marginBottom: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDark ? 0.25 : 0.04,
-      shadowRadius: 4,
-    },
-    upNextName: { fontSize: 14, fontWeight: '700', color: colors.ink },
-    upNextTime: { fontSize: 12, color: colors.muted, marginTop: 2, fontWeight: '500' },
-    chevron:    { fontSize: 20, color: colors.placeholder },
-    seeAll:     { fontSize: 13, color: accent, fontWeight: '700', textAlign: 'center', marginTop: 4, marginBottom: 20 },
-
-    // ── Programs ───────────────────────────────────────────────────
-    programCard: {
-      backgroundColor: colors.surfaceCard,
-      borderRadius: 14, borderWidth: 1, borderColor: colors.border,
-      padding: 16, marginBottom: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: isDark ? 0.25 : 0.04,
-      shadowRadius: 4,
-    },
-    programTitle: { fontSize: 15, fontWeight: '700', color: colors.ink },
-    programDesc:  { fontSize: 13, color: colors.muted, marginTop: 4, lineHeight: 18 },
+    heroInner: { paddingHorizontal: 26, paddingTop: 26, paddingBottom: 22 },
+    headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
+    brandEyebrow: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 2.6, marginBottom: 8 },
+    greeting: { fontSize: 35, fontWeight: '900', color: '#fff', letterSpacing: -1.1, lineHeight: 40 },
+    subtitle: { fontSize: 14, color: '#AEBFD2', marginTop: 5, fontWeight: '600' },
+    heroMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 24 },
+    heroChip: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+    heroChipText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    heroChipMuted: { paddingHorizontal: 12, paddingVertical: 8 },
+    heroChipMutedText: { color: '#66809D', fontSize: 8, fontStyle: 'italic', fontWeight: '900', letterSpacing: 2.2 },
+    content: { paddingHorizontal: 24, paddingTop: 26 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
+    sectionEyebrow: { fontSize: 9, color: accent, fontWeight: '900', letterSpacing: 1.6 },
+    sectionTitle: { fontSize: 22, color: colors.ink, fontWeight: '900', letterSpacing: -0.5, marginTop: 2 },
+    sectionDotRow: { flexDirection: 'row', gap: 5, paddingBottom: 4 },
+    sectionDot: { width: 7, height: 7, borderRadius: 4 },
+    nextCard: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: BRAND.navy, borderRadius: 22, borderWidth: 1, borderColor: '#193857', padding: 20, marginBottom: 28, overflow: 'hidden', shadowColor: BRAND.navy, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 18, elevation: 5 },
+    nextAccentRail: { width: 5, alignSelf: 'stretch', borderRadius: 5, backgroundColor: accent },
+    nextCardKicker: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
+    nextCardTime: { color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 4 },
+    nextCardDuration: { color: '#A9B8C9', fontSize: 12, fontWeight: '700', marginTop: 3 },
+    nextCardNotes: { color: '#A9B8C9', fontSize: 12, lineHeight: 18, marginTop: 8 },
+    countdownBadge: { backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9 },
+    countdownText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+    emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.surfaceCard, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 18, marginBottom: 28, shadowColor: '#07172B', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.28 : 0.06, shadowRadius: 14 },
+    emptyIconWrap: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+    emptyTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' },
+    emptyText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
+    emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: BRAND.navy, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 10 },
+    emptyBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+    programCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceCard, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 15, marginBottom: 9 },
+    programIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+    programTitle: { fontSize: 14, fontWeight: '900', color: colors.ink },
+    programDesc: { fontSize: 12, lineHeight: 17, color: colors.muted, marginTop: 2 },
   });
 }
