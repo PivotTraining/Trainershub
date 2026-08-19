@@ -1,16 +1,5 @@
-/**
- * Onboarding — captures the four pieces of info trainers need from clients
- * (Name, DOB, Location, Phone) plus the role choice and liability acceptance.
- *
- * Flow (single screen, sectioned):
- *   1. Name (required)
- *   2. DOB (required, age-gated 13+)
- *   3. Location — uses native geolocation if granted; falls back to city text
- *   4. Phone (required, visible to trainers they book)
- *   5. Role: Client or Trainer
- *   6. Liability disclaimer checkbox (required)
- */
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -28,14 +17,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import { useAuth } from '@/lib/auth';
 import { registerPushToken } from '@/lib/notifications';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { supabase } from '@/lib/supabase';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
 type RoleChoice = 'trainer' | 'client';
-
 const MIN_AGE = 13;
 
 function isAtLeast(years: number, dob: Date): boolean {
@@ -43,20 +33,14 @@ function isAtLeast(years: number, dob: Date): boolean {
   cutoff.setFullYear(cutoff.getFullYear() - years);
   return dob <= cutoff;
 }
-
-function formatDate(d: Date): string {
-  return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+function formatDate(d: Date): string { return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }); }
+function isoDate(d: Date): string { return d.toISOString().slice(0, 10); }
 
 export default function Onboarding() {
   const router = useRouter();
   const { session, profile } = useAuth();
   const updateProfile = useUpdateProfile();
-  const { colors, accent, spacing, typography, radius } = useTheme();
+  const { colors, accent } = useTheme();
 
   const [name, setName] = useState(profile?.full_name ?? '');
   const [dob, setDob] = useState<Date | null>(null);
@@ -73,18 +57,13 @@ export default function Onboarding() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Location off',
-          'No worries — type your city below instead.',
-        );
+        Alert.alert('Location off', 'No problem — type your city instead.');
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
       setCoords({ lat, lng });
-
-      // Reverse-geocode for a human-readable city
       const places = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       const place = places[0];
       if (place) {
@@ -115,22 +94,15 @@ export default function Onboarding() {
   };
 
   const handleContinue = async () => {
-    const err = validate();
-    if (err) {
-      Alert.alert('Almost there', err);
-      return;
-    }
+    const errorMessage = validate();
+    if (errorMessage) return Alert.alert('Almost there', errorMessage);
     if (!session?.user.id || !dob) return;
 
     try {
       if (role !== profile?.role) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ role })
-          .eq('id', session.user.id);
+        const { error } = await supabase.from('profiles').update({ role }).eq('id', session.user.id);
         if (error) throw new Error(error.message);
       }
-
       await updateProfile.mutateAsync({
         id: session.user.id,
         full_name: name.trim(),
@@ -141,146 +113,57 @@ export default function Onboarding() {
         location_lng: coords?.lng ?? null,
         liability_accepted_at: new Date().toISOString(),
       });
-
-      // Ask for notification permission right after onboarding — better context
-      // than a cold prompt at app launch. Also stores the push token so we
-      // can deliver session reminders.
       await registerPushToken(session.user.id, { promptIfNeeded: true }).catch(() => null);
       router.replace('/(tabs)');
-    } catch (err: unknown) {
-      Alert.alert('Setup failed', err instanceof Error ? err.message : 'Unknown error');
+    } catch (error: unknown) {
+      Alert.alert('Setup failed', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
   const isSaving = updateProfile.isPending;
-  const s = makeStyles(colors, accent, spacing, typography, radius);
 
   return (
-    <SafeAreaView style={s.safe}>
-      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={s.title}>Tell us about you</Text>
-          <Text style={s.subtitle}>
-            Your trainer will see your name, age, location, and phone number so they can prepare for your sessions.
-          </Text>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <EnergyHero eyebrow="SETUP" title="Tell us about you." subtitle="A few details help TrainerHub match, book and prepare the right experience." icon="person-outline" compact />
 
-          {/* ── Name ─────────────────────────────────────────────── */}
-          <Text style={s.label}>Full name</Text>
-          <TextInput
-            style={s.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Alex Johnson"
-            placeholderTextColor={colors.placeholder}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
+          <SectionLabel number="01" title="Basics" accent={accent} colors={colors} />
+          <FieldLabel text="Full name" colors={colors} />
+          <TextInput style={[styles.input, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard, color: colors.ink }]} value={name} onChangeText={setName} placeholder="Alex Johnson" placeholderTextColor={colors.placeholder} autoCapitalize="words" />
 
-          {/* ── DOB ──────────────────────────────────────────────── */}
-          <Text style={s.label}>Date of birth</Text>
-          <TouchableOpacity style={s.input} onPress={() => setShowDatePicker((v) => !v)}>
-            <Text style={[s.inputText, { color: dob ? colors.ink : colors.placeholder }]}>
-              {dob ? formatDate(dob) : 'Tap to choose…'}
-            </Text>
+          <FieldLabel text="Date of birth" colors={colors} />
+          <TouchableOpacity style={[styles.input, styles.dateInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard }]} onPress={() => setShowDatePicker((current) => !current)}>
+            <Text style={{ color: dob ? colors.ink : colors.placeholder, fontSize: 16 }}>{dob ? formatDate(dob) : 'Choose date'}</Text>
+            <Ionicons name="calendar-outline" size={17} color={accent} />
           </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={dob ?? new Date(2000, 0, 1)}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={new Date()}
-              onChange={handleDateChange}
-            />
-          )}
+          {showDatePicker ? <DateTimePicker value={dob ?? new Date(2000, 0, 1)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={new Date()} onChange={handleDateChange} /> : null}
 
-          {/* ── Location ─────────────────────────────────────────── */}
-          <Text style={s.label}>City</Text>
-          <View style={s.row}>
-            <TextInput
-              style={[s.input, { flex: 1 }]}
-              value={city}
-              onChangeText={setCity}
-              placeholder="San Francisco, CA"
-              placeholderTextColor={colors.placeholder}
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-            <TouchableOpacity
-              style={s.locBtn}
-              onPress={handleUseMyLocation}
-              disabled={locating}
-              activeOpacity={0.85}
-            >
-              {locating ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Text style={s.locBtnText}>📍 Use mine</Text>
-              )}
+          <SectionLabel number="02" title="Where you train" accent={accent} colors={colors} />
+          <FieldLabel text="City" colors={colors} />
+          <View style={styles.locationRow}>
+            <TextInput style={[styles.input, styles.locationInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard, color: colors.ink }]} value={city} onChangeText={setCity} placeholder="Atlanta, GA" placeholderTextColor={colors.placeholder} autoCapitalize="words" />
+            <TouchableOpacity style={styles.locationBtn} onPress={handleUseMyLocation} disabled={locating}>
+              {locating ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="locate-outline" size={19} color="#FFFFFF" />}
             </TouchableOpacity>
           </View>
 
-          {/* ── Phone ────────────────────────────────────────────── */}
-          <Text style={s.label}>Phone number</Text>
-          <TextInput
-            style={s.input}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="+1 555 123 4567"
-            placeholderTextColor={colors.placeholder}
-            keyboardType="phone-pad"
-            returnKeyType="done"
-          />
+          <FieldLabel text="Phone number" colors={colors} />
+          <TextInput style={[styles.input, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard, color: colors.ink }]} value={phone} onChangeText={setPhone} placeholder="+1 555 123 4567" placeholderTextColor={colors.placeholder} keyboardType="phone-pad" />
 
-          {/* ── Role ─────────────────────────────────────────────── */}
-          <Text style={s.label}>I want to…</Text>
-          <View style={s.roleRow}>
-            <TouchableOpacity
-              style={[s.roleCard, role === 'client' && s.roleCardSelected]}
-              onPress={() => setRole('client')}
-            >
-              <Text style={s.roleIcon}>🙋</Text>
-              <Text style={[s.roleLabel, role === 'client' && s.roleLabelSelected]}>
-                Find a trainer
-              </Text>
-              <Text style={s.roleDesc}>I&apos;m looking for coaching</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.roleCard, role === 'trainer' && s.roleCardSelected]}
-              onPress={() => setRole('trainer')}
-            >
-              <Text style={s.roleIcon}>🎯</Text>
-              <Text style={[s.roleLabel, role === 'trainer' && s.roleLabelSelected]}>
-                Coach others
-              </Text>
-              <Text style={s.roleDesc}>I&apos;m a trainer / coach</Text>
-            </TouchableOpacity>
+          <SectionLabel number="03" title="How you use TrainerHub" accent={accent} colors={colors} />
+          <View style={styles.roleRow}>
+            <RoleChoice selected={role === 'client'} icon="search-outline" title="Find a trainer" detail="I’m looking for coaching" onPress={() => setRole('client')} accent={accent} colors={colors} rail={BRAND.purple} />
+            <RoleChoice selected={role === 'trainer'} icon="people-outline" title="Coach others" detail="I’m a trainer or coach" onPress={() => setRole('trainer')} accent={accent} colors={colors} rail={BRAND.blue} />
           </View>
 
-          {/* ── Liability ────────────────────────────────────────── */}
-          <TouchableOpacity
-            style={s.liabilityRow}
-            onPress={() => setLiability((v) => !v)}
-            activeOpacity={0.8}
-          >
-            <View style={[s.checkbox, liability && s.checkboxOn]}>
-              {liability && <Text style={s.checkmark}>✓</Text>}
-            </View>
-            <Text style={s.liabilityText}>
-              I understand TrainerHub is a marketplace and is{' '}
-              <Text style={{ fontWeight: '700' }}>not responsible</Text> for the trainers I meet
-              or the outcomes of any sessions. I agree to vet trainers myself and to use the
-              service at my own risk.
-            </Text>
+          <TouchableOpacity style={[styles.liabilityRow, { borderColor: colors.border }]} onPress={() => setLiability((current) => !current)} activeOpacity={0.84}>
+            <View style={[styles.checkbox, { borderColor: liability ? accent : colors.border }, liability && { backgroundColor: BRAND.navy }]}>{liability ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}</View>
+            <Text style={[styles.liabilityText, { color: colors.muted }]}>I understand TrainerHub is a marketplace. I’ll review trainers or clients myself and use the service at my own discretion.</Text>
           </TouchableOpacity>
 
-          {/* ── CTA ──────────────────────────────────────────────── */}
-          <TouchableOpacity
-            style={[s.button, isSaving && s.buttonDisabled]}
-            onPress={handleContinue}
-            disabled={isSaving}
-            activeOpacity={0.85}
-          >
-            {isSaving ? <ActivityIndicator color="#fff" /> : <Text style={s.buttonText}>Continue</Text>}
+          <TouchableOpacity style={[styles.primary, isSaving && { opacity: 0.6 }]} onPress={handleContinue} disabled={isSaving} activeOpacity={0.86}>
+            {isSaving ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Finish setup</Text><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -288,56 +171,52 @@ export default function Onboarding() {
   );
 }
 
-function makeStyles(
-  colors: ReturnType<typeof useTheme>['colors'],
-  accent: string,
-  spacing: ReturnType<typeof useTheme>['spacing'],
-  typography: ReturnType<typeof useTheme>['typography'],
-  radius: ReturnType<typeof useTheme>['radius'],
-) {
-  return StyleSheet.create({
-    safe:    { flex: 1, backgroundColor: colors.background },
-    flex:    { flex: 1 },
-    scroll:  { padding: spacing.lg, paddingBottom: spacing.xxl },
-    title:   { fontSize: typography.display, fontWeight: '700', color: colors.ink, marginBottom: spacing.xs },
-    subtitle:{ fontSize: typography.md, color: colors.muted, marginBottom: spacing.lg, lineHeight: 22 },
-    label:   { fontSize: typography.sm, color: colors.muted, marginBottom: 6, marginTop: spacing.md, fontWeight: '500' },
-    row:     { flexDirection: 'row', gap: 8 },
-    input:   {
-      borderWidth: 1, borderColor: colors.borderInput, borderRadius: radius.md,
-      paddingHorizontal: 14, paddingVertical: 12, fontSize: typography.base, color: colors.ink,
-      backgroundColor: colors.surface,
-    },
-    inputText: { fontSize: typography.base },
-    locBtn:  {
-      backgroundColor: accent, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12,
-      justifyContent: 'center', alignItems: 'center', minWidth: 110,
-    },
-    locBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
-    roleRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xs },
-    roleCard:{
-      flex: 1, borderWidth: 2, borderColor: colors.border,
-      borderRadius: radius.lg, padding: spacing.md, alignItems: 'center',
-      backgroundColor: colors.surface,
-    },
-    roleCardSelected:{ borderColor: accent, backgroundColor: colors.surfaceCard },
-    roleIcon:        { fontSize: 28, marginBottom: spacing.xs },
-    roleLabel:       { fontSize: typography.md, fontWeight: '700', color: colors.muted },
-    roleLabelSelected:{ color: colors.ink },
-    roleDesc:        { fontSize: typography.xs, color: colors.placeholder, textAlign: 'center', marginTop: 4 },
-    liabilityRow:    { flexDirection: 'row', gap: 12, marginTop: spacing.lg, alignItems: 'flex-start' },
-    checkbox:        {
-      width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.border,
-      alignItems: 'center', justifyContent: 'center', marginTop: 2,
-    },
-    checkboxOn:      { backgroundColor: accent, borderColor: accent },
-    checkmark:       { color: '#fff', fontSize: 14, fontWeight: '800' },
-    liabilityText:   { flex: 1, fontSize: 13, color: colors.muted, lineHeight: 19 },
-    button:          {
-      marginTop: spacing.xl, backgroundColor: accent, borderRadius: radius.md,
-      paddingVertical: 14, alignItems: 'center',
-    },
-    buttonDisabled:  { opacity: 0.6 },
-    buttonText:      { color: '#fff', fontSize: typography.base, fontWeight: '600' },
-  });
+function FieldLabel({ text, colors }: { text: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return <Text style={[styles.label, { color: colors.muted }]}>{text.toUpperCase()}</Text>;
 }
+
+function SectionLabel({ number, title, accent, colors }: { number: string; title: string; accent: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return (
+    <View style={styles.sectionRow}>
+      <Text style={[styles.sectionNumber, { color: accent }]}>{number}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.ink }]}>{title}</Text>
+      <View style={styles.sectionBeam} />
+    </View>
+  );
+}
+
+function RoleChoice({ selected, icon, title, detail, onPress, accent, colors, rail }: { selected: boolean; icon: keyof typeof Ionicons.glyphMap; title: string; detail: string; onPress: () => void; accent: string; colors: ReturnType<typeof useTheme>['colors']; rail: string }) {
+  return (
+    <TouchableOpacity style={[styles.roleCard, { backgroundColor: selected ? BRAND.navy : colors.surfaceCard, borderColor: selected ? accent : colors.border }]} onPress={onPress}>
+      <View style={[styles.roleRail, { backgroundColor: rail }]} />
+      <Ionicons name={icon} size={21} color={selected ? '#FFFFFF' : accent} />
+      <Text style={[styles.roleTitle, { color: selected ? '#FFFFFF' : colors.ink }]}>{title}</Text>
+      <Text style={[styles.roleDetail, { color: selected ? '#AEBFD2' : colors.muted }]}>{detail}</Text>
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 }, flex: { flex: 1 },
+  scroll: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20, paddingBottom: 52 },
+  sectionRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 9, marginTop: 28, marginBottom: 12 },
+  sectionNumber: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  sectionTitle: { fontSize: 19, fontWeight: '900' },
+  sectionBeam: { flex: 1, height: 1, backgroundColor: BRAND.blue, opacity: 0.2, marginBottom: 5 },
+  label: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginTop: 13, marginBottom: 6 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 13, fontSize: 16 },
+  dateInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  locationRow: { flexDirection: 'row', gap: 8 },
+  locationInput: { flex: 1 },
+  locationBtn: { width: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: BRAND.navy, borderRadius: 10 },
+  roleRow: { flexDirection: 'row', gap: 10 },
+  roleCard: { position: 'relative', overflow: 'hidden', flex: 1, minHeight: 126, borderWidth: 1, borderRadius: 13, padding: 14 },
+  roleRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.75 },
+  roleTitle: { fontSize: 14, fontWeight: '900', marginTop: 12 },
+  roleDetail: { fontSize: 11, lineHeight: 16, marginTop: 3 },
+  liabilityRow: { flexDirection: 'row', gap: 11, borderTopWidth: 1, borderBottomWidth: 1, paddingVertical: 16, marginTop: 24 },
+  checkbox: { width: 24, height: 24, borderWidth: 1.5, borderRadius: 7, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  liabilityText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  primary: { marginTop: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: BRAND.navy, borderRadius: 10, paddingVertical: 15 },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+});
