@@ -12,10 +12,12 @@ import {
   View,
 } from 'react-native';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import { TrainerCard } from '@/components/TrainerCard';
 import { useAuth } from '@/lib/auth';
 import { useBrowseTrainers } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { TrainerListing } from '@/lib/types';
 
@@ -69,7 +71,7 @@ function TrainerCardItem({ trainer, userId, onPress }: TrainerCardItemProps) {
 export default function BrowseIndex() {
   const router = useRouter();
   const params = useLocalSearchParams<{ specialty?: string; sessionType?: string; maxRateCents?: string }>();
-  const { colors, spacing, radius, typography, accent } = useTheme();
+  const { colors, spacing, typography, accent } = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
 
@@ -105,30 +107,31 @@ export default function BrowseIndex() {
 
   const renderHeader = () => (
     <View>
-      <View style={[styles.hero, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.lg, marginHorizontal: spacing.md, marginTop: spacing.md }]}>
-        <View style={[styles.heroIcon, { backgroundColor: colors.surface, borderRadius: radius.lg }]}>
-          <Ionicons name="sparkles-outline" size={22} color={accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.heroTitle, { color: colors.ink, fontSize: typography.lg }]}>Find the right trainer, faster.</Text>
-          <Text style={[styles.heroSub, { color: colors.muted, fontSize: typography.sm }]}>Compare specialties, verified profiles, reviews, session type and price before you book.</Text>
-        </View>
+      <View style={{ marginHorizontal: spacing.md, marginTop: spacing.md }}>
+        <EnergyHero
+          eyebrow="DISCOVER"
+          title="Find your fit."
+          subtitle="Search verified trainers by goal, style, format, availability and price."
+          icon="search-outline"
+          compact
+        />
       </View>
 
       <View style={[styles.searchWrap, { paddingHorizontal: spacing.md, paddingTop: spacing.md }]}>
-        <View style={[styles.searchInner, { backgroundColor: colors.surface, borderColor: colors.borderInput, borderRadius: radius.lg }]}>
-          <Ionicons name="search-outline" size={18} color={colors.muted} />
+        <View style={[styles.searchInner, { backgroundColor: colors.surface, borderColor: colors.borderInput }]}>
+          <Ionicons name="search-outline" size={18} color={accent} />
           <TextInput
             style={[styles.searchInput, { color: colors.ink, fontSize: typography.md }]}
             value={search}
             onChangeText={setSearch}
-            placeholder="Search by trainer, goal or specialty…"
+            placeholder="Search trainer, goal or specialty…"
             placeholderTextColor={colors.placeholder}
             clearButtonMode="while-editing"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
           />
+          <View style={[styles.searchBeam, { backgroundColor: accent }]} />
         </View>
       </View>
 
@@ -138,40 +141,42 @@ export default function BrowseIndex() {
           return (
             <TouchableOpacity
               key={fc.id}
-              style={[styles.filterChip, { backgroundColor: isActive ? colors.ink : colors.surface, borderColor: isActive ? colors.ink : colors.border, borderRadius: radius.pill }]}
+              style={[
+                styles.filterChip,
+                { borderColor: isActive ? accent : colors.border, backgroundColor: isActive ? BRAND.navy : colors.surface },
+              ]}
               onPress={() => setActiveFilter(fc.id)}
             >
-              <Text style={[styles.filterChipText, { color: isActive ? colors.white : colors.inkSoft, fontSize: typography.sm }]}>{fc.label}</Text>
+              {isActive ? <View style={[styles.filterRail, { backgroundColor: accent }]} /> : null}
+              <Text style={[styles.filterChipText, { color: isActive ? '#FFFFFF' : colors.inkSoft, fontSize: typography.sm }]}>{fc.label}</Text>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
 
       <TouchableOpacity
-        style={[styles.quizBanner, { backgroundColor: colors.infoBg, borderColor: colors.info, borderRadius: radius.lg, marginHorizontal: spacing.md }]}
+        style={[styles.quizBanner, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginHorizontal: spacing.md }]}
         onPress={() => router.push('/(tabs)/browse/quiz')}
-        activeOpacity={0.82}
+        activeOpacity={0.84}
       >
-        <View style={styles.quizBannerInner}>
-          <View style={[styles.quizIcon, { backgroundColor: colors.surface, borderRadius: radius.md }]}>
-            <Ionicons name="options-outline" size={18} color={colors.info} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.quizTitle, { color: colors.info, fontSize: typography.sm }]}>Not sure who fits?</Text>
-            <Text style={[styles.quizText, { color: colors.muted, fontSize: typography.xs }]}>Take the 5-question Trainer Match quiz.</Text>
-          </View>
-          <Ionicons name="arrow-forward" size={16} color={colors.info} />
+        <View style={[styles.quizRail, { backgroundColor: BRAND.purple }]} />
+        <Ionicons name="options-outline" size={19} color={accent} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.quizTitle, { color: colors.ink, fontSize: typography.sm }]}>Not sure who fits?</Text>
+          <Text style={[styles.quizText, { color: colors.muted, fontSize: typography.xs }]}>Take the 5-question Trainer Match quiz.</Text>
         </View>
+        <Ionicons name="arrow-forward" size={16} color={accent} />
       </TouchableOpacity>
 
       <View style={[styles.resultsRow, { paddingHorizontal: spacing.md, marginTop: spacing.md, marginBottom: spacing.sm }]}>
         <View>
-          <Text style={[styles.resultsTitle, { color: colors.ink, fontSize: typography.md }]}>Top matches</Text>
-          <Text style={[styles.resultsSub, { color: colors.muted, fontSize: typography.xs }]}>{trainers.length} trainer{trainers.length === 1 ? '' : 's'} found</Text>
+          <Text style={[styles.resultsEyebrow, { color: accent }]}>MATCHES</Text>
+          <Text style={[styles.resultsTitle, { color: colors.ink, fontSize: typography.md }]}>{trainers.length} trainer{trainers.length === 1 ? '' : 's'} found</Text>
         </View>
+        <View style={styles.resultsBeam} />
         {activeFilter !== 'all' && (
           <TouchableOpacity onPress={() => setActiveFilter('all')}>
-            <Text style={[styles.clearText, { color: accent, fontSize: typography.sm }]}>Clear filter</Text>
+            <Text style={[styles.clearText, { color: accent, fontSize: typography.sm }]}>Clear</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -191,11 +196,11 @@ export default function BrowseIndex() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Ionicons name="search-outline" size={40} color={colors.muted} />
+            <Ionicons name="search-outline" size={36} color={accent} />
             <Text style={[styles.emptyTitle, { color: colors.ink, fontSize: typography.lg }]}>No trainers found</Text>
             <Text style={[styles.emptySubtitle, { color: colors.muted, fontSize: typography.sm }]}>Try another specialty, price range, or session type.</Text>
-            <TouchableOpacity style={[styles.emptyButton, { backgroundColor: colors.ink, borderRadius: radius.md }]} onPress={() => { setActiveFilter('all'); setSearch(''); }}>
-              <Text style={{ color: colors.white, fontWeight: '800' }}>Show all trainers</Text>
+            <TouchableOpacity style={styles.emptyButton} onPress={() => { setActiveFilter('all'); setSearch(''); }}>
+              <Text style={{ color: '#FFFFFF', fontWeight: '800' }}>Show all trainers</Text>
             </TouchableOpacity>
           </View>
         }
@@ -208,27 +213,25 @@ export default function BrowseIndex() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: { flexDirection: 'row', gap: 12, padding: 16, borderWidth: 1 },
-  heroIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  heroTitle: { fontWeight: '900', letterSpacing: -0.2 },
-  heroSub: { lineHeight: 19, marginTop: 3 },
   searchWrap: { paddingBottom: 4 },
-  searchInner: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 11, gap: 8 },
+  searchInner: { position: 'relative', flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 12, gap: 8, overflow: 'hidden' },
   searchInput: { flex: 1 },
-  filterScroll: { gap: 8 },
-  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1 },
+  searchBeam: { position: 'absolute', left: 0, bottom: 0, width: 90, height: 2, opacity: 0.7 },
+  filterScroll: { gap: 7 },
+  filterChip: { position: 'relative', overflow: 'hidden', paddingHorizontal: 13, paddingVertical: 8, borderWidth: 1, borderRadius: 9 },
+  filterRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 2 },
   filterChipText: { fontWeight: '700' },
-  quizBanner: { padding: 12, borderWidth: 1 },
-  quizBannerInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  quizIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  quizTitle: { fontWeight: '800' },
+  quizBanner: { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13, borderWidth: 1, borderRadius: 14 },
+  quizRail: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, opacity: 0.74 },
+  quizTitle: { fontWeight: '900' },
   quizText: { marginTop: 2 },
-  resultsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  resultsTitle: { fontWeight: '900' },
-  resultsSub: { marginTop: 2 },
+  resultsRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  resultsEyebrow: { fontSize: 8, fontWeight: '900', letterSpacing: 1.4 },
+  resultsTitle: { fontWeight: '900', marginTop: 2 },
+  resultsBeam: { flex: 1, height: 1, marginBottom: 5, backgroundColor: BRAND.blue, opacity: 0.22 },
   clearText: { fontWeight: '800' },
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 60 },
-  emptyTitle: { fontWeight: '700', marginTop: 8 },
+  emptyTitle: { fontWeight: '800', marginTop: 8 },
   emptySubtitle: { textAlign: 'center', maxWidth: 320 },
-  emptyButton: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 11 },
+  emptyButton: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 10, backgroundColor: BRAND.navy },
 });
