@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { SpringPress } from '@/components/Motion';
 import { StarRating } from '@/components/StarRating';
 import { useTheme } from '@/lib/useTheme';
 import type { TrainerListing } from '@/lib/types';
@@ -25,106 +26,106 @@ export function TrainerCard({ trainer, isFavorite = false, onPress, onFavoritePr
     : 'New on TrainerHub';
 
   return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    <SpringPress
       onPress={onPress}
-      activeOpacity={0.82}
       accessibilityRole="button"
       accessibilityLabel={`View ${trainer.full_name ?? 'trainer'} profile`}
     >
-      <View style={styles.topRow}>
-        <Avatar
-          seed={trainer.user_id}
-          size={58}
-          initial={trainer.full_name ?? 'Trainer'}
-          imageUrl={trainer.avatar_url}
-        />
+      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={styles.topRow}>
+          <Avatar
+            seed={trainer.user_id}
+            size={58}
+            initial={trainer.full_name ?? 'Trainer'}
+            imageUrl={trainer.avatar_url}
+          />
 
-        <View style={styles.content}>
-          <View style={styles.nameRow}>
-            <Text style={[styles.name, { color: colors.ink, fontSize: typography.md }]} numberOfLines={1}>
-              {trainer.full_name ?? 'Trainer'}
-            </Text>
-            {trainer.is_verified && (
-              <View style={[styles.verifiedPill, { backgroundColor: colors.infoBg, borderRadius: radius.pill }]}>
-                <Ionicons name="checkmark-circle" size={13} color={colors.info} />
-                <Text style={[styles.verifiedText, { color: colors.info }]}>Verified</Text>
-              </View>
-            )}
-          </View>
-
-          {trainer.location ? (
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={13} color={colors.muted} />
-              <Text style={[styles.locationText, { color: colors.muted, fontSize: typography.xs }]} numberOfLines={1}>
-                {trainer.location}
+          <View style={styles.content}>
+            <View style={styles.nameRow}>
+              <Text style={[styles.name, { color: colors.ink, fontSize: typography.md }]} numberOfLines={1}>
+                {trainer.full_name ?? 'Trainer'}
               </Text>
+              {trainer.is_verified && (
+                <View style={[styles.verifiedPill, { backgroundColor: colors.infoBg, borderRadius: radius.pill }]}>
+                  <Ionicons name="checkmark-circle" size={13} color={colors.info} />
+                  <Text style={[styles.verifiedText, { color: colors.info }]}>Verified</Text>
+                </View>
+              )}
             </View>
-          ) : null}
 
-          <View style={styles.ratingRow}>
-            <StarRating rating={trainer.avg_rating} size={13} />
-            <Text style={[styles.ratingText, { color: colors.muted, fontSize: typography.sm }]}>{ratingLabel}</Text>
+            {trainer.location ? (
+              <View style={styles.locationRow}>
+                <Ionicons name="location-outline" size={13} color={colors.muted} />
+                <Text style={[styles.locationText, { color: colors.muted, fontSize: typography.xs }]} numberOfLines={1}>
+                  {trainer.location}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.ratingRow}>
+              <StarRating rating={trainer.avg_rating} size={13} />
+              <Text style={[styles.ratingText, { color: colors.muted, fontSize: typography.sm }]}>{ratingLabel}</Text>
+            </View>
           </View>
-        </View>
 
-        {onFavoritePress != null && (
-          <TouchableOpacity
-            onPress={(event) => {
-              event.stopPropagation?.();
-              onFavoritePress();
-            }}
-            style={styles.heartButton}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#EF4444' : colors.muted} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {displayedSpecialties.length > 0 && (
-        <View style={[styles.specialtyRow, { marginTop: spacing.sm }]}>
-          {displayedSpecialties.map((specialty) => (
-            <View key={specialty} style={[styles.chip, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, borderColor: colors.border }]}>
-              <Text style={[styles.chipText, { color: colors.inkSoft, fontSize: typography.xs }]}>{specialty}</Text>
-            </View>
-          ))}
-          {trainer.specialties.length > 3 && (
-            <Text style={[styles.moreText, { color: colors.muted, fontSize: typography.xs }]}>+{trainer.specialties.length - 3}</Text>
+          {onFavoritePress != null && (
+            <TouchableOpacity
+              onPress={(event) => {
+                event.stopPropagation?.();
+                onFavoritePress();
+              }}
+              style={styles.heartButton}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={22} color={isFavorite ? '#EF4444' : colors.muted} />
+            </TouchableOpacity>
           )}
         </View>
-      )}
 
-      <View style={[styles.signalRow, { marginTop: spacing.sm }]}>
-        {trainer.session_types.map((type) => (
-          <View key={type} style={[styles.signal, { backgroundColor: type === 'virtual' ? colors.infoBg : colors.successBg, borderRadius: radius.sm }]}>
-            <Ionicons name={type === 'virtual' ? 'videocam-outline' : 'people-outline'} size={12} color={type === 'virtual' ? colors.info : colors.success} />
-            <Text style={[styles.signalText, { color: type === 'virtual' ? colors.info : colors.success, fontSize: typography.xs }]}>
-              {type === 'virtual' ? 'Virtual' : 'In-person'}
-            </Text>
-          </View>
-        ))}
-        {trainer.instant_book && (
-          <View style={[styles.signal, { backgroundColor: colors.warningBg, borderRadius: radius.sm }]}>
-            <Ionicons name="flash-outline" size={12} color={colors.warning} />
-            <Text style={[styles.signalText, { color: colors.warning, fontSize: typography.xs }]}>Instant Book</Text>
+        {displayedSpecialties.length > 0 && (
+          <View style={[styles.specialtyRow, { marginTop: spacing.sm }]}>
+            {displayedSpecialties.map((specialty) => (
+              <View key={specialty} style={[styles.chip, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill, borderColor: colors.border }]}>
+                <Text style={[styles.chipText, { color: colors.inkSoft, fontSize: typography.xs }]}>{specialty}</Text>
+              </View>
+            ))}
+            {trainer.specialties.length > 3 && (
+              <Text style={[styles.moreText, { color: colors.muted, fontSize: typography.xs }]}>+{trainer.specialties.length - 3}</Text>
+            )}
           </View>
         )}
-      </View>
 
-      <View style={[styles.bottomRow, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.sm }]}>
-        <View>
-          <Text style={[styles.price, { color: colors.ink, fontSize: typography.base }]}>{rateLabel}</Text>
-          <Text style={[styles.priceSub, { color: colors.muted, fontSize: typography.xs }]}>before any package savings</Text>
+        <View style={[styles.signalRow, { marginTop: spacing.sm }]}>
+          {trainer.session_types.map((type) => (
+            <View key={type} style={[styles.signal, { backgroundColor: type === 'virtual' ? colors.infoBg : colors.successBg, borderRadius: radius.sm }]}>
+              <Ionicons name={type === 'virtual' ? 'videocam-outline' : 'people-outline'} size={12} color={type === 'virtual' ? colors.info : colors.success} />
+              <Text style={[styles.signalText, { color: type === 'virtual' ? colors.info : colors.success, fontSize: typography.xs }]}>
+                {type === 'virtual' ? 'Virtual' : 'In-person'}
+              </Text>
+            </View>
+          ))}
+          {trainer.instant_book && (
+            <View style={[styles.signal, { backgroundColor: colors.warningBg, borderRadius: radius.sm }]}>
+              <Ionicons name="flash-outline" size={12} color={colors.warning} />
+              <Text style={[styles.signalText, { color: colors.warning, fontSize: typography.xs }]}>Instant Book</Text>
+            </View>
+          )}
         </View>
-        <View style={[styles.viewButton, { backgroundColor: colors.ink, borderRadius: radius.md }]}>
-          <Text style={[styles.viewButtonText, { color: colors.white, fontSize: typography.sm }]}>View profile</Text>
-          <Ionicons name="arrow-forward" size={14} color={colors.white} />
+
+        <View style={[styles.bottomRow, { borderTopColor: colors.border, marginTop: spacing.md, paddingTop: spacing.sm }]}>
+          <View>
+            <Text style={[styles.price, { color: colors.ink, fontSize: typography.base }]}>{rateLabel}</Text>
+            <Text style={[styles.priceSub, { color: colors.muted, fontSize: typography.xs }]}>before any package savings</Text>
+          </View>
+          <View style={[styles.viewButton, { backgroundColor: colors.ink, borderRadius: radius.md }]}>
+            <Text style={[styles.viewButtonText, { color: colors.white, fontSize: typography.sm }]}>View profile</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.white} />
+          </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </SpringPress>
   );
 }
 
