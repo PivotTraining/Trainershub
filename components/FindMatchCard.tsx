@@ -1,9 +1,5 @@
-/**
- * FindMatchCard — hero card on the home dashboard that drops users into the
- * sector → sub-specialty quiz.  Shown most prominently for first-time users
- * (those who haven't completed the quiz yet) but stays available afterwards
- * as a quick way to re-discover trainers.
- */
+/** Client marketplace command card for Home. */
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,58 +11,76 @@ const QUIZ_DONE_KEY = '@trainerhub:quiz_completed';
 
 export function FindMatchCard() {
   const router = useRouter();
-  const { accent } = useTheme();
+  const { accent, colors } = useTheme();
   const [completed, setCompleted] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(QUIZ_DONE_KEY).then((v) => setCompleted(!!v));
+    AsyncStorage.getItem(QUIZ_DONE_KEY).then((value) => setCompleted(!!value));
   }, []);
 
   if (completed === null) return null;
 
-  const handlePress = () => {
-    router.push('/(tabs)/browse/quiz');
-  };
-
-  // First-time pitch is bigger and more conversion-focused
   if (!completed) {
     return (
-      <TouchableOpacity
-        style={[styles.hero, { backgroundColor: accent }]}
-        onPress={handlePress}
-        activeOpacity={0.85}
-      >
+      <View style={[styles.hero, { backgroundColor: accent }]}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.heroEyebrow}>5-min match quiz</Text>
-          <Text style={styles.heroTitle}>Find your trainer</Text>
+          <Text style={styles.heroEyebrow}>YOUR NEXT MOVE</Text>
+          <Text style={styles.heroTitle}>Find a trainer who fits.</Text>
           <Text style={styles.heroBody}>
-            Tell us what you want to work on — we&apos;ll match you with coaches who specialise in it.
+            Answer five quick questions and narrow the marketplace to trainers aligned with your goals, format and budget.
           </Text>
-          <View style={styles.heroBtn}>
-            <Text style={styles.heroBtnText}>Take the quiz →</Text>
-          </View>
+          <TouchableOpacity style={styles.heroBtn} onPress={() => router.push('/(tabs)/browse/quiz')} activeOpacity={0.86}>
+            <Text style={styles.heroBtnText}>Start my match</Text>
+            <Ionicons name="arrow-forward" size={15} color="#fff" />
+          </TouchableOpacity>
         </View>
         <Text style={styles.heroEmoji}>🎯</Text>
-      </TouchableOpacity>
+      </View>
     );
   }
 
-  // Returning users get a slim re-entry pill
   return (
-    <TouchableOpacity style={[styles.pill, { borderColor: accent }]} onPress={handlePress} activeOpacity={0.85}>
-      <Text style={[styles.pillText, { color: accent }]}>🎯 Find a different trainer →</Text>
-    </TouchableOpacity>
+    <View style={[styles.returningCard, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+      <View style={styles.returningHeader}>
+        <View style={[styles.iconWrap, { backgroundColor: colors.surfaceRaised }]}>
+          <Ionicons name="search-outline" size={21} color={accent} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.returningEyebrow, { color: accent }]}>FIND YOUR NEXT TRAINER</Text>
+          <Text style={[styles.returningTitle, { color: colors.ink }]}>Ready to book?</Text>
+          <Text style={[styles.returningBody, { color: colors.muted }]}>Browse the marketplace directly or refine your matches again.</Text>
+        </View>
+      </View>
+
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[styles.primaryBtn, { backgroundColor: colors.ink }]}
+          onPress={() => router.push('/(tabs)/browse')}
+          activeOpacity={0.86}
+        >
+          <Text style={styles.primaryBtnText}>Browse trainers</Text>
+          <Ionicons name="arrow-forward" size={15} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryBtn, { borderColor: colors.border }]}
+          onPress={() => router.push('/(tabs)/browse/quiz')}
+          activeOpacity={0.82}
+        >
+          <Ionicons name="options-outline" size={15} color={accent} />
+          <Text style={[styles.secondaryBtnText, { color: accent }]}>Retake match</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
 
-/** Call this from the quiz finish handler to mark the user as no-longer first-time. */
 export async function markQuizComplete() {
   await AsyncStorage.setItem(QUIZ_DONE_KEY, '1').catch(() => null);
 }
 
 const styles = StyleSheet.create({
   hero: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     marginBottom: 20,
     flexDirection: 'row',
@@ -78,24 +92,21 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  heroEyebrow: { color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
-  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginTop: 4 },
-  heroBody: { color: 'rgba(255,255,255,0.92)', fontSize: 13, marginTop: 6, lineHeight: 18 },
-  heroBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    marginTop: 14,
-  },
-  heroBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  heroEmoji: { fontSize: 56 },
-  pill: {
-    borderWidth: 1.5,
-    borderRadius: 24,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    alignSelf: 'flex-start',
-    marginBottom: 18,
-  },
-  pillText: { fontSize: 13, fontWeight: '600' },
+  heroEyebrow: { color: 'rgba(255,255,255,0.82)', fontSize: 10, fontWeight: '900', letterSpacing: 1.2 },
+  heroTitle: { color: '#fff', fontSize: 22, fontWeight: '900', marginTop: 5, letterSpacing: -0.2 },
+  heroBody: { color: 'rgba(255,255,255,0.92)', fontSize: 13, marginTop: 6, lineHeight: 19 },
+  heroBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, marginTop: 14 },
+  heroBtnText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  heroEmoji: { fontSize: 52 },
+  returningCard: { borderWidth: 1, borderRadius: 18, padding: 16, marginBottom: 20 },
+  returningHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  iconWrap: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  returningEyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 1.1 },
+  returningTitle: { fontSize: 18, fontWeight: '900', marginTop: 3 },
+  returningBody: { fontSize: 12, lineHeight: 18, marginTop: 3 },
+  actionRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
+  primaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 11, paddingVertical: 11, paddingHorizontal: 10 },
+  primaryBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  secondaryBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderWidth: 1, borderRadius: 11, paddingVertical: 11, paddingHorizontal: 10 },
+  secondaryBtnText: { fontSize: 12, fontWeight: '900' },
 });
