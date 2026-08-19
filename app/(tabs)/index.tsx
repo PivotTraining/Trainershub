@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EnergyField } from '@/components/EnergyField';
 import { FindMatchCard } from '@/components/FindMatchCard';
 import { NotificationsNudge } from '@/components/NotificationsNudge';
 import { StreakCard } from '@/components/StreakCard';
@@ -71,8 +72,7 @@ export default function Home() {
         showsVerticalScrollIndicator={false}
       >
         <View style={s.heroShell}>
-          <View style={s.glowPurple} />
-          <View style={s.glowBlue} />
+          <EnergyField />
           <View style={s.heroInner}>
             <View style={s.headerRow}>
               <View style={{ flex: 1 }}>
@@ -94,9 +94,7 @@ export default function Home() {
                 <Ionicons name={isTrainer ? 'people-outline' : 'flash-outline'} size={14} color="#fff" />
                 <Text style={s.heroChipText}>{isTrainer ? `${upcoming.length} upcoming` : 'Keep your streak alive'}</Text>
               </View>
-              <View style={s.heroChipMuted}>
-                <Text style={s.heroChipMutedText}>BETTER TOGETHER.</Text>
-              </View>
+              <Text style={s.heroChipMutedText}>BETTER TOGETHER.</Text>
             </View>
           </View>
         </View>
@@ -124,10 +122,7 @@ export default function Home() {
                   <Text style={s.sectionEyebrow}>UP NEXT</Text>
                   <Text style={s.sectionTitle}>Your next session</Text>
                 </View>
-                <View style={s.sectionDotRow}>
-                  <View style={[s.sectionDot, { backgroundColor: BRAND.purple }]} />
-                  <View style={[s.sectionDot, { backgroundColor: BRAND.blue }]} />
-                </View>
+                <View style={s.sectionBeam} />
               </View>
 
               {nextSession ? (
@@ -176,9 +171,11 @@ export default function Home() {
                   <Text style={s.sectionEyebrow}>KEEP BUILDING</Text>
                   <Text style={s.sectionTitle}>My programs</Text>
                 </View>
+                <View style={s.sectionBeam} />
               </View>
               {(programsQ.data ?? []).map((p) => (
                 <View key={p.id} style={s.programCard}>
+                  <View style={s.programRail} />
                   <View style={s.programIcon}><Ionicons name="layers-outline" size={18} color={accent} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.programTitle}>{p.title}</Text>
@@ -216,47 +213,39 @@ function makeStyles(
       shadowOpacity: 0.18,
       shadowRadius: 24,
       elevation: 8,
+      minHeight: 220,
     },
-    glowPurple: {
-      position: 'absolute', width: 240, height: 240, borderRadius: 120,
-      backgroundColor: BRAND.purple, opacity: 0.22, right: 120, top: -150,
-    },
-    glowBlue: {
-      position: 'absolute', width: 210, height: 210, borderRadius: 105,
-      backgroundColor: BRAND.blue, opacity: 0.20, right: -90, bottom: -125,
-    },
-    heroInner: { paddingHorizontal: 26, paddingTop: 26, paddingBottom: 22 },
+    heroInner: { flex: 1, justifyContent: 'space-between', paddingHorizontal: 26, paddingTop: 26, paddingBottom: 22 },
     headerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 18 },
     brandEyebrow: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 2.6, marginBottom: 8 },
     greeting: { fontSize: 35, fontWeight: '900', color: '#fff', letterSpacing: -1.1, lineHeight: 40 },
     subtitle: { fontSize: 14, color: '#AEBFD2', marginTop: 5, fontWeight: '600' },
     heroMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 24 },
-    heroChip: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+    heroChip: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
     heroChipText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-    heroChipMuted: { paddingHorizontal: 12, paddingVertical: 8 },
     heroChipMutedText: { color: '#66809D', fontSize: 8, fontStyle: 'italic', fontWeight: '900', letterSpacing: 2.2 },
     content: { paddingHorizontal: 24, paddingTop: 26 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginTop: 8, marginBottom: 12 },
     sectionEyebrow: { fontSize: 9, color: accent, fontWeight: '900', letterSpacing: 1.6 },
     sectionTitle: { fontSize: 22, color: colors.ink, fontWeight: '900', letterSpacing: -0.5, marginTop: 2 },
-    sectionDotRow: { flexDirection: 'row', gap: 5, paddingBottom: 4 },
-    sectionDot: { width: 7, height: 7, borderRadius: 4 },
+    sectionBeam: { flex: 1, maxWidth: 170, height: 2, marginBottom: 7, backgroundColor: BRAND.blue, opacity: 0.38, borderRadius: 2 },
     nextCard: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: BRAND.navy, borderRadius: 22, borderWidth: 1, borderColor: '#193857', padding: 20, marginBottom: 28, overflow: 'hidden', shadowColor: BRAND.navy, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.14, shadowRadius: 18, elevation: 5 },
-    nextAccentRail: { width: 5, alignSelf: 'stretch', borderRadius: 5, backgroundColor: accent },
+    nextAccentRail: { width: 4, alignSelf: 'stretch', borderRadius: 2, backgroundColor: accent },
     nextCardKicker: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 1.5 },
     nextCardTime: { color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 4 },
     nextCardDuration: { color: '#A9B8C9', fontSize: 12, fontWeight: '700', marginTop: 3 },
     nextCardNotes: { color: '#A9B8C9', fontSize: 12, lineHeight: 18, marginTop: 8 },
-    countdownBadge: { backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9 },
+    countdownBadge: { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.11)', borderRadius: 11, paddingHorizontal: 12, paddingVertical: 9 },
     countdownText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-    emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.surfaceCard, borderRadius: 20, borderWidth: 1, borderColor: colors.border, padding: 18, marginBottom: 28, shadowColor: '#07172B', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.28 : 0.06, shadowRadius: 14 },
-    emptyIconWrap: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+    emptyCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: colors.surfaceCard, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 18, marginBottom: 28, shadowColor: '#07172B', shadowOffset: { width: 0, height: 5 }, shadowOpacity: isDark ? 0.28 : 0.05, shadowRadius: 14 },
+    emptyIconWrap: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
     emptyTitle: { color: colors.ink, fontSize: 15, fontWeight: '900' },
     emptyText: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
-    emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: BRAND.navy, borderRadius: 12, paddingHorizontal: 13, paddingVertical: 10 },
+    emptyBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: BRAND.navy, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
     emptyBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
-    programCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceCard, borderRadius: 18, borderWidth: 1, borderColor: colors.border, padding: 15, marginBottom: 9 },
-    programIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+    programCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.surfaceCard, borderRadius: 16, borderWidth: 1, borderColor: colors.border, padding: 15, marginBottom: 9, overflow: 'hidden' },
+    programRail: { width: 3, alignSelf: 'stretch', backgroundColor: BRAND.purple, opacity: 0.76, borderRadius: 2 },
+    programIcon: { width: 40, height: 40, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
     programTitle: { fontSize: 14, fontWeight: '900', color: colors.ink },
     programDesc: { fontSize: 12, lineHeight: 17, color: colors.muted, marginTop: 2 },
   });
