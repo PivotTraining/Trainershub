@@ -1,14 +1,5 @@
-/**
- * Sign-in screen — email OTP flow.
- *
- * Visual approach: warm split-screen.
- * - Top ~42% of screen: solid accent colour with logo + tagline in white.
- *   The colour IS the design — no blobs, no gradients needed.
- * - Bottom ~58%: white card with generous rounded top corners slides over
- *   the colour area. Role toggle lives inside the card as a tab row.
- * - Clean, human, Airbnb/Apple Calm inspired.
- */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -17,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,8 +17,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Logo } from '@/components/Logo';
+import { BrandLockup } from '@/components/BrandLockup';
+import { EnergyField } from '@/components/EnergyField';
 import { requestPasswordReset, signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
 const PREFERRED_ROLE_KEY = '@trainerhub:preferred_role';
@@ -35,70 +29,19 @@ type Mode = 'client' | 'trainer';
 type Stage = 'email' | 'token';
 type Method = 'password' | 'otp';
 
-// ── Role toggle tab ────────────────────────────────────────────────────────────
-
-interface RoleTabProps {
-  mode: Mode;
-  onSwitch: (m: Mode) => void;
-  accent: string;
-  colors: ReturnType<typeof useTheme>['colors'];
-}
-
-function RoleTab({ mode, onSwitch, accent, colors }: RoleTabProps) {
-  return (
-    <View style={[tab.wrap, { backgroundColor: colors.surfaceRaised, borderColor: colors.border }]}>
-      <Pressable
-        style={[tab.btn, mode === 'client' && { backgroundColor: accent }]}
-        onPress={() => onSwitch('client')}
-      >
-        <Text style={[tab.label, { color: mode === 'client' ? '#fff' : colors.muted }]}>
-          I&apos;m a client
-        </Text>
-      </Pressable>
-      <Pressable
-        style={[tab.btn, mode === 'trainer' && { backgroundColor: accent }]}
-        onPress={() => onSwitch('trainer')}
-      >
-        <Text style={[tab.label, { color: mode === 'trainer' ? '#fff' : colors.muted }]}>
-          I&apos;m a trainer
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
-const tab = StyleSheet.create({
-  wrap:  {
-    flexDirection: 'row',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 3,
-    marginBottom: 24,
-  },
-  btn:   {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
-    alignItems: 'center',
-  },
-  label: { fontSize: 13, fontWeight: '600' },
-});
-
-// ── Screen ─────────────────────────────────────────────────────────────────────
-
 export default function SignIn() {
-  const { colors, accent, isDark } = useTheme();
+  const { colors, accent } = useTheme();
   const router = useRouter();
   const { inviteToken } = useLocalSearchParams<{ inviteToken?: string }>();
-  const [email, setEmail]       = useState('');
-  const [token, setToken]       = useState('');
+  const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
-  const [stage, setStage]       = useState<Stage>('email');
-  const [method, setMethod]     = useState<Method>('password');
+  const [stage, setStage] = useState<Stage>('email');
+  const [method, setMethod] = useState<Method>('password');
   const [submitting, setSubmitting] = useState(false);
-  const [mode, setMode]         = useState<Mode>('client');
+  const [mode, setMode] = useState<Mode>('client');
   const [lastSendAt, setLastSendAt] = useState<Record<string, number>>({});
-  const [now, setNow]           = useState<number>(Date.now());
+  const [now, setNow] = useState(Date.now());
 
   const normalizedEmail = email.trim().toLowerCase();
   const lastSentForEmail = lastSendAt[normalizedEmail] ?? 0;
@@ -113,417 +56,202 @@ export default function SignIn() {
   }, [cooldownActive]);
 
   useEffect(() => {
-    AsyncStorage.getItem(PREFERRED_ROLE_KEY).then((v) => {
-      if (v === 'trainer' || v === 'client') setMode(v);
+    AsyncStorage.getItem(PREFERRED_ROLE_KEY).then((value) => {
+      if (value === 'trainer' || value === 'client') setMode(value);
     });
   }, []);
 
-  const switchMode = async (m: Mode) => {
-    setMode(m);
-    await AsyncStorage.setItem(PREFERRED_ROLE_KEY, m);
+  const switchMode = async (next: Mode) => {
+    setMode(next);
+    await AsyncStorage.setItem(PREFERRED_ROLE_KEY, next);
+  };
+
+  const handlePasswordSignIn = async () => {
+    if (!normalizedEmail.includes('@')) return Alert.alert('Invalid email', 'Enter a valid email address.');
+    if (!password) return Alert.alert('Enter password', 'Password is required.');
+    setSubmitting(true);
+    try {
+      await signInWithPassword(normalizedEmail, password);
+      if (inviteToken) router.replace({ pathname: '/invite', params: { token: inviteToken } });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Sign-in failed', /invalid login credentials|user not found/i.test(message)
+        ? 'Wrong email or password. New here? Choose one-time code or Create account.'
+        : message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSendOtp = async () => {
-    if (!email.includes('@')) {
-      Alert.alert('Invalid email', 'Enter a valid email address.');
-      return;
-    }
+    if (!normalizedEmail.includes('@')) return Alert.alert('Invalid email', 'Enter a valid email address.');
     if (Date.now() - (lastSendAt[normalizedEmail] ?? 0) < OTP_COOLDOWN_MS) {
-      // Still in cooldown — skip the network call and let the user enter the
-      // code we already sent.
       setStage('token');
       return;
     }
     setSubmitting(true);
     try {
       await signInWithOtp(normalizedEmail, { role: mode });
-      setLastSendAt((m) => ({ ...m, [normalizedEmail]: Date.now() }));
+      setLastSendAt((current) => ({ ...current, [normalizedEmail]: Date.now() }));
       setNow(Date.now());
       setStage('token');
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      if (/rate limit|over.?email|too many/i.test(msg)) {
-        // Mark a cooldown so the user doesn't keep retrying the same address.
-        setLastSendAt((m) => ({ ...m, [normalizedEmail]: Date.now() }));
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      if (/rate limit|over.?email|too many/i.test(message)) {
+        setLastSendAt((current) => ({ ...current, [normalizedEmail]: Date.now() }));
         setNow(Date.now());
-        Alert.alert(
-          'Too many sign-in emails',
-          'Please wait about 60 minutes before requesting another code, or contact support@trainerhub.app for help.',
-        );
+        Alert.alert('Too many sign-in emails', 'Please wait before requesting another code.');
       } else {
-        Alert.alert('Sign-in failed', msg);
+        Alert.alert('Sign-in failed', message);
       }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handlePasswordSignIn = async () => {
-    if (!email.includes('@')) {
-      Alert.alert('Invalid email', 'Enter a valid email address.');
-      return;
-    }
-    if (!password) {
-      Alert.alert('Enter password', 'Password is required.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await signInWithPassword(normalizedEmail, password);
-      if (inviteToken) {
-        router.replace({ pathname: '/invite', params: { token: inviteToken } });
-      }
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Unknown error';
-      // Surface a clearer hint when no password account exists for that email.
-      if (/invalid login credentials|user not found/i.test(msg)) {
-        Alert.alert(
-          'Sign-in failed',
-          'Wrong email or password. New here? Tap "Get a one-time code instead" to sign up with email.',
-        );
-      } else {
-        Alert.alert('Sign-in failed', msg);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleForgotPassword = async () => {
-    if (!email.includes('@')) {
-      Alert.alert('Enter your email', 'Enter the email address for your TrainerHub account first.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await requestPasswordReset(normalizedEmail);
-      Alert.alert(
-        'Check your email',
-        'If an account exists for that address, a secure password reset link is on the way.',
-      );
-    } catch (error: unknown) {
-      Alert.alert(
-        'Reset unavailable',
-        error instanceof Error ? error.message : 'Please try again later.',
-      );
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleVerify = async () => {
-    // Supabase OTP length is configurable per project (6–10 digits). Accept
-    // any length in that range so the app keeps working if the project
-    // setting is changed later.
-    if (token.trim().length < 6) {
-      Alert.alert('Invalid code', 'Enter the code from your email.');
-      return;
-    }
+    if (token.trim().length < 6) return Alert.alert('Invalid code', 'Enter the code from your email.');
     setSubmitting(true);
     try {
-      await verifyOtp(email.trim().toLowerCase(), token.trim());
-      // If the user arrived via a corporate invite link, redirect back to accept it
-      if (inviteToken) {
-        router.replace({ pathname: '/invite', params: { token: inviteToken } });
-      }
+      await verifyOtp(normalizedEmail, token.trim());
+      if (inviteToken) router.replace({ pathname: '/invite', params: { token: inviteToken } });
     } catch (error: unknown) {
-      Alert.alert(
-        'Verification failed',
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+      Alert.alert('Verification failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const isTrainerMode = mode === 'trainer';
+  const handleForgotPassword = async () => {
+    if (!normalizedEmail.includes('@')) return Alert.alert('Enter your email', 'Enter your account email first.');
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(normalizedEmail);
+      Alert.alert('Check your email', 'If an account exists for that address, a secure reset link is on the way.');
+    } catch (error: unknown) {
+      Alert.alert('Reset unavailable', error instanceof Error ? error.message : 'Please try again later.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  // Card background adapts to dark mode
-  const cardBg = isDark ? colors.surfaceCard : '#FFFFFF';
+  const isTrainer = mode === 'trainer';
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: accent }]} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.hero}>
+            <EnergyField />
+            <BrandLockup compact dark />
+            <View style={styles.heroCopy}>
+              <Text style={styles.eyebrow}>FIND  •  BOOK  •  TRAIN</Text>
+              <Text style={styles.heroTitle}>{isTrainer ? 'Build your business.' : 'Move toward your goals.'}</Text>
+              <Text style={styles.heroSub}>{isTrainer ? 'Manage clients, bookings and payments in one place.' : 'Find the right trainer and keep your momentum visible.'}</Text>
+            </View>
+          </View>
 
-      {/* ── Colour band — top portion ──────────────────────────── */}
-      <View style={s.colorBand}>
-        {/* background="none" = just the white chevron mark, no box */}
-        <Logo size={52} color="#fff" background="none" />
-        <Text style={s.brandName}>TrainerHub</Text>
-        <Text style={s.tagline}>
-          {isTrainerMode
-            ? 'Coach smarter. Get paid faster.'
-            : 'Find the trainer who gets it done.'}
-        </Text>
-      </View>
+          <View style={styles.formWrap}>
+            <View style={styles.formHeadingRow}>
+              <View>
+                <Text style={[styles.formEyebrow, { color: accent }]}>{stage === 'token' ? 'VERIFY EMAIL' : 'WELCOME BACK'}</Text>
+                <Text style={[styles.formTitle, { color: colors.ink }]}>{stage === 'token' ? 'Enter your code' : 'Sign in'}</Text>
+              </View>
+              <View style={styles.headingBeam} />
+            </View>
 
-      {/* ── White card — slides up over colour band ────────────── */}
-      <KeyboardAvoidingView
-        style={[s.card, { backgroundColor: cardBg }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* Role toggle — inside card */}
-        {stage === 'email' && (
-          <RoleTab mode={mode} onSwitch={switchMode} accent={accent} colors={colors} />
-        )}
-
-        {stage === 'email' ? (
-          <>
-            <Text style={[s.formLabel, { color: colors.muted }]}>Email address</Text>
-            <TextInput
-              style={[s.input, {
-                borderColor: colors.borderInput,
-                color: colors.ink,
-                backgroundColor: colors.background,
-              }]}
-              placeholder="you@example.com"
-              placeholderTextColor={colors.placeholder}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              editable={!submitting}
-            />
-            <Text style={[s.hint, { color: colors.muted }]}>
-              New here? Just enter your email — we&apos;ll create your{' '}
-              {isTrainerMode ? 'trainer' : 'client'} account.
-            </Text>
-
-            {method === 'password' ? (
+            {stage === 'email' ? (
               <>
-                <Text style={[s.formLabel, { color: colors.muted, marginTop: 12 }]}>Password</Text>
-                <TextInput
-                  style={[s.input, {
-                    borderColor: colors.borderInput,
-                    color: colors.ink,
-                    backgroundColor: colors.background,
-                  }]}
-                  placeholder="Password"
-                  placeholderTextColor={colors.placeholder}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoComplete="password"
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!submitting}
-                />
-                <TouchableOpacity
-                  style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
-                  onPress={handlePasswordSignIn}
-                  disabled={submitting}
-                  activeOpacity={0.82}
-                >
-                  {submitting
-                    ? <ActivityIndicator color="#fff" />
-                    : <Text style={s.btnText}>Sign in</Text>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setMethod('otp')}
-                  disabled={submitting}
-                  style={{ marginTop: 12 }}
-                >
-                  <Text style={[s.linkText, { color: accent }]}>
-                    Get a one-time code instead
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleForgotPassword}
-                  disabled={submitting}
-                  style={{ marginTop: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Reset forgotten password"
-                >
-                  <Text style={[s.linkText, { color: colors.muted, fontSize: 12 }]}>Forgot password?</Text>
-                </TouchableOpacity>
+                <View style={[styles.roleSwitch, { borderColor: colors.border }]}>
+                  {(['client', 'trainer'] as const).map((role) => {
+                    const selected = mode === role;
+                    return (
+                      <Pressable key={role} style={[styles.roleOption, selected && { backgroundColor: BRAND.navy }]} onPress={() => switchMode(role)}>
+                        {selected ? <View style={[styles.roleRail, { backgroundColor: accent }]} /> : null}
+                        <Text style={[styles.roleLabel, { color: selected ? '#FFFFFF' : colors.muted }]}>{role === 'client' ? 'I’m a client' : 'I’m a trainer'}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text style={[styles.label, { color: colors.muted }]}>Email address</Text>
+                <View style={[styles.inputWrap, { backgroundColor: colors.surfaceCard, borderColor: colors.borderInput }]}>
+                  <Ionicons name="mail-outline" size={17} color={accent} />
+                  <TextInput style={[styles.input, { color: colors.ink }]} placeholder="you@example.com" placeholderTextColor={colors.placeholder} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} editable={!submitting} />
+                </View>
+
+                {method === 'password' ? (
+                  <>
+                    <Text style={[styles.label, { color: colors.muted }]}>Password</Text>
+                    <View style={[styles.inputWrap, { backgroundColor: colors.surfaceCard, borderColor: colors.borderInput }]}>
+                      <Ionicons name="lock-closed-outline" size={17} color={accent} />
+                      <TextInput style={[styles.input, { color: colors.ink }]} placeholder="Password" placeholderTextColor={colors.placeholder} secureTextEntry autoCapitalize="none" autoComplete="password" value={password} onChangeText={setPassword} editable={!submitting} />
+                    </View>
+                    <TouchableOpacity style={styles.primary} onPress={handlePasswordSignIn} disabled={submitting} activeOpacity={0.86}>
+                      {submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Sign in</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setMethod('otp')} disabled={submitting}><Text style={[styles.link, { color: accent }]}>Use a one-time code instead</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={handleForgotPassword} disabled={submitting}><Text style={[styles.mutedLink, { color: colors.muted }]}>Forgot password?</Text></TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <Text style={[styles.helper, { color: colors.muted }]}>We’ll send a secure code to your email. No password required.</Text>
+                    <TouchableOpacity style={styles.primary} onPress={handleSendOtp} disabled={submitting || cooldownActive} activeOpacity={0.86}>
+                      {submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send code'}</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setMethod('password')} disabled={submitting}><Text style={[styles.link, { color: accent }]}>Use password instead</Text></TouchableOpacity>
+                  </>
+                )}
               </>
             ) : (
               <>
-                <TouchableOpacity
-                  style={[s.btn, { backgroundColor: accent }, (submitting || cooldownActive) && s.btnDisabled]}
-                  onPress={handleSendOtp}
-                  disabled={submitting || cooldownActive}
-                  activeOpacity={0.82}
-                >
-                  {submitting
-                    ? <ActivityIndicator color="#fff" />
-                    : <Text style={s.btnText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send code'}</Text>
-                  }
+                <Text style={[styles.helper, { color: colors.muted }]}>We sent a verification code to {normalizedEmail}.</Text>
+                <TextInput style={[styles.codeInput, { backgroundColor: colors.surfaceCard, borderColor: colors.borderInput, color: colors.ink }]} placeholder="• • • • • •" placeholderTextColor={colors.placeholder} keyboardType="number-pad" value={token} onChangeText={setToken} editable={!submitting} maxLength={10} />
+                <TouchableOpacity style={styles.primary} onPress={handleVerify} disabled={submitting} activeOpacity={0.86}>
+                  {submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Verify & continue</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}
                 </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setMethod('password')}
-                  disabled={submitting}
-                  style={{ marginTop: 12 }}
-                >
-                  <Text style={[s.linkText, { color: accent }]}>
-                    Use password instead
-                  </Text>
-                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSendOtp} disabled={submitting || cooldownActive}><Text style={[styles.link, { color: cooldownActive ? colors.placeholder : accent }]}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Resend code'}</Text></TouchableOpacity>
+                <TouchableOpacity onPress={() => { setToken(''); setStage('email'); }} disabled={submitting}><Text style={[styles.mutedLink, { color: colors.muted }]}>Use a different email</Text></TouchableOpacity>
               </>
             )}
-          </>
-        ) : (
-          <>
-            <Text style={[s.formLabel, { color: colors.muted }]}>
-              Check your email — enter the code
-            </Text>
-            <Text style={[s.helperText, { color: colors.placeholder }]}>
-              Type the code from the email. Ignore any &ldquo;Confirm&rdquo; link
-              — it isn&rsquo;t needed.
-            </Text>
-            <TextInput
-              style={[s.input, s.codeInput, {
-                borderColor: colors.borderInput,
-                color: colors.ink,
-                backgroundColor: colors.background,
-              }]}
-              placeholder="• • • • • •"
-              placeholderTextColor={colors.placeholder}
-              keyboardType="number-pad"
-              value={token}
-              onChangeText={setToken}
-              editable={!submitting}
-              maxLength={10}
-            />
 
-            <TouchableOpacity
-              style={[s.btn, { backgroundColor: accent }, submitting && s.btnDisabled]}
-              onPress={handleVerify}
-              disabled={submitting}
-              activeOpacity={0.82}
-            >
-              {submitting
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={s.btnText}>Verify code</Text>
-              }
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleSendOtp}
-              disabled={submitting || cooldownActive}
-              style={{ marginTop: 12 }}
-            >
-              <Text style={[s.linkText, { color: cooldownActive ? colors.placeholder : accent }]}>
-                {cooldownActive ? `Resend in ${cooldownLabel}` : 'Resend code'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => { setToken(''); setStage('email'); }} disabled={submitting}>
-              <Text style={[s.linkText, { color: accent }]}>← Use a different email</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        <Text style={[s.disclaimer, { color: colors.placeholder }]}>
-          By continuing you agree TrainerHub is a marketplace and is{' '}
-          <Text style={{ fontWeight: '700', color: colors.muted }}>not responsible</Text>
-          {' '}for the {isTrainerMode ? 'trainers or clients' : 'trainers'} you meet through it.
-        </Text>
+            <View style={[styles.disclaimer, { borderTopColor: colors.border }]}>
+              <Ionicons name="shield-checkmark-outline" size={15} color={colors.placeholder} />
+              <Text style={[styles.disclaimerText, { color: colors.placeholder }]}>TrainerHub is a marketplace. Review profiles and use your judgment when meeting trainers or clients.</Text>
+            </View>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
-
-const CARD_RADIUS = 32;
-
-const s = StyleSheet.create({
-  root: { flex: 1 },
-
-  // ── Colour band ──────────────────────────────────────────────
-  colorBand: {
-    // Fixed height — tall enough to feel bold, small enough to leave room for the card
-    minHeight: 240,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 28,
-    paddingBottom: 36,
-    gap: 10,
-  },
-  brandName: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 17,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 24,
-  },
-
-  // ── White card ────────────────────────────────────────────────
-  card: {
-    flex: 1,
-    borderTopLeftRadius:  CARD_RADIUS,
-    borderTopRightRadius: CARD_RADIUS,
-    paddingHorizontal: 28,
-    paddingTop: 32,
-    paddingBottom: 48,
-    // Shadow casting up onto the colour band
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.10,
-    shadowRadius: 20,
-    elevation: 12,
-  },
-
-  // ── Form ─────────────────────────────────────────────────────
-  formLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.4,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  hint: {
-    fontSize: 12,
-    marginTop: 8,
-  },
-  helperText: {
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 12,
-    marginTop: -4,
-  },
-  input: {
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  codeInput: {
-    textAlign: 'center',
-    letterSpacing: 8,
-    fontSize: 24,
-    fontWeight: '700',
-  },
-
-  // ── Button ───────────────────────────────────────────────────
-  btn: {
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  btnDisabled: { opacity: 0.6 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
-
-  linkText: {
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 2,
-    marginBottom: 16,
-  },
-  disclaimer: {
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 8,
-  },
+const styles = StyleSheet.create({
+  safe: { flex: 1 }, flex: { flex: 1 },
+  page: { width: '100%', maxWidth: 760, alignSelf: 'center', padding: 20, paddingBottom: 48 },
+  hero: { position: 'relative', overflow: 'hidden', minHeight: 270, justifyContent: 'space-between', backgroundColor: BRAND.navy, borderRadius: 26, borderWidth: 1, borderColor: '#193857', padding: 22 },
+  heroCopy: { zIndex: 2 },
+  eyebrow: { color: '#7ED3FF', fontSize: 9, fontWeight: '900', letterSpacing: 2.2 },
+  heroTitle: { color: '#FFFFFF', fontSize: 36, lineHeight: 40, fontWeight: '900', letterSpacing: -0.9, marginTop: 7 },
+  heroSub: { color: '#AEBFD2', fontSize: 14, lineHeight: 21, marginTop: 8, maxWidth: 520 },
+  formWrap: { paddingTop: 28, paddingHorizontal: 4 },
+  formHeadingRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginBottom: 20 },
+  formEyebrow: { fontSize: 8, fontWeight: '900', letterSpacing: 1.5 },
+  formTitle: { fontSize: 28, fontWeight: '900', marginTop: 2 },
+  headingBeam: { flex: 1, height: 1, backgroundColor: BRAND.blue, opacity: 0.22, marginBottom: 6 },
+  roleSwitch: { flexDirection: 'row', borderBottomWidth: 1, marginBottom: 22 },
+  roleOption: { position: 'relative', flex: 1, alignItems: 'center', paddingVertical: 12 },
+  roleRail: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2 },
+  roleLabel: { fontSize: 13, fontWeight: '800' },
+  label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 7, marginTop: 12 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 10, paddingHorizontal: 13 },
+  input: { flex: 1, fontSize: 16, paddingVertical: 13 },
+  codeInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, fontSize: 24, textAlign: 'center', letterSpacing: 8, fontWeight: '800', marginTop: 12 },
+  helper: { fontSize: 12, lineHeight: 18, marginTop: 12 },
+  primary: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: BRAND.navy, borderRadius: 10, paddingVertical: 15 },
+  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
+  link: { textAlign: 'center', fontSize: 13, fontWeight: '800', marginTop: 14 },
+  mutedLink: { textAlign: 'center', fontSize: 12, fontWeight: '700', marginTop: 10 },
+  disclaimer: { flexDirection: 'row', gap: 8, borderTopWidth: 1, paddingTop: 16, marginTop: 25 },
+  disclaimerText: { flex: 1, fontSize: 10, lineHeight: 16 },
 });
