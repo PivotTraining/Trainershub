@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Redirect, Tabs, useRouter } from 'expo-router';
-import { Platform, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { Redirect, Tabs } from 'expo-router';
+import { Platform, useWindowDimensions } from 'react-native';
 
 import { TabBar } from '@/components/TabBar';
 import { useAuth } from '@/lib/auth';
@@ -10,7 +10,6 @@ export default function TabsLayout() {
   const { session, profile, loading } = useAuth();
   const { colors, accent } = useTheme();
   const { width } = useWindowDimensions();
-  const router = useRouter();
 
   if (loading) return null;
   if (!session) return <Redirect href="/(auth)/sign-in" />;
@@ -19,12 +18,12 @@ export default function TabsLayout() {
   const useSidebar = Platform.OS === 'web' && width >= 900;
 
   const mobileRouteNames = isTrainer
-    ? (['index', 'clients', 'requests', 'schedule', 'profile'] as const)
-    : (['index', 'browse', 'bookings', 'journal', 'profile'] as const);
+    ? (['index', 'clients', 'requests', 'schedule', 'profile-dashboard'] as const)
+    : (['index', 'browse', 'bookings', 'journal', 'profile-dashboard'] as const);
 
   const desktopRouteNames = isTrainer
-    ? (['index', 'clients', 'requests', 'schedule', 'availability', 'programs', 'packages', 'corporate', 'profile'] as const)
-    : (['index', 'browse', 'bookings', 'journal', 'corporate', 'profile'] as const);
+    ? (['index', 'clients', 'requests', 'schedule', 'availability', 'programs', 'packages', 'corporate', 'profile-dashboard'] as const)
+    : (['index', 'browse', 'bookings', 'journal', 'corporate', 'profile-dashboard'] as const);
 
   const visibleRouteNames = useSidebar ? desktopRouteNames : mobileRouteNames;
 
@@ -132,23 +131,14 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="profile"
+        name="profile-dashboard"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={() => router.push('/(tabs)/personalize')}
-              style={{ paddingHorizontal: 16, paddingVertical: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Personalize TrainerHub"
-            >
-              <Ionicons name="color-palette-outline" size={22} color={accent} />
-            </TouchableOpacity>
-          ),
         }}
       />
 
+      <Tabs.Screen name="profile" options={{ title: 'Account & Settings', href: null }} />
       <Tabs.Screen name="personalize" options={{ title: 'Personalize', href: null }} />
 
       <Tabs.Screen
