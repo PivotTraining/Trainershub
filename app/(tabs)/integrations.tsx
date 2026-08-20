@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
 import { useMyCorporateAccount, useMyCorpAdminRole } from '@/lib/queries/corporate';
-import { useCalendarSync, useIntegrationConnections, useSaveIntegrationConnection, useStartCalendarOAuth, type IntegrationScope } from '@/lib/queries/integrations';
+import { useCalendarSync, useIntegrationConnections, useSaveIntegrationConnection, useStartIntegrationOAuth, type IntegrationScope, type OAuthIntegrationProvider } from '@/lib/queries/integrations';
 import { useTrainerProfile } from '@/lib/queries/profile';
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
@@ -18,7 +18,7 @@ type Provider = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   scopes: IntegrationScope[];
-  readiness: 'native' | 'oauth' | 'setup' | 'enterprise';
+  readiness: 'native' | 'oauth' | 'google-meet' | 'setup' | 'enterprise';
   badge?: string;
 };
 
@@ -27,8 +27,8 @@ const PROVIDERS: Provider[] = [
   { key: 'device_calendar', name: 'Device Calendar', category: 'Calendar', description: 'Add TrainerHub sessions to Apple, Google, or Outlook calendars already connected to the device.', icon: 'calendar-outline', scopes: ['personal'], readiness: 'native', badge: 'Native' },
   { key: 'google_calendar', name: 'Google Calendar', category: 'Calendar', description: 'Securely sync confirmed TrainerHub sessions to Google Calendar.', icon: 'logo-google', scopes: ['personal', 'enterprise'], readiness: 'oauth', badge: 'OAuth' },
   { key: 'microsoft_365', name: 'Microsoft 365', category: 'Calendar', description: 'Securely sync confirmed TrainerHub sessions to Outlook / Microsoft 365.', icon: 'logo-microsoft', scopes: ['personal', 'enterprise'], readiness: 'oauth', badge: 'OAuth' },
-  { key: 'zoom', name: 'Zoom', category: 'Virtual sessions', description: 'Automatically generate virtual-session meeting links.', icon: 'videocam-outline', scopes: ['personal', 'enterprise'], readiness: 'setup' },
-  { key: 'google_meet', name: 'Google Meet', category: 'Virtual sessions', description: 'Create Meet links for virtual bookings.', icon: 'videocam-outline', scopes: ['personal', 'enterprise'], readiness: 'setup' },
+  { key: 'zoom', name: 'Zoom', category: 'Virtual sessions', description: 'Automatically generate Zoom links when trainers confirm virtual sessions.', icon: 'videocam-outline', scopes: ['personal', 'enterprise'], readiness: 'oauth', badge: 'OAuth' },
+  { key: 'google_meet', name: 'Google Meet', category: 'Virtual sessions', description: 'Automatically generate Meet links using the trainer’s connected Google Calendar.', icon: 'videocam-outline', scopes: ['personal'], readiness: 'google-meet', badge: 'Via Google' },
   { key: 'slack', name: 'Slack', category: 'Messaging', description: 'Send booking, wellness, and admin notifications into Slack.', icon: 'logo-slack', scopes: ['enterprise'], readiness: 'enterprise' },
   { key: 'microsoft_teams', name: 'Microsoft Teams', category: 'Messaging', description: 'Enterprise notifications and virtual-session workflows.', icon: 'chatbubbles-outline', scopes: ['enterprise'], readiness: 'enterprise' },
   { key: 'quickbooks', name: 'QuickBooks', category: 'Accounting', description: 'Sync payment and payout activity into bookkeeping workflows.', icon: 'calculator-outline', scopes: ['personal', 'enterprise'], readiness: 'setup' },
@@ -45,6 +45,12 @@ const PROVIDERS: Provider[] = [
   { key: 'gusto', name: 'Gusto', category: 'HRIS', description: 'Employee roster and benefits eligibility synchronization.', icon: 'people-outline', scopes: ['enterprise'], readiness: 'enterprise' },
   { key: 'webhooks', name: 'Webhooks & API', category: 'Developer', description: 'Enterprise event delivery and custom integrations.', icon: 'code-slash-outline', scopes: ['enterprise'], readiness: 'enterprise', badge: 'Enterprise' },
 ];
+
+function providerName(provider?: string) {
+  if (provider === 'microsoft_365') return 'Microsoft 365';
+  if (provider === 'zoom') return 'Zoom';
+  return 'Google Calendar';
+}
 
 export default function IntegrationsScreen() {
   const router = useRouter();
@@ -63,31 +69,32 @@ export default function IntegrationsScreen() {
   const activeCorporateId = scope === 'enterprise' && canEnterprise ? accountId : undefined;
   const connectionsQ = useIntegrationConnections(scope === 'personal' ? userId : undefined, activeCorporateId);
   const save = useSaveIntegrationConnection();
-  const oauth = useStartCalendarOAuth();
+  const oauth = useStartIntegrationOAuth();
   const calendarSync = useCalendarSync();
   const connections = connectionsQ.data ?? [];
   const byProvider = useMemo(() => new Map(connections.map((c) => [c.provider, c])), [connections]);
   const visible = PROVIDERS.filter((p) => p.scopes.includes(scope));
+  const googleConnected = byProvider.get('google_calendar')?.status === 'connected';
 
   useEffect(() => {
     if (callbackHandled.current) return;
     if (callback.connected === '1') {
       callbackHandled.current = true;
       connectionsQ.refetch();
-      Alert.alert('Calendar connected', `${callback.provider === 'microsoft_365' ? 'Microsoft 365' : 'Google Calendar'} is now connected to TrainerHub.`);
+      Alert.alert('Integration connected', `${providerName(callback.provider)} is now connected to TrainerHub.`);
     } else if (callback.oauth_error) {
       callbackHandled.current = true;
-      Alert.alert('Calendar connection failed', String(callback.oauth_error));
+      Alert.alert('Connection failed', String(callback.oauth_error));
     }
   }, [callback.connected, callback.oauth_error, callback.provider, connectionsQ]);
 
-  const beginCalendarOAuth = async (provider: 'google_calendar' | 'microsoft_365') => {
+  const beginOAuth = async (provider: OAuthIntegrationProvider) => {
     const returnUrl = Platform.OS === 'web' ? 'https://trainershub.app/integrations' : 'trainerhub://integrations';
     try {
       const result = await oauth.mutateAsync({ provider, scope, corporateAccountId: scope === 'enterprise' ? accountId : undefined, returnUrl });
       await Linking.openURL(result.authorization_url);
     } catch (error) {
-      Alert.alert('Connection unavailable', error instanceof Error ? error.message : 'Unable to start calendar authorization.');
+      Alert.alert('Connection unavailable', error instanceof Error ? error.message : 'Unable to start authorization.');
     }
   };
 
@@ -104,10 +111,16 @@ export default function IntegrationsScreen() {
     if (!userId) return;
     if (scope === 'enterprise' && !canEnterprise) return Alert.alert('Enterprise admin required', 'Only a corporate account admin can configure organization integrations.');
 
+    if (provider.readiness === 'google-meet') {
+      if (googleConnected) return Alert.alert('Google Meet ready', 'Virtual bookings can now receive Google Meet links automatically when the trainer confirms them.');
+      return beginOAuth('google_calendar');
+    }
+
     const connection = byProvider.get(provider.key);
     if (provider.readiness === 'oauth') {
-      if (connection?.status === 'connected') return syncCalendar(provider.key as 'google_calendar' | 'microsoft_365');
-      return beginCalendarOAuth(provider.key as 'google_calendar' | 'microsoft_365');
+      if (connection?.status === 'connected' && provider.key !== 'zoom') return syncCalendar(provider.key as 'google_calendar' | 'microsoft_365');
+      if (connection?.status === 'connected' && provider.key === 'zoom') return Alert.alert('Zoom ready', 'TrainerHub will use Zoom first for newly confirmed virtual sessions.');
+      return beginOAuth(provider.key as OAuthIntegrationProvider);
     }
 
     if (provider.key === 'stripe' && scope === 'personal' && profile?.role === 'trainer') {
@@ -149,10 +162,13 @@ export default function IntegrationsScreen() {
         <View style={styles.grid}>
           {visible.map((provider) => {
             const connection = byProvider.get(provider.key);
-            const connected = connection?.status === 'connected' || (provider.key === 'stripe' && scope === 'personal' && !!trainerQ.data?.stripe_onboarded);
+            const googleMeetReady = provider.key === 'google_meet' && googleConnected;
+            const connected = googleMeetReady || connection?.status === 'connected' || (provider.key === 'stripe' && scope === 'personal' && !!trainerQ.data?.stripe_onboarded);
             const staged = connection?.status === 'needs_setup' || connection?.status === 'pending';
             const busy = oauth.isPending || calendarSync.isPending || save.isPending;
-            const buttonLabel = connected && provider.readiness === 'oauth' ? 'Sync now' : connected ? 'Manage' : staged && provider.readiness !== 'oauth' ? 'Continue' : 'Connect';
+            const buttonLabel = connected && (provider.key === 'google_calendar' || provider.key === 'microsoft_365') ? 'Sync now' : connected ? 'Ready' : staged && provider.readiness !== 'oauth' ? 'Continue' : 'Connect';
+            const accountLabel = provider.key === 'google_meet' ? byProvider.get('google_calendar')?.external_account_label : connection?.external_account_label;
+            const lastSync = provider.key === 'google_meet' ? byProvider.get('google_calendar')?.last_sync_at : connection?.last_sync_at;
             return (
               <View key={provider.key} style={styles.card}>
                 <View style={styles.cardTop}>
@@ -162,8 +178,8 @@ export default function IntegrationsScreen() {
                 <Text style={styles.provider}>{provider.name}</Text>
                 <Text style={styles.category}>{provider.category}</Text>
                 <Text style={styles.description}>{provider.description}</Text>
-                {connection?.external_account_label ? <Text style={styles.accountLabel}>{connection.external_account_label}</Text> : null}
-                {connection?.last_sync_at ? <Text style={styles.syncLabel}>Last sync {new Date(connection.last_sync_at).toLocaleString()}</Text> : null}
+                {accountLabel ? <Text style={styles.accountLabel}>{accountLabel}</Text> : null}
+                {lastSync ? <Text style={styles.syncLabel}>Last sync {new Date(lastSync).toLocaleString()}</Text> : null}
                 <View style={styles.cardBottom}>
                   <View style={[styles.statusDot, { backgroundColor: connected ? '#20A66A' : staged ? '#E1A21A' : '#B8BCC5' }]} />
                   <Text style={styles.statusText}>{connected ? 'Connected' : staged ? 'Setup required' : 'Available'}</Text>
@@ -179,7 +195,7 @@ export default function IntegrationsScreen() {
         {scope === 'enterprise' ? (
           <View style={styles.enterpriseNote}>
             <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" />
-            <View style={{ flex: 1 }}><Text style={styles.enterpriseTitle}>Enterprise credential boundary</Text><Text style={styles.enterpriseText}>OAuth refresh tokens and future SAML/SCIM/HRIS secrets stay outside client-readable tables. Calendar OAuth tokens are encrypted in Supabase Vault; the app receives only connection status and safe metadata.</Text></View>
+            <View style={{ flex: 1 }}><Text style={styles.enterpriseTitle}>Enterprise credential boundary</Text><Text style={styles.enterpriseText}>OAuth refresh tokens and future SAML/SCIM/HRIS secrets stay outside client-readable tables. Provider OAuth tokens are encrypted in Supabase Vault; the app receives only connection status and safe metadata.</Text></View>
           </View>
         ) : null}
       </ScrollView>
