@@ -1,24 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { StarRating } from '@/components/StarRating';
 import { useAuth } from '@/lib/auth';
-import {
-  usePublicTrainerProfile,
-  useTrainerPackagesPublic,
-  useTrainerReviewsPublic,
-} from '@/lib/queries/browse';
+import { usePublicTrainerProfile, useTrainerPackagesPublic, useTrainerReviewsPublic } from '@/lib/queries/browse';
 import { useIsFavorite, useToggleFavorite } from '@/lib/queries/favorites';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { VibeTag } from '@/lib/types';
 
@@ -34,311 +23,187 @@ const VIBE_CONFIG: Record<VibeTag, { emoji: string; label: string }> = {
 export default function TrainerProfile() {
   const { trainerId } = useLocalSearchParams<{ trainerId: string }>();
   const router = useRouter();
-  const { colors, spacing, radius, typography, accent } = useTheme();
+  const { colors } = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
 
   const { data: trainer, isLoading: loadingProfile } = usePublicTrainerProfile(trainerId);
   const { data: reviews = [], isLoading: loadingReviews } = useTrainerReviewsPublic(trainerId);
   const { data: packages = [], isLoading: loadingPackages } = useTrainerPackagesPublic(trainerId);
-
   const isFav = useIsFavorite(userId, trainerId);
   const toggleFav = useToggleFavorite(userId ?? '');
 
-  const handlePackagePress = (pkg: { id: string; title: string; session_count: number; price_cents: number }) => {
-    if (!userId) {
-      Alert.alert('Sign in required', 'Please sign in to purchase a package.');
-      return;
-    }
-    Alert.alert(
-      'Secure checkout required',
-      `${pkg.title} is $${(pkg.price_cents / 100).toFixed(2)}. Package checkout is temporarily unavailable while secure payment processing is completed. You can still book a single session.`,
-    );
-  };
-
-  const isLoading = loadingProfile || loadingReviews || loadingPackages;
-
-  if (isLoading || !trainer) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
+  if (loadingProfile || loadingReviews || loadingPackages || !trainer) {
+    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
   }
 
   const displayName = trainer.full_name ?? 'Trainer';
   const firstName = displayName.split(' ')[0];
-  const rateLabel = trainer.hourly_rate_cents != null
-    ? `$${Math.round(trainer.hourly_rate_cents / 100)}/hr`
-    : 'Rate on request';
+  const rate = trainer.hourly_rate_cents != null ? `$${Math.round(trainer.hourly_rate_cents / 100)}` : null;
+  const specialty = trainer.specialties[0] ?? 'Personal Trainer';
 
-  const handleFavPress = () => {
-    if (!userId) {
-      router.push('/(auth)/sign-in');
-      return;
-    }
+  const handleFavorite = () => {
+    if (!userId) return router.push('/(auth)/sign-in');
     toggleFav.mutate({ trainerId, isFav: isFav.data ?? false });
   };
 
-  const handleBook = () => {
-    router.push({ pathname: '/booking/new', params: { trainerId } });
+  const handlePackage = (pkg: { title: string; price_cents: number }) => {
+    Alert.alert('Package checkout coming soon', `${pkg.title} is $${Math.round(pkg.price_cents / 100)}. You can book a single session now while package checkout is being finalized.`);
   };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 118 }} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <Avatar seed={trainer.user_id} size={88} initial={displayName} imageUrl={trainer.avatar_url} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <View style={styles.hero}>
+          <View style={styles.heroActions}>
+            <TouchableOpacity style={styles.heroIcon} onPress={() => router.back()}><Ionicons name="arrow-back" size={20} color="#FFFFFF" /></TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity style={styles.heroIcon}><Ionicons name="share-outline" size={19} color="#FFFFFF" /></TouchableOpacity>
+              <TouchableOpacity style={styles.heroIcon} onPress={handleFavorite}><Ionicons name={isFav.data ? 'heart' : 'heart-outline'} size={20} color={isFav.data ? '#C04DFF' : '#FFFFFF'} /></TouchableOpacity>
+            </View>
+          </View>
 
-          <View style={styles.heroInfo}>
-            <View style={styles.heroNameRow}>
-              <Text style={[styles.heroName, { color: colors.ink, fontSize: typography.xl }]}>{displayName}</Text>
-              {trainer.is_verified && (
-                <View style={[styles.verifiedPill, { backgroundColor: colors.infoBg, borderRadius: radius.pill }]}>
-                  <Ionicons name="checkmark-circle" size={14} color={colors.info} />
-                  <Text style={[styles.verifiedText, { color: colors.info }]}>TrainerHub Verified</Text>
-                </View>
+          <View style={styles.avatarWrap}><Avatar seed={trainer.user_id} size={128} initial={displayName} imageUrl={trainer.avatar_url} /></View>
+          <View style={styles.heroCopy}>
+            <View style={styles.nameRow}><Text style={styles.name}>{displayName}</Text>{trainer.is_verified ? <Ionicons name="checkmark-circle" size={18} color="#70C7FF" /> : null}</View>
+            <Text style={styles.specialty}>{specialty}</Text>
+            {trainer.location ? <View style={styles.locationRow}><Ionicons name="location-outline" size={13} color="#D4DDE7" /><Text style={styles.location}>{trainer.location}</Text></View> : null}
+            <View style={styles.ratingPill}><StarRating rating={trainer.avg_rating} size={13} /><Text style={styles.ratingPillText}>{trainer.avg_rating > 0 ? `${trainer.avg_rating.toFixed(1)} (${trainer.review_count} reviews)` : 'New on TrainerHub'}</Text></View>
+          </View>
+
+          <View style={styles.statStrip}>
+            <Stat value={trainer.is_verified ? 'Verified' : 'Listed'} label="Profile" />
+            <View style={styles.statDivider} />
+            <Stat value={`${trainer.review_count}`} label="Reviews" />
+            <View style={styles.statDivider} />
+            <Stat value={trainer.instant_book ? 'Fast' : 'Request'} label="Booking" />
+          </View>
+        </View>
+
+        <View style={styles.body}>
+          {trainer.bio ? <Section title={`About ${firstName}`}><Text style={styles.bodyText}>{trainer.bio}</Text></Section> : null}
+
+          {trainer.specialties.length ? (
+            <Section title="Specialties">
+              <View style={styles.chips}>{trainer.specialties.map((item, index) => <View key={item} style={[styles.chip, index === 0 && styles.chipActive]}><Text style={[styles.chipText, index === 0 && styles.chipTextActive]}>{item}</Text></View>)}</View>
+            </Section>
+          ) : null}
+
+          <Section title="Training Options">
+            <View style={styles.optionGrid}>
+              {trainer.session_types.map((type) => <OptionSignal key={type} icon={type === 'virtual' ? 'videocam-outline' : 'people-outline'} title={type === 'virtual' ? 'Virtual' : 'In-person'} />)}
+              <OptionSignal icon="time-outline" title={`${trainer.cancellation_hours}h cancellation`} />
+              <OptionSignal icon="flash-outline" title={trainer.instant_book ? 'Instant Book' : 'Request to book'} />
+            </View>
+          </Section>
+
+          {trainer.vibe_tags.length ? (
+            <Section title="Coaching Style"><View style={styles.chips}>{trainer.vibe_tags.map((tag) => <View key={tag} style={styles.chip}><Text style={styles.chipText}>{VIBE_CONFIG[tag]?.emoji} {VIBE_CONFIG[tag]?.label}</Text></View>)}</View></Section>
+          ) : null}
+
+          <Section title="Pricing">
+            <View style={styles.pricingRow}>
+              <TouchableOpacity style={[styles.priceCard, styles.priceCardPrimary]} onPress={() => router.push({ pathname: '/booking/new', params: { trainerId } })}>
+                <Text style={styles.priceLabel}>Single Session</Text>
+                <Text style={styles.priceValue}>{rate ?? '—'}</Text>
+                <Text style={styles.priceMeta}>60 min standard rate</Text>
+              </TouchableOpacity>
+              {packages[0] ? (
+                <TouchableOpacity style={styles.priceCard} onPress={() => handlePackage(packages[0])}>
+                  <Text style={styles.priceLabel}>Package</Text>
+                  <Text style={styles.priceValue}>${Math.round(packages[0].price_cents / 100)}</Text>
+                  <Text style={styles.priceMeta}>{packages[0].session_count} sessions</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.priceCard}><Text style={styles.priceLabel}>Session Types</Text><Text style={styles.priceValue}>{trainer.session_types.length}</Text><Text style={styles.priceMeta}>ways to train</Text></View>
               )}
             </View>
+          </Section>
 
-            {trainer.location ? (
-              <View style={styles.heroLocationRow}>
-                <Ionicons name="location-outline" size={13} color={colors.muted} />
-                <Text style={[styles.heroLocation, { color: colors.muted, fontSize: typography.sm }]}>{trainer.location}</Text>
-              </View>
-            ) : null}
+          {packages.length > 1 ? (
+            <Section title="More Packages"><View style={{ gap: 9 }}>{packages.slice(1).map((pkg) => <TouchableOpacity key={pkg.id} style={styles.packageRow} onPress={() => handlePackage(pkg)}><View><Text style={styles.packageTitle}>{pkg.title}</Text><Text style={styles.packageMeta}>{pkg.session_count} sessions</Text></View><Text style={styles.packagePrice}>${Math.round(pkg.price_cents / 100)}</Text></TouchableOpacity>)}</View></Section>
+          ) : null}
 
-            <View style={styles.heroRatingRow}>
-              <StarRating rating={trainer.avg_rating} size={14} />
-              <Text style={[styles.heroRatingText, { color: colors.muted, fontSize: typography.sm }]}>
-                {trainer.avg_rating > 0 ? `${trainer.avg_rating.toFixed(1)} · ${trainer.review_count} review${trainer.review_count === 1 ? '' : 's'}` : 'New on TrainerHub'}
-              </Text>
-            </View>
-
-            <Text style={[styles.heroRate, { color: colors.ink, fontSize: typography.md }]}>{rateLabel}</Text>
-          </View>
+          <Section title="Reviews">
+            {reviews.length ? <View style={{ gap: 10 }}>{reviews.slice(0, 4).map((review) => <View key={review.id} style={styles.reviewCard}><View style={styles.reviewTop}><StarRating rating={review.rating} size={12} /><Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text></View>{review.body ? <Text style={styles.reviewBody}>{review.body}</Text> : null}</View>)}</View> : <View style={styles.noReviews}><Ionicons name="star-outline" size={21} color={BRAND.purple} /><Text style={styles.noReviewsTitle}>No reviews yet</Text><Text style={styles.noReviewsText}>This trainer is new to TrainerHub.</Text></View>}
+          </Section>
         </View>
-
-        <View style={[styles.trustPanel, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginHorizontal: spacing.md, marginTop: spacing.md, borderRadius: radius.lg }]}>
-          <View style={styles.trustHeader}>
-            <Ionicons name="shield-checkmark-outline" size={22} color={accent} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.trustTitle, { color: colors.ink, fontSize: typography.md }]}>Book with more confidence</Text>
-              <Text style={[styles.trustSub, { color: colors.muted, fontSize: typography.xs }]}>Use verified profile details, reviews and policies to decide if this trainer fits.</Text>
-            </View>
-          </View>
-          <View style={styles.trustGrid}>
-            <TrustItem icon="checkmark-circle-outline" label={trainer.is_verified ? 'Verified profile' : 'Profile listed'} colors={colors} />
-            <TrustItem icon="star-outline" label={trainer.review_count > 0 ? `${trainer.review_count} reviews` : 'New trainer'} colors={colors} />
-            <TrustItem icon="time-outline" label={`${trainer.cancellation_hours}h cancellation policy`} colors={colors} />
-            <TrustItem icon="flash-outline" label={trainer.instant_book ? 'Instant Book' : 'Request to book'} colors={colors} />
-          </View>
-        </View>
-
-        <View style={[styles.sessionSignals, { paddingHorizontal: spacing.md, marginTop: spacing.md }]}>
-          {trainer.session_types.map((type) => (
-            <View key={type} style={[styles.pill, { backgroundColor: type === 'virtual' ? colors.infoBg : colors.successBg, borderRadius: radius.pill }]}>
-              <Ionicons name={type === 'virtual' ? 'videocam-outline' : 'people-outline'} size={13} color={type === 'virtual' ? colors.info : colors.success} />
-              <Text style={[styles.pillText, { color: type === 'virtual' ? colors.info : colors.success, fontSize: typography.xs }]}>{type === 'virtual' ? 'Virtual' : 'In-Person'}</Text>
-            </View>
-          ))}
-          {trainer.languages.map((language) => (
-            <View key={language} style={[styles.pill, { backgroundColor: colors.surfaceRaised, borderRadius: radius.pill }]}>
-              <Ionicons name="language-outline" size={13} color={colors.muted} />
-              <Text style={[styles.pillText, { color: colors.inkSoft, fontSize: typography.xs }]}>{language}</Text>
-            </View>
-          ))}
-        </View>
-
-        {trainer.bio ? (
-          <Section title="Why train with me" colors={colors} spacing={spacing} typography={typography}>
-            <Text style={[styles.bioText, { color: colors.inkSoft, fontSize: typography.md }]}>{trainer.bio}</Text>
-          </Section>
-        ) : null}
-
-        {trainer.specialties.length > 0 && (
-          <Section title="Specialties" colors={colors} spacing={spacing} typography={typography}>
-            <View style={styles.chipsWrap}>
-              {trainer.specialties.map((specialty) => (
-                <View key={specialty} style={[styles.chip, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.pill }]}>
-                  <Text style={[styles.chipText, { color: colors.inkSoft, fontSize: typography.sm }]}>{specialty}</Text>
-                </View>
-              ))}
-            </View>
-          </Section>
-        )}
-
-        {trainer.vibe_tags.length > 0 && (
-          <Section title="Coaching style" colors={colors} spacing={spacing} typography={typography}>
-            <View style={styles.chipsWrap}>
-              {trainer.vibe_tags.map((tag) => {
-                const config = VIBE_CONFIG[tag];
-                if (!config) return null;
-                return (
-                  <View key={tag} style={[styles.vibeChip, { backgroundColor: colors.surfaceRaised, borderColor: colors.border, borderRadius: radius.pill }]}>
-                    <Text style={styles.vibeEmoji}>{config.emoji}</Text>
-                    <Text style={[styles.chipText, { color: colors.inkSoft, fontSize: typography.sm }]}>{config.label}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          </Section>
-        )}
-
-        {packages.length > 0 && (
-          <Section title="Packages" colors={colors} spacing={spacing} typography={typography}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: spacing.md }}>
-              {packages.map((pkg) => {
-                const perSession = pkg.session_count > 0 ? (pkg.price_cents / pkg.session_count / 100).toFixed(2) : '—';
-                return (
-                  <TouchableOpacity
-                    key={pkg.id}
-                    onPress={() => handlePackagePress(pkg)}
-                    activeOpacity={0.75}
-                    style={[styles.packageCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg }]}
-                  >
-                    <Text style={[styles.packageTitle, { color: colors.ink, fontSize: typography.md }]}>{pkg.title}</Text>
-                    <Text style={[styles.packageSessions, { color: colors.muted, fontSize: typography.sm }]}>{pkg.session_count} sessions · ${perSession}/session</Text>
-                    {pkg.description ? <Text style={[styles.packageDesc, { color: colors.inkSoft, fontSize: typography.xs }]} numberOfLines={3}>{pkg.description}</Text> : null}
-                    <Text style={[styles.packagePrice, { color: colors.ink, fontSize: typography.lg }]}>${Math.round(pkg.price_cents / 100)}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </Section>
-        )}
-
-        <Section title="Reviews" colors={colors} spacing={spacing} typography={typography}>
-          {reviews.length > 0 ? (
-            <View style={{ gap: 10 }}>
-              {reviews.map((review) => (
-                <View key={review.id} style={[styles.reviewCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg }]}>
-                  <View style={styles.reviewHeader}>
-                    <StarRating rating={review.rating} size={13} />
-                    <Text style={[styles.reviewDate, { color: colors.muted, fontSize: typography.xs }]}>
-                      {new Date(review.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </Text>
-                  </View>
-                  {review.body ? <Text style={[styles.reviewBody, { color: colors.inkSoft, fontSize: typography.sm }]}>{review.body}</Text> : null}
-                  {review.clientName ? <Text style={[styles.reviewAuthor, { color: colors.muted, fontSize: typography.xs }]}>— {review.clientName}</Text> : null}
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={[styles.noReviews, { backgroundColor: colors.surfaceRaised, borderRadius: radius.lg }]}>
-              <Ionicons name="star-outline" size={22} color={colors.muted} />
-              <Text style={[styles.noReviewsTitle, { color: colors.ink }]}>No reviews yet</Text>
-              <Text style={[styles.noReviewsText, { color: colors.muted }]}>This trainer is new to TrainerHub. Review the profile, specialties and policies before booking.</Text>
-            </View>
-          )}
-        </Section>
       </ScrollView>
 
-      <View style={[styles.stickyBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <View style={styles.stickyPriceWrap}>
-          <Text style={[styles.stickyPrice, { color: colors.ink }]}>{rateLabel}</Text>
-          <Text style={[styles.stickyPriceSub, { color: colors.muted }]}>single-session rate</Text>
-        </View>
-        <TouchableOpacity style={[styles.bookButton, { backgroundColor: colors.ink, borderRadius: radius.lg }]} onPress={handleBook} activeOpacity={0.85}>
-          <Text style={[styles.bookButtonText, { fontSize: typography.sm }]}>Book {firstName}</Text>
-          <Ionicons name="arrow-forward" size={16} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.favButton, { borderColor: isFav.data ? '#EF4444' : colors.border, borderRadius: radius.lg }]} onPress={handleFavPress} activeOpacity={0.75}>
-          <Ionicons name={isFav.data ? 'heart' : 'heart-outline'} size={22} color={isFav.data ? '#EF4444' : colors.muted} />
+      <View style={styles.sticky}>
+        <View><Text style={styles.stickyRate}>{rate ? `${rate}/hr` : 'Rate on request'}</Text><Text style={styles.stickyMeta}>single-session rate</Text></View>
+        <TouchableOpacity style={styles.bookButton} onPress={() => router.push({ pathname: '/booking/new', params: { trainerId } })}>
+          <Text style={styles.bookText}>Book a Session</Text><Ionicons name="calendar-outline" size={17} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-function TrustItem({ icon, label, colors }: { icon: keyof typeof Ionicons.glyphMap; label: string; colors: ReturnType<typeof useTheme>['colors'] }) {
-  return (
-    <View style={styles.trustItem}>
-      <Ionicons name={icon} size={15} color={colors.muted} />
-      <Text style={[styles.trustItemText, { color: colors.inkSoft }]}>{label}</Text>
-    </View>
-  );
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text>{children}</View>;
 }
-
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-  colors: ReturnType<typeof useTheme>['colors'];
-  spacing: ReturnType<typeof useTheme>['spacing'];
-  typography: ReturnType<typeof useTheme>['typography'];
+function Stat({ value, label }: { value: string; label: string }) {
+  return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.statLabel}>{label}</Text></View>;
 }
-
-function Section({ title, children, colors, spacing, typography }: SectionProps) {
-  return (
-    <View style={[styles.section, { paddingHorizontal: spacing.md, paddingTop: spacing.lg }]}>
-      <Text style={[styles.sectionTitle, { color: colors.muted, fontSize: typography.xs }]}>{title.toUpperCase()}</Text>
-      <View style={{ marginTop: spacing.sm }}>{children}</View>
-    </View>
-  );
+function OptionSignal({ icon, title }: { icon: keyof typeof Ionicons.glyphMap; title: string }) {
+  return <View style={styles.optionSignal}><View style={styles.signalIcon}><Ionicons name={icon} size={16} color={BRAND.purple} /></View><Text style={styles.signalText}>{title}</Text></View>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: { flexDirection: 'row', padding: 20, gap: 16, borderBottomWidth: 1 },
-  heroInfo: { flex: 1, gap: 7 },
-  heroNameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 7 },
-  heroName: { fontWeight: '900', flexShrink: 1 },
-  verifiedPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4 },
-  verifiedText: { fontSize: 10, fontWeight: '900' },
-  heroLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  heroLocation: {},
-  heroRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  heroRatingText: { fontWeight: '600' },
-  heroRate: { fontWeight: '900' },
-  trustPanel: { padding: 16, borderWidth: 1 },
-  trustHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  trustTitle: { fontWeight: '900' },
-  trustSub: { lineHeight: 17, marginTop: 2 },
-  trustGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
-  trustItem: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 6 },
-  trustItemText: { flex: 1, fontSize: 11, fontWeight: '700' },
-  sessionSignals: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5 },
-  pillText: { fontWeight: '700' },
-  section: {},
-  sectionTitle: { fontWeight: '800', letterSpacing: 0.8 },
-  bioText: { lineHeight: 23 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1 },
-  chipText: { fontWeight: '700' },
-  vibeChip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, gap: 4 },
-  vibeEmoji: { fontSize: 14 },
-  packageCard: { width: 190, padding: 15, borderWidth: 1, gap: 5 },
-  packageTitle: { fontWeight: '800' },
-  packageSessions: {},
-  packageDesc: { lineHeight: 18 },
-  packagePrice: { fontWeight: '900', marginTop: 4 },
-  reviewCard: { padding: 14, borderWidth: 1, gap: 7 },
-  reviewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  reviewDate: {},
-  reviewBody: { lineHeight: 20 },
-  reviewAuthor: { fontStyle: 'italic', fontWeight: '600' },
-  noReviews: { padding: 18, alignItems: 'center' },
-  noReviewsTitle: { fontSize: 14, fontWeight: '800', marginTop: 7 },
-  noReviewsText: { fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 4 },
-  stickyBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingTop: 11,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-  },
-  stickyPriceWrap: { minWidth: 88 },
-  stickyPrice: { fontSize: 14, fontWeight: '900' },
-  stickyPriceSub: { fontSize: 9, marginTop: 1 },
-  bookButton: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-  bookButtonText: { color: '#fff', fontWeight: '900' },
-  favButton: { width: 50, height: 50, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll: { paddingBottom: 118 },
+  hero: { backgroundColor: BRAND.navy, minHeight: 430, paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20, position: 'relative', overflow: 'hidden' },
+  heroActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 3 },
+  heroIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  avatarWrap: { marginTop: 20, alignItems: 'center' },
+  heroCopy: { marginTop: 16 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { color: '#FFFFFF', fontSize: 31, fontWeight: '900', letterSpacing: -1.2 },
+  specialty: { color: '#D7DDE6', fontSize: 13, fontWeight: '700', marginTop: 3 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 7 },
+  location: { color: '#D4DDE7', fontSize: 11, fontWeight: '700' },
+  ratingPill: { alignSelf: 'flex-start', marginTop: 10, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.32)', paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  ratingPillText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  statStrip: { marginTop: 19, borderRadius: 17, backgroundColor: '#0D1320', paddingVertical: 15, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  stat: { flex: 1, alignItems: 'center' },
+  statValue: { color: '#FFFFFF', fontSize: 16, fontWeight: '900' },
+  statLabel: { color: '#A9B1BE', fontSize: 9, fontWeight: '700', marginTop: 3 },
+  statDivider: { width: 1, height: 29, backgroundColor: '#2A3341' },
+  body: { width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: 20 },
+  section: { paddingVertical: 21, borderBottomWidth: 1, borderBottomColor: '#ECE9EF', gap: 12 },
+  sectionTitle: { color: BRAND.navy, fontSize: 15, fontWeight: '900' },
+  bodyText: { color: '#505563', fontSize: 13, lineHeight: 21 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#F0EEF2' },
+  chipActive: { backgroundColor: BRAND.purple },
+  chipText: { color: '#404552', fontSize: 11, fontWeight: '800' },
+  chipTextActive: { color: '#FFFFFF' },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  optionSignal: { width: '48%', minHeight: 52, borderRadius: 13, backgroundColor: '#F7F5F9', flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 11 },
+  signalIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: '#EEE7F7', alignItems: 'center', justifyContent: 'center' },
+  signalText: { color: BRAND.navy, fontSize: 10, fontWeight: '800', flex: 1 },
+  pricingRow: { flexDirection: 'row', gap: 10 },
+  priceCard: { flex: 1, minHeight: 128, borderRadius: 15, borderWidth: 1.5, borderColor: '#D8D2E2', backgroundColor: '#FFFFFF', padding: 14 },
+  priceCardPrimary: { borderColor: BRAND.purple, backgroundColor: '#FBF8FF' },
+  priceLabel: { color: '#5D626E', fontSize: 10, fontWeight: '800' },
+  priceValue: { color: BRAND.navy, fontSize: 29, fontWeight: '900', letterSpacing: -1, marginTop: 8 },
+  priceMeta: { color: '#777B87', fontSize: 9, marginTop: 4 },
+  packageRow: { minHeight: 64, borderRadius: 13, backgroundColor: '#F7F5F9', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  packageTitle: { color: BRAND.navy, fontSize: 12, fontWeight: '900' },
+  packageMeta: { color: '#777B87', fontSize: 10, marginTop: 2 },
+  packagePrice: { color: BRAND.navy, fontSize: 16, fontWeight: '900' },
+  reviewCard: { borderRadius: 14, backgroundColor: '#F7F5F9', padding: 13 },
+  reviewTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reviewDate: { color: '#878B95', fontSize: 9 },
+  reviewBody: { color: '#4D5260', fontSize: 12, lineHeight: 18, marginTop: 8 },
+  noReviews: { borderRadius: 14, backgroundColor: '#F7F5F9', padding: 16, alignItems: 'center' },
+  noReviewsTitle: { color: BRAND.navy, fontSize: 13, fontWeight: '900', marginTop: 7 },
+  noReviewsText: { color: '#777B87', fontSize: 10, marginTop: 3 },
+  sticky: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E7E3EA', minHeight: 88, paddingHorizontal: 20, paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  stickyRate: { color: BRAND.navy, fontSize: 16, fontWeight: '900' },
+  stickyMeta: { color: '#858994', fontSize: 9, marginTop: 2 },
+  bookButton: { flex: 1, maxWidth: 300, minHeight: 52, borderRadius: 13, backgroundColor: BRAND.purple, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  bookText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
 });
