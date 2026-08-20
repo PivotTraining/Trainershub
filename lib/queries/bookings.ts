@@ -17,9 +17,7 @@ export function useMyBookingsAsClient(clientId: string | undefined) {
     enabled: !!clientId,
     queryKey: ['bookings', 'client', clientId],
     queryFn: async (): Promise<BookingWithNames[]> => {
-      const { data, error } = await supabase.rpc('get_my_bookings', {
-        p_actor: 'client',
-      });
+      const { data, error } = await supabase.rpc('get_my_bookings', { p_actor: 'client' });
       if (error) throw new Error(error.message);
       return (data ?? []).map(rowToBookingWithNames);
     },
@@ -31,9 +29,7 @@ export function useMyBookingsAsTrainer(trainerId: string | undefined) {
     enabled: !!trainerId,
     queryKey: ['bookings', 'trainer', trainerId],
     queryFn: async (): Promise<BookingWithNames[]> => {
-      const { data, error } = await supabase.rpc('get_my_bookings', {
-        p_actor: 'trainer',
-      });
+      const { data, error } = await supabase.rpc('get_my_bookings', { p_actor: 'trainer' });
       if (error) throw new Error(error.message);
       return (data ?? []).map(rowToBookingWithNames);
     },
@@ -43,19 +39,13 @@ export function useMyBookingsAsTrainer(trainerId: string | undefined) {
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Omit<Booking, 'id' | 'status' | 'created_at' | 'payment_intent_id' | 'payment_status'>): Promise<Booking> => {
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({ ...input, status: 'pending' })
-        .select('*')
-        .single();
+    mutationFn: async (input: Omit<Booking, 'id' | 'status' | 'created_at' | 'payment_intent_id' | 'payment_status' | 'virtual_meeting_provider' | 'virtual_meeting_url' | 'virtual_meeting_external_id'>): Promise<Booking> => {
+      const { data, error } = await supabase.from('bookings').insert({ ...input, status: 'pending' }).select('*').single();
       if (error) throw new Error(error.message);
       return data as Booking;
     },
-    onSuccess: (b, input) => {
+    onSuccess: (b) => {
       qc.invalidateQueries({ queryKey: ['bookings', 'client', b.client_id] });
-
-      // Notify trainer of new booking request (fire-and-forget)
       import('../notifications').then(({ sendBookingCreatedNotification }) => {
         sendBookingCreatedNotification(b.id).catch(() => null);
       }).catch(() => null);
@@ -63,23 +53,15 @@ export function useCreateBooking() {
   });
 }
 
-/** Alias for useMyBookingsAsTrainer — keeps import lines tidy in TrainerDashboard. */
 export const useBookings = useMyBookingsAsTrainer;
 
 export function useUpdateBookingStatus(userId: string, actor: 'trainer' | 'client') {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: { id: string; status: BookingStatus }): Promise<Booking> => {
-      let query = supabase
-        .from('bookings')
-        .update({ status: args.status })
-        .eq('id', args.id);
-      query = actor === 'trainer'
-        ? query.eq('trainer_id', userId)
-        : query.eq('client_id', userId);
-      const { data, error } = await query
-        .select('*')
-        .single();
+      let query = supabase.from('bookings').update({ status: args.status }).eq('id', args.id);
+      query = actor === 'trainer' ? query.eq('trainer_id', userId) : query.eq('client_id', userId);
+      const { data, error } = await query.select('*').single();
       if (error) throw new Error(error.message);
       return data as Booking;
     },
