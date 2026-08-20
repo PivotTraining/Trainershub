@@ -49,8 +49,6 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
 
         availableTrainerIds = [...new Set((slots ?? []).map((slot) => slot.trainer_id as string))];
         if (availableTrainerIds.length === 0) return [];
-
-        // Limit the marketplace query to trainers who have any recurring slot today.
       }
 
       const { data, error } = await supabase.rpc('get_trainer_directory', {
@@ -71,12 +69,25 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
   });
 }
 
+export function usePublicTrainerDirectory() {
+  return useQuery({
+    queryKey: ['trainer_public_directory'],
+    queryFn: async (): Promise<TrainerListing[]> => {
+      const { data, error } = await supabase.rpc('get_public_trainer_directory', {
+        p_trainer_id: null,
+      });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as TrainerListing[];
+    },
+  });
+}
+
 export function usePublicTrainerProfile(trainerId: string | undefined) {
   return useQuery({
     enabled: !!trainerId,
     queryKey: ['trainer_public', trainerId],
     queryFn: async (): Promise<TrainerListing | null> => {
-      const { data, error } = await supabase.rpc('get_trainer_directory', {
+      const { data, error } = await supabase.rpc('get_public_trainer_directory', {
         p_trainer_id: trainerId!,
       });
       if (error) throw new Error(error.message);
