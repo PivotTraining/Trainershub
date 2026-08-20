@@ -15,7 +15,7 @@ export default function PublicTrainerProfile() {
   const { trainerId } = useLocalSearchParams<{ trainerId: string }>();
   const router = useRouter();
   const { session } = useAuth();
-  const { colors, accent } = useTheme();
+  const { colors } = useTheme();
   const { data: trainer, isLoading } = usePublicTrainerProfile(trainerId);
   const { data: reviews = [] } = useTrainerReviewsPublic(trainerId);
   const { data: packages = [] } = useTrainerPackagesPublic(trainerId);
@@ -23,11 +23,15 @@ export default function PublicTrainerProfile() {
   const displayName = trainer?.full_name ?? 'Trainer';
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || typeof document === 'undefined' || !trainer) return;
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !trainer || !trainerId) return;
+
+    const canonicalUrl = `https://trainershub.app/trainers/${trainerId}`;
     const location = trainer.location ? ` in ${trainer.location}` : '';
     const specialty = trainer.specialties[0] ? ` | ${trainer.specialties[0]}` : '';
-    document.title = `${displayName} - Trainer${location}${specialty} | TrainerHub`;
     const description = trainer.bio?.slice(0, 155) || `View ${displayName}'s TrainerHub profile, specialties, ratings, session options and pricing.`;
+
+    document.title = `${displayName} - Trainer${location}${specialty} | TrainerHub`;
+
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement('meta');
@@ -35,7 +39,41 @@ export default function PublicTrainerProfile() {
       document.head.appendChild(meta);
     }
     meta.setAttribute('content', description);
-  }, [trainer, displayName]);
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute('href', canonicalUrl);
+
+    const existing = document.getElementById('trainerhub-trainer-jsonld');
+    existing?.remove();
+    const jsonLd = document.createElement('script');
+    jsonLd.id = 'trainerhub-trainer-jsonld';
+    jsonLd.type = 'application/ld+json';
+    jsonLd.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      name: displayName,
+      url: canonicalUrl,
+      image: trainer.avatar_url || undefined,
+      description: trainer.bio || description,
+      knowsAbout: trainer.specialties,
+      address: trainer.location ? { '@type': 'PostalAddress', addressLocality: trainer.location } : undefined,
+      aggregateRating: trainer.review_count > 0 ? {
+        '@type': 'AggregateRating',
+        ratingValue: trainer.avg_rating,
+        reviewCount: trainer.review_count,
+        bestRating: 5,
+      } : undefined,
+      memberOf: { '@type': 'Organization', name: 'TrainerHub', url: 'https://trainershub.app' },
+    });
+    document.head.appendChild(jsonLd);
+
+    return () => jsonLd.remove();
+  }, [trainer, trainerId, displayName]);
 
   if (isLoading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
   if (!trainer) return <View style={[styles.center, { backgroundColor: colors.background }]}><Text style={{ color: colors.muted }}>Trainer profile not found.</Text></View>;
