@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,10 +18,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLockup } from '@/components/BrandLockup';
 import { EnergyField } from '@/components/EnergyField';
+import { trackEvent } from '@/lib/analytics';
 import { signInWithOtp, verifyOtp } from '@/lib/auth';
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
+const OTP_COOLDOWN_MS = 60_000;
 type Role = 'client' | 'trainer';
 type Stage = 'email' | 'token';
 
@@ -33,16 +35,41 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [lastSendAt, setLastSendAt] = useState<Record<string, number>>({});
+  const [now, setNow] = useState(Date.now());
   const normalizedEmail = email.trim().toLowerCase();
+  const lastSentForEmail = lastSendAt[normalizedEmail] ?? 0;
+  const cooldownRemainingMs = Math.max(0, OTP_COOLDOWN_MS - (now - lastSentForEmail));
+  const cooldownActive = cooldownRemainingMs > 0;
+  const cooldownLabel = `${Math.floor(cooldownRemainingMs / 60000)}:${String(Math.ceil((cooldownRemainingMs % 60000) / 1000)).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (!cooldownActive) return;
+    const id = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(id);
+  }, [cooldownActive]);
 
   const sendCode = async () => {
-    if (!normalizedEmail.includes('@')) return Alert.alert('Enter a valid email', 'We need an email address to create your account.');
+    if (!normalizedEmail.includes('@')) return Alert.alert('Enter a valid email', 'We need a valid email address to continue.');
+    if (Date.now() - (lastSendAt[normalizedEmail] ?? 0) < OTP_COOLDOWN_MS) {
+      setStage('token');
+      return;
+    }
     setSubmitting(true);
     try {
       await signInWithOtp(normalizedEmail, { role });
+      setLastSendAt((current) => ({ ...current, [normalizedEmail]: Date.now() }));
+      setNow(Date.now());
       setStage('token');
     } catch (error: unknown) {
-      Alert.alert('Could not create account', error instanceof Error ? error.message : 'Please try again.');
+      const message = error instanceof Error ? error.message : 'Please try again.';
+      if (/rate limit|over.?email|too many/i.test(message)) {
+        setLastSendAt((current) => ({ ...current, [normalizedEmail]: Date.now() }));
+        setNow(Date.now());
+        Alert.alert('Too many verification emails', 'Please wait before requesting another code.');
+      } else {
+        Alert.alert('Could not continue', message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -51,9 +78,14 @@ export default function SignUp() {
   const verify = async () => {
     if (token.trim().length < 6) return Alert.alert('Enter your code', 'Use the verification code from your email.');
     setSubmitting(true);
-    try { await verifyOtp(normalizedEmail, token.trim()); }
-    catch (error: unknown) { Alert.alert('Verification failed', error instanceof Error ? error.message : 'Please try again.'); }
-    finally { setSubmitting(false); }
+    try {
+      await verifyOtp(normalizedEmail, token.trim());
+      void trackEvent('account_verified', { role });
+    } catch (error: unknown) {
+      Alert.alert('Verification failed', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -68,12 +100,12 @@ export default function SignUp() {
             <View style={styles.heroCopy}>
               <Text style={styles.eyebrow}>START HERE</Text>
               <Text style={styles.heroTitle}>{role === 'trainer' ? 'Build your trainer presence.' : 'Find your training fit.'}</Text>
-              <Text style={styles.heroSub}>Create your account, verify your email, then personalize the experience.</Text>
+              <Text style={styles.heroSub}>Verify your email, then personalize your TrainerHub experience.</Text>
             </View>
           </View>
 
           <View style={styles.form}>
-            <View style={styles.headingRow}><View><Text style={[styles.formEyebrow, { color: accent }]}>{stage === 'token' ? 'VERIFY' : 'YOUR ROLE'}</Text><Text style={[styles.formTitle, { color: colors.ink }]}>{stage === 'token' ? 'Check your email' : 'Create account'}</Text></View><View style={styles.beam} /></View>
+            <View style={styles.headingRow}><View><Text style={[styles.formEyebrow, { color: accent }]}>{stage === 'token' ? 'VERIFY' : 'YOUR ROLE'}</Text><Text style={[styles.formTitle, { color: colors.ink }]}>{stage === 'token' ? 'Check your email' : 'Continue with email'}</Text></View><View style={styles.beam} /></View>
 
             {stage === 'email' ? (
               <>
@@ -86,14 +118,15 @@ export default function SignUp() {
 
                 <Text style={[styles.label, { color: colors.muted }]}>EMAIL ADDRESS</Text>
                 <View style={[styles.inputWrap, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard }]}><Ionicons name="mail-outline" size={17} color={accent} /><TextInput style={[styles.input, { color: colors.ink }]} placeholder="you@example.com" placeholderTextColor={colors.placeholder} autoCapitalize="none" autoComplete="email" keyboardType="email-address" value={email} onChangeText={setEmail} editable={!submitting} /></View>
-                <TouchableOpacity style={[styles.primary, submitting && { opacity: 0.6 }]} onPress={sendCode} disabled={submitting}>{submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Create account</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}</TouchableOpacity>
-                <Text style={[styles.helper, { color: colors.muted }]}>We’ll send a one-time verification code. No password is required to get started.</Text>
+                <TouchableOpacity style={[styles.primary, submitting && { opacity: 0.6 }]} onPress={sendCode} disabled={submitting || cooldownActive}>{submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Send verification code'}</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}</TouchableOpacity>
+                <Text style={[styles.helper, { color: colors.muted }]}>If this email already belongs to a TrainerHub account, the same secure code will sign you back into that account instead of creating a duplicate.</Text>
               </>
             ) : (
               <>
                 <Text style={[styles.helper, { color: colors.muted }]}>We sent a code to {normalizedEmail}.</Text>
                 <TextInput style={[styles.codeInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard, color: colors.ink }]} placeholder="• • • • • •" placeholderTextColor={colors.placeholder} keyboardType="number-pad" value={token} onChangeText={setToken} maxLength={10} editable={!submitting} />
                 <TouchableOpacity style={[styles.primary, submitting && { opacity: 0.6 }]} onPress={verify} disabled={submitting}>{submitting ? <ActivityIndicator color="#FFFFFF" /> : <><Text style={styles.primaryText}>Verify & continue</Text><Ionicons name="arrow-forward" size={17} color="#FFFFFF" /></>}</TouchableOpacity>
+                <TouchableOpacity onPress={sendCode} disabled={submitting || cooldownActive}><Text style={[styles.secondary, { color: cooldownActive ? colors.placeholder : accent }]}>{cooldownActive ? `Resend in ${cooldownLabel}` : 'Resend code'}</Text></TouchableOpacity>
                 <TouchableOpacity onPress={() => { setToken(''); setStage('email'); }} disabled={submitting}><Text style={[styles.secondary, { color: accent }]}>Use a different email</Text></TouchableOpacity>
               </>
             )}
