@@ -37,6 +37,53 @@ export function useIntegrationConnections(ownerUserId?: string, corporateAccount
   });
 }
 
+export function useStartCalendarOAuth() {
+  return useMutation({
+    mutationFn: async (input: {
+      provider: 'google_calendar' | 'microsoft_365';
+      scope: IntegrationScope;
+      corporateAccountId?: string;
+      returnUrl: string;
+    }): Promise<{ authorization_url: string }> => {
+      const { data, error } = await supabase.functions.invoke('integration-oauth-start', {
+        body: {
+          provider: input.provider,
+          scope: input.scope,
+          corporate_account_id: input.corporateAccountId,
+          return_url: input.returnUrl,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.message || data.error);
+      if (!data?.authorization_url) throw new Error('Authorization URL was not returned.');
+      return data as { authorization_url: string };
+    },
+  });
+}
+
+export function useCalendarSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      provider: 'google_calendar' | 'microsoft_365';
+      scope: IntegrationScope;
+      corporateAccountId?: string;
+    }): Promise<{ synced: number; failed: number; last_sync_at: string }> => {
+      const { data, error } = await supabase.functions.invoke('integration-calendar-sync', {
+        body: {
+          provider: input.provider,
+          scope: input.scope,
+          corporate_account_id: input.corporateAccountId,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data as { synced: number; failed: number; last_sync_at: string };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['integration_connections'] }),
+  });
+}
+
 export function useSaveIntegrationConnection() {
   const qc = useQueryClient();
   return useMutation({
