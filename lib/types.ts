@@ -30,7 +30,6 @@ export interface Client {
   created_at: string;
 }
 
-/** Client row with the joined profile fields */
 export interface ClientWithProfile extends Client {
   profile: Pick<Profile, 'full_name' | 'email'> | null;
 }
@@ -54,7 +53,6 @@ export interface Program {
   created_at: string;
 }
 
-/** Session row with the joined client + profile name */
 export interface SessionWithClient extends Session {
   clientName: string | null;
   clientEmail: string | null;
@@ -66,8 +64,6 @@ export interface ProgramAssignment {
   client_id: string;
   started_at: string;
 }
-
-// ── Marketplace types ──────────────────────────────────────────────────────────
 
 export type SessionType = 'in-person' | 'virtual';
 export type BookingStatus = 'pending' | 'confirmed' | 'declined' | 'canceled';
@@ -159,6 +155,9 @@ export interface Booking {
   created_at: string;
   payment_intent_id: string | null;
   payment_status: 'unpaid' | 'paid' | 'failed' | 'refunded';
+  virtual_meeting_provider: 'google_meet' | 'zoom' | null;
+  virtual_meeting_url: string | null;
+  virtual_meeting_external_id: string | null;
 }
 
 export interface Favorite {
