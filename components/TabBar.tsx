@@ -8,10 +8,10 @@ import { BrandLockup } from '@/components/BrandLockup';
 import { useTheme } from '@/lib/useTheme';
 
 const ICON_BY_ROUTE: Record<string, keyof typeof Ionicons.glyphMap> = {
-  index: 'home', browse: 'search', bookings: 'calendar-outline', journal: 'book-outline', clients: 'people', requests: 'notifications-outline', schedule: 'calendar', availability: 'time-outline', programs: 'list-outline', packages: 'layers-outline', corporate: 'business-outline', profile: 'person', 'profile-dashboard': 'person',
+  index: 'home', browse: 'search', bookings: 'calendar-outline', journal: 'book-outline', clients: 'people', requests: 'notifications-outline', schedule: 'calendar', availability: 'time-outline', programs: 'list-outline', packages: 'layers-outline', corporate: 'business-outline', integrations: 'extension-puzzle-outline', profile: 'person', 'profile-dashboard': 'person',
 };
 const LABEL_BY_ROUTE: Record<string, string> = {
-  index: 'Home', browse: 'Discover', bookings: 'Bookings', journal: 'Journal', clients: 'Clients', requests: 'Requests', schedule: 'Schedule', availability: 'Availability', programs: 'Programs', packages: 'Packages', corporate: 'Corporate', profile: 'Profile', 'profile-dashboard': 'Profile',
+  index: 'Home', browse: 'Discover', bookings: 'Bookings', journal: 'Journal', clients: 'Clients', requests: 'Requests', schedule: 'Schedule', availability: 'Availability', programs: 'Programs', packages: 'Packages', corporate: 'Corporate', integrations: 'Integrations', profile: 'Profile', 'profile-dashboard': 'Profile',
 };
 interface TabBarExtraProps { visibleRouteNames: readonly string[]; sidebar?: boolean; }
 
@@ -23,9 +23,6 @@ export function TabBar({ state, navigation, visibleRouteNames, sidebar = false }
   const openRoute = (route: typeof state.routes[number], focused: boolean) => {
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (focused || event.defaultPrevented) return;
-    // On web, reset the tab navigator to exactly the selected route instead of
-    // retaining previous tab scenes in the navigation history. This prevents
-    // desktop pages from visually stacking on top of one another.
     if (Platform.OS === 'web') {
       navigation.reset({ index: 0, routes: [{ name: route.name, params: route.params }] });
       return;
