@@ -1,0 +1,18 @@
+create index if not exists availability_slots_trainer_id_idx on public.availability_slots (trainer_id);
+create index if not exists bookings_client_id_idx on public.bookings (client_id);
+create index if not exists bookings_trainer_id_idx on public.bookings (trainer_id);
+create index if not exists bookings_package_purchase_id_idx on public.bookings (package_purchase_id) where package_purchase_id is not null;
+create index if not exists clients_trainer_id_idx on public.clients (trainer_id);
+create index if not exists corporate_invites_invited_by_idx on public.corporate_invites (invited_by) where invited_by is not null;
+create index if not exists corporate_members_invited_by_idx on public.corporate_members (invited_by) where invited_by is not null;
+create index if not exists favorites_trainer_id_idx on public.favorites (trainer_id);
+create index if not exists journal_entries_client_id_idx on public.journal_entries (client_id);
+create index if not exists journal_entries_session_id_idx on public.journal_entries (session_id) where session_id is not null;
+create index if not exists package_purchases_client_id_idx on public.package_purchases (client_id);
+create index if not exists package_purchases_package_id_idx on public.package_purchases (package_id);
+create index if not exists package_purchases_trainer_id_idx on public.package_purchases (trainer_id);
+create index if not exists packages_trainer_id_idx on public.packages (trainer_id);
+create index if not exists program_assignments_client_id_idx on public.program_assignments (client_id);
+create index if not exists programs_trainer_id_idx on public.programs (trainer_id);
+create index if not exists reviews_client_id_idx on public.reviews (client_id);
+create index if not exists reviews_trainer_id_idx on public.reviews (trainer_id);
