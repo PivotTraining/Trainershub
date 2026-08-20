@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /welcome
+Disallow: /onboarding
+Disallow: /reset-password
+Disallow: /invite
+Disallow: /session/
+Disallow: /account
+Disallow: /bookings
+Disallow: /clients
+Disallow: /corporate
+Disallow: /journal
+Disallow: /profile-dashboard
+Disallow: /schedule
+
+Sitemap: https://trainershub.app/sitemap.xml
