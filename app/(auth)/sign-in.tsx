@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLockup } from '@/components/BrandLockup';
 import { EnergyField } from '@/components/EnergyField';
+import { trackEvent } from '@/lib/analytics';
 import { requestPasswordReset, signInWithOtp, signInWithPassword, verifyOtp } from '@/lib/auth';
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
@@ -72,6 +73,7 @@ export default function SignIn() {
     setSubmitting(true);
     try {
       await signInWithPassword(normalizedEmail, password);
+      void trackEvent('sign_in_completed', { method: 'password', role: mode });
       if (inviteToken) router.replace({ pathname: '/invite', params: { token: inviteToken } });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -114,6 +116,7 @@ export default function SignIn() {
     setSubmitting(true);
     try {
       await verifyOtp(normalizedEmail, token.trim());
+      void trackEvent('sign_in_completed', { method: 'otp', role: mode });
       if (inviteToken) router.replace({ pathname: '/invite', params: { token: inviteToken } });
     } catch (error: unknown) {
       Alert.alert('Verification failed', error instanceof Error ? error.message : 'Unknown error');
@@ -127,6 +130,7 @@ export default function SignIn() {
     setSubmitting(true);
     try {
       await requestPasswordReset(normalizedEmail);
+      void trackEvent('password_reset_requested');
       Alert.alert('Check your email', 'If an account exists for that address, a secure reset link is on the way.');
     } catch (error: unknown) {
       Alert.alert('Reset unavailable', error instanceof Error ? error.message : 'Please try again later.');
@@ -202,6 +206,13 @@ export default function SignIn() {
                     <TouchableOpacity onPress={() => setMethod('password')} disabled={submitting}><Text style={[styles.link, { color: accent }]}>Use password instead</Text></TouchableOpacity>
                   </>
                 )}
+
+                <View style={[styles.createAccountBox, { borderColor: colors.border, backgroundColor: colors.surfaceCard }]}>
+                  <Text style={[styles.createAccountText, { color: colors.muted }]}>New to TrainerHub?</Text>
+                  <TouchableOpacity onPress={() => router.push('/(auth)/sign-up')} disabled={submitting}>
+                    <Text style={[styles.createAccountLink, { color: accent }]}>Create an account</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             ) : (
               <>
@@ -252,6 +263,9 @@ const styles = StyleSheet.create({
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
   link: { textAlign: 'center', fontSize: 13, fontWeight: '800', marginTop: 14 },
   mutedLink: { textAlign: 'center', fontSize: 12, fontWeight: '700', marginTop: 10 },
+  createAccountBox: { marginTop: 22, borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  createAccountText: { fontSize: 13, fontWeight: '700' },
+  createAccountLink: { fontSize: 13, fontWeight: '900' },
   disclaimer: { flexDirection: 'row', gap: 8, borderTopWidth: 1, paddingTop: 16, marginTop: 25 },
   disclaimerText: { flex: 1, fontSize: 10, lineHeight: 16 },
 });
