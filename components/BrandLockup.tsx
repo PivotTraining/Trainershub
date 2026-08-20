@@ -17,7 +17,7 @@ export function BrandLockup({ compact = false, dark = true }: BrandLockupProps) 
         <Logo size={40} background="none" color={ink} />
         <View>
           <Text style={[styles.compactName, { color: ink }]}>
-            TRAINERS<Text style={styles.hub}>HUB</Text>
+            TRAINER<Text style={styles.hub}>HUB</Text>
           </Text>
           <Text style={[styles.compactTag, { color: muted }]}>FIND  •  BOOK  •  TRAIN</Text>
         </View>
@@ -30,7 +30,7 @@ export function BrandLockup({ compact = false, dark = true }: BrandLockupProps) 
       <Logo size={58} background="none" color="#FFFFFF" />
       <View style={styles.divider} />
       <View style={{ flex: 1 }}>
-        <Text style={[styles.name, { color: ink }]}>TRAINERS<Text style={styles.hub}>HUB</Text></Text>
+        <Text style={[styles.name, { color: ink }]}>TRAINER<Text style={styles.hub}>HUB</Text></Text>
         <Text style={[styles.tag, { color: muted }]}>FIND  •  BOOK  •  TRAIN</Text>
       </View>
     </View>
