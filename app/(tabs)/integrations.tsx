@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
 import { useMyCorporateAccount, useMyCorpAdminRole } from '@/lib/queries/corporate';
-import { useIntegrationConnections, useSaveIntegrationConnection, type IntegrationScope } from '@/lib/queries/integrations';
+import { useCalendarSync, useIntegrationConnections, useSaveIntegrationConnection, useStartCalendarOAuth, type IntegrationScope } from '@/lib/queries/integrations';
 import { useTrainerProfile } from '@/lib/queries/profile';
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
@@ -18,15 +18,15 @@ type Provider = {
   description: string;
   icon: keyof typeof Ionicons.glyphMap;
   scopes: IntegrationScope[];
-  readiness: 'native' | 'setup' | 'enterprise';
+  readiness: 'native' | 'oauth' | 'setup' | 'enterprise';
   badge?: string;
 };
 
 const PROVIDERS: Provider[] = [
   { key: 'stripe', name: 'Stripe', category: 'Payments', description: 'Collect session payments and manage trainer payouts.', icon: 'card-outline', scopes: ['personal', 'enterprise'], readiness: 'native', badge: 'Native' },
   { key: 'device_calendar', name: 'Device Calendar', category: 'Calendar', description: 'Add TrainerHub sessions to Apple, Google, or Outlook calendars already connected to the device.', icon: 'calendar-outline', scopes: ['personal'], readiness: 'native', badge: 'Native' },
-  { key: 'google_calendar', name: 'Google Calendar', category: 'Calendar', description: 'Two-way schedule sync and automated session events.', icon: 'logo-google', scopes: ['personal', 'enterprise'], readiness: 'setup' },
-  { key: 'microsoft_365', name: 'Microsoft 365', category: 'Calendar', description: 'Outlook calendar sync plus Microsoft workplace compatibility.', icon: 'logo-microsoft', scopes: ['personal', 'enterprise'], readiness: 'setup' },
+  { key: 'google_calendar', name: 'Google Calendar', category: 'Calendar', description: 'Securely sync confirmed TrainerHub sessions to Google Calendar.', icon: 'logo-google', scopes: ['personal', 'enterprise'], readiness: 'oauth', badge: 'OAuth' },
+  { key: 'microsoft_365', name: 'Microsoft 365', category: 'Calendar', description: 'Securely sync confirmed TrainerHub sessions to Outlook / Microsoft 365.', icon: 'logo-microsoft', scopes: ['personal', 'enterprise'], readiness: 'oauth', badge: 'OAuth' },
   { key: 'zoom', name: 'Zoom', category: 'Virtual sessions', description: 'Automatically generate virtual-session meeting links.', icon: 'videocam-outline', scopes: ['personal', 'enterprise'], readiness: 'setup' },
   { key: 'google_meet', name: 'Google Meet', category: 'Virtual sessions', description: 'Create Meet links for virtual bookings.', icon: 'videocam-outline', scopes: ['personal', 'enterprise'], readiness: 'setup' },
   { key: 'slack', name: 'Slack', category: 'Messaging', description: 'Send booking, wellness, and admin notifications into Slack.', icon: 'logo-slack', scopes: ['enterprise'], readiness: 'enterprise' },
@@ -48,6 +48,8 @@ const PROVIDERS: Provider[] = [
 
 export default function IntegrationsScreen() {
   const router = useRouter();
+  const callback = useLocalSearchParams<{ connected?: string; provider?: string; oauth_error?: string }>();
+  const callbackHandled = useRef(false);
   const { session, profile } = useAuth();
   const { colors } = useTheme();
   const userId = session?.user.id;
@@ -61,13 +63,52 @@ export default function IntegrationsScreen() {
   const activeCorporateId = scope === 'enterprise' && canEnterprise ? accountId : undefined;
   const connectionsQ = useIntegrationConnections(scope === 'personal' ? userId : undefined, activeCorporateId);
   const save = useSaveIntegrationConnection();
+  const oauth = useStartCalendarOAuth();
+  const calendarSync = useCalendarSync();
   const connections = connectionsQ.data ?? [];
   const byProvider = useMemo(() => new Map(connections.map((c) => [c.provider, c])), [connections]);
   const visible = PROVIDERS.filter((p) => p.scopes.includes(scope));
 
+  useEffect(() => {
+    if (callbackHandled.current) return;
+    if (callback.connected === '1') {
+      callbackHandled.current = true;
+      connectionsQ.refetch();
+      Alert.alert('Calendar connected', `${callback.provider === 'microsoft_365' ? 'Microsoft 365' : 'Google Calendar'} is now connected to TrainerHub.`);
+    } else if (callback.oauth_error) {
+      callbackHandled.current = true;
+      Alert.alert('Calendar connection failed', String(callback.oauth_error));
+    }
+  }, [callback.connected, callback.oauth_error, callback.provider, connectionsQ]);
+
+  const beginCalendarOAuth = async (provider: 'google_calendar' | 'microsoft_365') => {
+    const returnUrl = Platform.OS === 'web' ? 'https://trainershub.app/integrations' : 'trainerhub://integrations';
+    try {
+      const result = await oauth.mutateAsync({ provider, scope, corporateAccountId: scope === 'enterprise' ? accountId : undefined, returnUrl });
+      await Linking.openURL(result.authorization_url);
+    } catch (error) {
+      Alert.alert('Connection unavailable', error instanceof Error ? error.message : 'Unable to start calendar authorization.');
+    }
+  };
+
+  const syncCalendar = async (provider: 'google_calendar' | 'microsoft_365') => {
+    try {
+      const result = await calendarSync.mutateAsync({ provider, scope, corporateAccountId: scope === 'enterprise' ? accountId : undefined });
+      Alert.alert('Calendar synced', `${result.synced} confirmed TrainerHub session${result.synced === 1 ? '' : 's'} synced${result.failed ? ` · ${result.failed} failed` : ''}.`);
+    } catch (error) {
+      Alert.alert('Sync failed', error instanceof Error ? error.message : 'Unable to sync calendar.');
+    }
+  };
+
   const connect = async (provider: Provider) => {
     if (!userId) return;
     if (scope === 'enterprise' && !canEnterprise) return Alert.alert('Enterprise admin required', 'Only a corporate account admin can configure organization integrations.');
+
+    const connection = byProvider.get(provider.key);
+    if (provider.readiness === 'oauth') {
+      if (connection?.status === 'connected') return syncCalendar(provider.key as 'google_calendar' | 'microsoft_365');
+      return beginCalendarOAuth(provider.key as 'google_calendar' | 'microsoft_365');
+    }
 
     if (provider.key === 'stripe' && scope === 'personal' && profile?.role === 'trainer') {
       router.push('/(tabs)/profile');
@@ -75,15 +116,13 @@ export default function IntegrationsScreen() {
     }
 
     if (provider.key === 'device_calendar') {
-      if (Platform.OS === 'web') {
-        Alert.alert('Available in the mobile app', 'TrainerHub already supports device calendar export on iPhone and Android. Web sessions can still use calendar files where available.');
-      }
+      if (Platform.OS === 'web') Alert.alert('Available in the mobile app', 'TrainerHub already supports device calendar export on iPhone and Android.');
       await save.mutateAsync({ ownerUserId: userId, provider: provider.key, category: provider.category, scope: 'personal', status: 'connected', displayName: provider.name, configPublic: { platform: Platform.OS } });
       return;
     }
 
     await save.mutateAsync({ ownerUserId: scope === 'personal' ? userId : undefined, corporateAccountId: scope === 'enterprise' ? accountId : undefined, provider: provider.key, category: provider.category, scope, status: 'needs_setup', displayName: provider.name, configPublic: { requested_at: new Date().toISOString() } });
-    Alert.alert('Integration staged', `${provider.name} is now attached to this ${scope === 'enterprise' ? 'organization' : 'account'} as a setup request. OAuth/vendor credentials are required before live syncing can begin.`);
+    Alert.alert('Integration staged', `${provider.name} is attached to this ${scope === 'enterprise' ? 'organization' : 'account'}. Provider credentials or enterprise configuration are still required before live syncing can begin.`);
   };
 
   return (
@@ -112,6 +151,8 @@ export default function IntegrationsScreen() {
             const connection = byProvider.get(provider.key);
             const connected = connection?.status === 'connected' || (provider.key === 'stripe' && scope === 'personal' && !!trainerQ.data?.stripe_onboarded);
             const staged = connection?.status === 'needs_setup' || connection?.status === 'pending';
+            const busy = oauth.isPending || calendarSync.isPending || save.isPending;
+            const buttonLabel = connected && provider.readiness === 'oauth' ? 'Sync now' : connected ? 'Manage' : staged && provider.readiness !== 'oauth' ? 'Continue' : 'Connect';
             return (
               <View key={provider.key} style={styles.card}>
                 <View style={styles.cardTop}>
@@ -121,11 +162,13 @@ export default function IntegrationsScreen() {
                 <Text style={styles.provider}>{provider.name}</Text>
                 <Text style={styles.category}>{provider.category}</Text>
                 <Text style={styles.description}>{provider.description}</Text>
+                {connection?.external_account_label ? <Text style={styles.accountLabel}>{connection.external_account_label}</Text> : null}
+                {connection?.last_sync_at ? <Text style={styles.syncLabel}>Last sync {new Date(connection.last_sync_at).toLocaleString()}</Text> : null}
                 <View style={styles.cardBottom}>
                   <View style={[styles.statusDot, { backgroundColor: connected ? '#20A66A' : staged ? '#E1A21A' : '#B8BCC5' }]} />
                   <Text style={styles.statusText}>{connected ? 'Connected' : staged ? 'Setup required' : 'Available'}</Text>
-                  <TouchableOpacity style={[styles.connectButton, connected && styles.connectedButton]} onPress={() => connect(provider)} disabled={save.isPending}>
-                    <Text style={[styles.connectText, connected && styles.connectedText]}>{connected ? 'Manage' : staged ? 'Continue' : 'Connect'}</Text>
+                  <TouchableOpacity style={[styles.connectButton, connected && styles.connectedButton]} onPress={() => connect(provider)} disabled={busy}>
+                    <Text style={[styles.connectText, connected && styles.connectedText]}>{buttonLabel}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -136,7 +179,7 @@ export default function IntegrationsScreen() {
         {scope === 'enterprise' ? (
           <View style={styles.enterpriseNote}>
             <Ionicons name="shield-checkmark-outline" size={22} color="#FFFFFF" />
-            <View style={{ flex: 1 }}><Text style={styles.enterpriseTitle}>Enterprise credential boundary</Text><Text style={styles.enterpriseText}>TrainerHub stores connection state and non-secret configuration in the app database. OAuth tokens, SAML secrets, SCIM tokens, and HRIS credentials should live in a secure credential store—not ordinary application rows.</Text></View>
+            <View style={{ flex: 1 }}><Text style={styles.enterpriseTitle}>Enterprise credential boundary</Text><Text style={styles.enterpriseText}>OAuth refresh tokens and future SAML/SCIM/HRIS secrets stay outside client-readable tables. Calendar OAuth tokens are encrypted in Supabase Vault; the app receives only connection status and safe metadata.</Text></View>
           </View>
         ) : null}
       </ScrollView>
@@ -162,12 +205,14 @@ const styles = StyleSheet.create({
   nativeSummary: { borderRadius: 16, borderWidth: 1, borderColor: '#E6E1EA', backgroundColor: '#FFFFFF', padding: 14, flexDirection: 'row', gap: 10, alignItems: 'center', marginBottom: 16 },
   nativeTitle: { color: BRAND.navy, fontSize: 12, fontWeight: '900' }, nativeText: { color: '#747A86', fontSize: 10, marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { width: '31.8%', minWidth: 260, flexGrow: 1, maxWidth: 360, minHeight: 250, borderRadius: 18, borderWidth: 1, borderColor: '#E8E4EC', backgroundColor: '#FFFFFF', padding: 16 },
+  card: { width: '31.8%', minWidth: 260, flexGrow: 1, maxWidth: 360, minHeight: 260, borderRadius: 18, borderWidth: 1, borderColor: '#E8E4EC', backgroundColor: '#FFFFFF', padding: 16 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   iconBox: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#F1EAF9', alignItems: 'center', justifyContent: 'center' },
   badgeWrap: { minHeight: 24 }, badge: { color: BRAND.purple, fontSize: 9, fontWeight: '900', backgroundColor: '#F4EEFA', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   provider: { color: BRAND.navy, fontSize: 17, fontWeight: '900', marginTop: 15 }, category: { color: BRAND.purple, fontSize: 9, fontWeight: '900', letterSpacing: 0.6, marginTop: 3 },
   description: { color: '#6F7581', fontSize: 11, lineHeight: 17, marginTop: 9, flex: 1 },
+  accountLabel: { color: BRAND.navy, fontSize: 10, fontWeight: '800', marginTop: 8 },
+  syncLabel: { color: '#8A8F99', fontSize: 9, marginTop: 3 },
   cardBottom: { flexDirection: 'row', alignItems: 'center', marginTop: 16 }, statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 }, statusText: { color: '#777D88', fontSize: 9, fontWeight: '800', flex: 1 },
   connectButton: { minHeight: 36, borderRadius: 10, backgroundColor: BRAND.navy, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' }, connectedButton: { backgroundColor: '#EEF7F2' }, connectText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' }, connectedText: { color: '#188254' },
   enterpriseNote: { marginTop: 18, borderRadius: 16, backgroundColor: BRAND.navy, padding: 16, flexDirection: 'row', gap: 11 }, enterpriseTitle: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' }, enterpriseText: { color: '#AEBCCD', fontSize: 10, lineHeight: 16, marginTop: 3 },
