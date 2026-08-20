@@ -12,12 +12,6 @@ export interface BrowseFilters {
   availableToday?: boolean;
 }
 
-type ReviewRow = Review & {
-  profiles?: {
-    full_name: string | null;
-  } | null;
-};
-
 function matchesSearch(trainer: TrainerListing, rawSearch: string | undefined): boolean {
   const search = rawSearch?.trim().toLowerCase();
   if (!search) return true;
@@ -101,17 +95,17 @@ export function useTrainerReviewsPublic(trainerId: string | undefined) {
     enabled: !!trainerId,
     queryKey: ['reviews', trainerId],
     queryFn: async (): Promise<Review[]> => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('trainer_id', trainerId!)
-        .order('created_at', { ascending: false })
-        .limit(20);
+      const { data, error } = await supabase.rpc('get_public_trainer_reviews', {
+        p_trainer_id: trainerId!,
+      });
       if (error) throw new Error(error.message);
-      return ((data ?? []) as ReviewRow[]).map((r) => ({
-        ...r,
+      return ((data ?? []) as Array<Pick<Review, 'id' | 'trainer_id' | 'rating' | 'body' | 'created_at'>>).map((review) => ({
+        ...review,
+        client_id: null,
+        session_id: null,
+        booking_id: null,
         clientName: null,
-      })) as Review[];
+      }));
     },
   });
 }
