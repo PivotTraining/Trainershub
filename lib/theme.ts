@@ -44,10 +44,12 @@ export const BRAND = {
 } as const;
 
 export const lightColors = {
-  background:    '#F7F9FC',
+  // The global AppCanvas owns the page background. Screen shells stay
+  // transparent so the quiet white → cool-blue → lavender undertone can show.
+  background:    'transparent',
   surface:       '#FFFFFF',
   surfaceCard:   '#FFFFFF',
-  surfaceRaised: '#EEF2F8',
+  surfaceRaised: '#F3F6FA',
 
   ink:         '#07172B',
   inkSoft:     '#24384F',
@@ -55,8 +57,8 @@ export const lightColors = {
   placeholder: '#A4B0BF',
   disabled:    '#D6DEE8',
 
-  border:      '#DFE6EF',
-  borderInput: '#C7D1DE',
+  border:      '#E3E9F1',
+  borderInput: '#CBD5E1',
 
   success:          '#16865F',
   successBg:        '#E3F7EF',

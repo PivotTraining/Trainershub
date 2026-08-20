@@ -1,169 +1,22 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientPrograms, useCreateProgram, useTrainerPrograms } from '@/lib/queries/programs';
+import { BRAND } from '@/lib/theme';
+import { useTheme } from '@/lib/useTheme';
 import { programCreateSchema } from '@/lib/validators/program';
 
-export default function Programs() {
-  const router = useRouter();
-  const { session, profile } = useAuth();
-  const userId = session?.user.id;
-  const isTrainer = profile?.role === 'trainer';
-  const trainerQuery = useTrainerPrograms(isTrainer ? userId : undefined);
-  const clientQuery = useClientPrograms(!isTrainer ? userId : undefined);
-  const list = isTrainer ? trainerQuery : clientQuery;
-  const create = useCreateProgram(userId ?? '');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-
-  const handleCreate = async () => {
-    const parsed = programCreateSchema.safeParse({
-      title: title.trim(),
-      description: description.trim() || undefined,
-    });
-    if (!parsed.success) {
-      Alert.alert('Check inputs', parsed.error.issues[0]?.message ?? 'Invalid input');
-      return;
-    }
-    try {
-      await create.mutateAsync(parsed.data);
-      setTitle('');
-      setDescription('');
-    } catch (error: unknown) {
-      Alert.alert('Could not create', error instanceof Error ? error.message : 'Unknown error');
-    }
-  };
-
-  if (list.isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <FlatList
-        data={list.data ?? []}
-        keyExtractor={(p) => p.id}
-        contentContainerStyle={[{ padding: 16 }, (list.data ?? []).length === 0 && { flex: 1 }]}
-        refreshControl={
-          <RefreshControl
-            refreshing={list.isFetching && !list.isLoading}
-            onRefresh={list.refetch}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="barbell-outline"
-            title="No programs yet"
-            subtitle={
-              isTrainer
-                ? 'Create a program below and assign it to clients.'
-                : 'Your trainer will assign programs here.'
-            }
-          />
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.row}
-            onPress={() =>
-              router.push({ pathname: '/(tabs)/programs/[id]', params: { id: item.id } })
-            }
-          >
-            <Text style={styles.rowTitle}>{item.title}</Text>
-            {item.description ? <Text style={styles.rowSub}>{item.description}</Text> : null}
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        )}
-      />
-      {isTrainer && (
-        <View style={styles.composer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Program title"
-            value={title}
-            onChangeText={setTitle}
-          />
-          <TextInput
-            style={[styles.input, styles.multiline]}
-            placeholder="Description (optional)"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.button, create.isPending && styles.buttonDisabled]}
-            onPress={handleCreate}
-            disabled={create.isPending}
-          >
-            {create.isPending ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Add program</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
-    </KeyboardAvoidingView>
-  );
+export default function Programs(){const router=useRouter();const{session,profile}=useAuth();const{colors,accent}=useTheme();const userId=session?.user.id;const isTrainer=profile?.role==='trainer';const trainerQ=useTrainerPrograms(isTrainer?userId:undefined);const clientQ=useClientPrograms(!isTrainer?userId:undefined);const list=isTrainer?trainerQ:clientQ;const create=useCreateProgram(userId??'');const[title,setTitle]=useState('');const[description,setDescription]=useState('');
+  const handleCreate=async()=>{const parsed=programCreateSchema.safeParse({title:title.trim(),description:description.trim()||undefined});if(!parsed.success)return Alert.alert('Check inputs',parsed.error.issues[0]?.message??'Invalid input');try{await create.mutateAsync(parsed.data);setTitle('');setDescription('');}catch(e:unknown){Alert.alert('Could not create',e instanceof Error?e.message:'Unknown error');}};
+  if(list.isLoading)return <View style={[styles.center,{backgroundColor:colors.background}]}><ActivityIndicator/></View>;
+  const programs=list.data??[];
+  return <KeyboardAvoidingView style={[styles.container,{backgroundColor:colors.background}]} behavior={Platform.OS==='ios'?'padding':undefined}><FlatList data={programs} keyExtractor={p=>p.id} contentContainerStyle={[styles.list,programs.length===0&&{flexGrow:1}]} refreshControl={<RefreshControl refreshing={list.isFetching&&!list.isLoading} onRefresh={list.refetch}/>} ListHeaderComponent={<><EnergyHero eyebrow={isTrainer?'BUILD THE PATH':'YOUR PATH'} title="Programs" subtitle={isTrainer?'Create repeatable coaching journeys and assign them to clients.':'See the training paths your coach has assigned to you.'} icon="map-outline" compact/><View style={styles.sectionRow}><Text style={[styles.sectionTitle,{color:colors.ink}]}>{programs.length} program{programs.length===1?'':'s'}</Text><View style={styles.sectionBeam}/></View></>} ListEmptyComponent={<EmptyState icon="map-outline" title="No programs yet" subtitle={isTrainer?'Create a program below and assign it to clients.':'Your trainer will assign programs here.'}/>} renderItem={({item})=><TouchableOpacity style={[styles.row,{backgroundColor:colors.surfaceCard,borderColor:colors.border}]} onPress={()=>router.push({pathname:'/(tabs)/programs/[id]',params:{id:item.id}})}><View style={[styles.rowRail,{backgroundColor:accent}]}/><Ionicons name="map-outline" size={19} color={accent}/><View style={{flex:1}}><Text style={[styles.rowTitle,{color:colors.ink}]}>{item.title}</Text>{item.description?<Text style={[styles.rowSub,{color:colors.muted}]} numberOfLines={2}>{item.description}</Text>:null}</View><Ionicons name="arrow-forward" size={15} color={colors.placeholder}/></TouchableOpacity>}/>
+  {isTrainer?<View style={[styles.composer,{backgroundColor:colors.surfaceCard,borderTopColor:colors.border}]}><View style={styles.composerHeading}><View><Text style={[styles.composerEyebrow,{color:accent}]}>CREATE</Text><Text style={[styles.composerTitle,{color:colors.ink}]}>New program</Text></View><View style={styles.composerBeam}/></View><TextInput style={[styles.input,{borderColor:colors.borderInput,color:colors.ink,backgroundColor:colors.background}]} placeholder="Program title" placeholderTextColor={colors.placeholder} value={title} onChangeText={setTitle}/><TextInput style={[styles.input,styles.multiline,{borderColor:colors.borderInput,color:colors.ink,backgroundColor:colors.background}]} placeholder="Description (optional)" placeholderTextColor={colors.placeholder} value={description} onChangeText={setDescription} multiline/><TouchableOpacity style={[styles.button,create.isPending&&{opacity:.6}]} onPress={handleCreate} disabled={create.isPending}>{create.isPending?<ActivityIndicator color="#fff"/>:<><Text style={styles.buttonText}>Add program</Text><Ionicons name="arrow-forward" size={15} color="#fff"/></>}</TouchableOpacity></View>:null}</KeyboardAvoidingView>;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fafafa' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  row: {
-    backgroundColor: '#fff',
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#eee',
-    marginBottom: 8,
-  },
-  rowTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
-  rowSub: { color: '#666', marginTop: 4 },
-  chevron: { fontSize: 20, color: '#bbb', alignSelf: 'center' },
-  composer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d0d0d0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    marginBottom: 8,
-  },
-  multiline: { minHeight: 70, textAlignVertical: 'top' },
-  button: {
-    backgroundColor: '#111',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '600' },
-});
+const styles=StyleSheet.create({container:{flex:1},center:{flex:1,alignItems:'center',justifyContent:'center'},list:{padding:16,paddingBottom:210},sectionRow:{flexDirection:'row',alignItems:'flex-end',gap:12,marginTop:22,marginBottom:10},sectionTitle:{fontSize:19,fontWeight:'900'},sectionBeam:{flex:1,height:1,backgroundColor:BRAND.blue,opacity:.22,marginBottom:5},row:{position:'relative',overflow:'hidden',flexDirection:'row',alignItems:'center',gap:11,padding:14,borderRadius:13,borderWidth:1,marginBottom:8},rowRail:{position:'absolute',left:0,top:0,bottom:0,width:3,opacity:.7},rowTitle:{fontSize:15,fontWeight:'900'},rowSub:{fontSize:12,lineHeight:17,marginTop:3},composer:{position:'absolute',left:0,right:0,bottom:0,padding:16,borderTopWidth:1},composerHeading:{flexDirection:'row',alignItems:'flex-end',gap:10,marginBottom:10},composerEyebrow:{fontSize:8,fontWeight:'900',letterSpacing:1.3},composerTitle:{fontSize:17,fontWeight:'900',marginTop:2},composerBeam:{flex:1,height:1,backgroundColor:BRAND.purple,opacity:.2,marginBottom:5},input:{borderWidth:1,borderRadius:9,paddingHorizontal:12,paddingVertical:10,fontSize:14,marginBottom:8},multiline:{minHeight:60,textAlignVertical:'top'},button:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6,backgroundColor:BRAND.navy,borderRadius:9,paddingVertical:12},buttonText:{color:'#fff',fontWeight:'900',fontSize:13}});

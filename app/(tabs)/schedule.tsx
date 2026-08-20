@@ -1,186 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  SectionList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, RefreshControl, SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import { EmptyState } from '@/components/EmptyState';
 import { useAuth } from '@/lib/auth';
 import { useClientSessions, useTrainerSessions } from '@/lib/queries/sessions';
-import { radius, spacing, typography } from '@/lib/theme';
+import { BRAND, spacing } from '@/lib/theme';
 import type { Session, SessionWithClient } from '@/lib/types';
 import { useRealtimeSessions } from '@/lib/useRealtimeSessions';
 import { useTheme } from '@/lib/useTheme';
 
-const STATUS_ICON: Record<Session['status'], React.ComponentProps<typeof Ionicons>['name']> = {
-  scheduled: 'time-outline',
-  completed: 'checkmark-circle-outline',
-  canceled:  'close-circle-outline',
-};
+const STATUS_ICON: Record<Session['status'], React.ComponentProps<typeof Ionicons>['name']>={scheduled:'time-outline',completed:'checkmark-circle-outline',canceled:'close-circle-outline'};
+function groupByDay(sessions:SessionWithClient[]){const buckets=new Map<string,SessionWithClient[]>();for(const s of sessions){const key=new Date(s.starts_at).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});buckets.set(key,[...(buckets.get(key)??[]),s]);}return Array.from(buckets.entries()).map(([title,data])=>({title,data}));}
 
-function groupByDay(sessions: SessionWithClient[]): { title: string; data: SessionWithClient[] }[] {
-  const buckets = new Map<string, SessionWithClient[]>();
-  for (const s of sessions) {
-    const key = new Date(s.starts_at).toLocaleDateString(undefined, {
-      weekday: 'short', month: 'short', day: 'numeric',
-    });
-    const existing = buckets.get(key);
-    buckets.set(key, existing ? [...existing, s] : [s]);
-  }
-  return Array.from(buckets.entries()).map(([title, data]) => ({ title, data }));
+export default function Schedule(){const router=useRouter();const{session,profile}=useAuth();const{colors,accent}=useTheme();const isTrainer=profile?.role==='trainer';const userId=session?.user.id;const trainer=useTrainerSessions(isTrainer?userId:undefined);const client=useClientSessions(!isTrainer?userId:undefined);const query=isTrainer?trainer:client;useRealtimeSessions(isTrainer?userId:undefined);const sections=useMemo(()=>groupByDay(query.data??[]),[query.data]);const statusColor:Record<Session['status'],string>={scheduled:accent,completed:colors.success,canceled:colors.danger};if(query.isLoading)return <View style={[styles.center,{backgroundColor:colors.background}]}><ActivityIndicator/></View>;
+  return <SafeAreaView style={[styles.safe,{backgroundColor:colors.background}]} edges={['bottom']}><SectionList sections={sections} keyExtractor={s=>s.id} contentContainerStyle={[styles.list,sections.length===0&&{flexGrow:1}]} refreshControl={<RefreshControl refreshing={query.isFetching&&!query.isLoading} onRefresh={query.refetch}/>} ListHeaderComponent={<EnergyHero eyebrow={isTrainer?'YOUR CALENDAR':'YOUR TRAINING'} title="Schedule" subtitle={isTrainer?'See what’s ahead and keep your coaching week organized.':'See every scheduled, completed and canceled session in one place.'} icon="calendar-outline" compact/>} ListEmptyComponent={<EmptyState icon="calendar-outline" title="No sessions yet" subtitle={isTrainer?'Schedule your first session with a client.':'Your trainer will add sessions here.'} actionLabel={isTrainer?'New session':undefined} onAction={isTrainer?()=>router.push('/session/new'):undefined}/>} renderSectionHeader={({section})=><View style={styles.sectionHeader}><Text style={[styles.sectionText,{color:accent}]}>{section.title.toUpperCase()}</Text><View style={styles.sectionBeam}/></View>} renderItem={({item})=><TouchableOpacity style={[styles.row,{backgroundColor:colors.surfaceCard,borderColor:colors.border}]} onPress={()=>router.push({pathname:'/session/[id]',params:{id:item.id}})}><View style={[styles.rowRail,{backgroundColor:statusColor[item.status]}]}/><View style={styles.timeCol}><Text style={[styles.rowTime,{color:colors.ink}]}>{new Date(item.starts_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</Text><Text style={[styles.rowDuration,{color:colors.muted}]}>{item.duration_min} min</Text></View><View style={styles.rowBody}>{isTrainer&&(item.clientName||item.clientEmail)?<Text style={[styles.clientName,{color:colors.ink}]}>{item.clientName??item.clientEmail}</Text>:null}{item.notes?<Text style={[styles.rowNotes,{color:colors.muted}]} numberOfLines={1}>{item.notes}</Text>:null}</View><View style={styles.status}><Ionicons name={STATUS_ICON[item.status]} size={17} color={statusColor[item.status]}/><Text style={[styles.statusText,{color:statusColor[item.status]}]}>{item.status}</Text></View><Ionicons name="arrow-forward" size={15} color={colors.placeholder}/></TouchableOpacity>}/>{isTrainer&&sections.length>0?<Link href="/session/new" asChild><TouchableOpacity style={styles.addBtn}><Ionicons name="add" size={17} color="#fff"/><Text style={styles.addText}>New session</Text></TouchableOpacity></Link>:null}</SafeAreaView>;
 }
 
-export default function Schedule() {
-  const router = useRouter();
-  const { session, profile } = useAuth();
-  const { colors, accent } = useTheme();
-  const isTrainer = profile?.role === 'trainer';
-  const userId = session?.user.id;
-  const trainer = useTrainerSessions(isTrainer ? userId : undefined);
-  const client  = useClientSessions(!isTrainer ? userId : undefined);
-  const query   = isTrainer ? trainer : client;
-
-  useRealtimeSessions(isTrainer ? userId : undefined);
-  const sections = useMemo(() => groupByDay(query.data ?? []), [query.data]);
-
-  const STATUS_COLOR: Record<Session['status'], string> = {
-    scheduled: colors.success,
-    completed: colors.info,
-    canceled:  colors.danger,
-  };
-
-  if (query.isLoading) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
-      <SectionList
-        sections={sections}
-        keyExtractor={(s) => s.id}
-        contentContainerStyle={[
-          { padding: spacing.md },
-          sections.length === 0 && { flex: 1 },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={query.isFetching && !query.isLoading}
-            onRefresh={query.refetch}
-          />
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="calendar-outline"
-            title="No sessions yet"
-            subtitle={
-              isTrainer
-                ? 'Schedule your first session with a client.'
-                : 'Your trainer will add sessions here.'
-            }
-            actionLabel={isTrainer ? '+ New session' : undefined}
-            onAction={isTrainer ? () => router.push('/session/new') : undefined}
-          />
-        }
-        renderSectionHeader={({ section }) => (
-          <Text style={[styles.sectionHeader, { color: colors.muted }]}>{section.title}</Text>
-        )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.row, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}
-            onPress={() => router.push({ pathname: '/session/[id]', params: { id: item.id } })}
-          >
-            <View style={styles.rowLeft}>
-              <Text style={[styles.rowTime, { color: colors.ink }]}>
-                {new Date(item.starts_at).toLocaleTimeString([], {
-                  hour: 'numeric', minute: '2-digit',
-                })}
-              </Text>
-              <Text style={[styles.rowMeta, { color: colors.muted }]}>
-                {item.duration_min} min
-                {isTrainer && item.clientName
-                  ? `  ·  ${item.clientName}`
-                  : item.clientEmail
-                  ? `  ·  ${item.clientEmail}`
-                  : ''}
-              </Text>
-              {item.notes ? (
-                <Text style={[styles.rowNotes, { color: colors.placeholder }]} numberOfLines={1}>
-                  {item.notes}
-                </Text>
-              ) : null}
-            </View>
-            <View style={styles.rowRight}>
-              <Ionicons
-                name={STATUS_ICON[item.status]}
-                size={18}
-                color={STATUS_COLOR[item.status]}
-              />
-              <Text style={[styles.rowStatus, { color: STATUS_COLOR[item.status] }]}>
-                {item.status}
-              </Text>
-            </View>
-            <Text style={[styles.chevron, { color: colors.placeholder }]}>›</Text>
-          </TouchableOpacity>
-        )}
-      />
-      {isTrainer && sections.length > 0 && (
-        <Link href="/session/new" asChild>
-          <TouchableOpacity style={[styles.fab, { backgroundColor: accent }]}>
-            <Text style={styles.fabText}>+ New session</Text>
-          </TouchableOpacity>
-        </Link>
-      )}
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  safe:   { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: {
-    fontSize: typography.xs,
-    fontWeight: '600',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    marginBottom: spacing.xs,
-    gap: spacing.sm,
-  },
-  rowLeft:   { flex: 1 },
-  rowTime:   { fontSize: typography.base, fontWeight: '600' },
-  rowMeta:   { fontSize: typography.xs, marginTop: 2 },
-  rowNotes:  { fontSize: typography.xs, marginTop: 2, fontStyle: 'italic' },
-  rowRight:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  rowStatus: { fontSize: typography.xs, fontWeight: '600', textTransform: 'capitalize' },
-  chevron:   { fontSize: 20 },
-  fab: {
-    position: 'absolute',
-    right: spacing.md,
-    bottom: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 30,
-  },
-  fabText: { color: '#fff', fontWeight: '600' },
-});
+const styles=StyleSheet.create({safe:{flex:1},center:{flex:1,alignItems:'center',justifyContent:'center'},list:{padding:spacing.md,paddingBottom:100},sectionHeader:{flexDirection:'row',alignItems:'flex-end',gap:10,marginTop:23,marginBottom:8},sectionText:{fontSize:9,fontWeight:'900',letterSpacing:1.2},sectionBeam:{flex:1,height:1,backgroundColor:BRAND.blue,opacity:.2,marginBottom:4},row:{position:'relative',overflow:'hidden',flexDirection:'row',alignItems:'center',gap:12,borderWidth:1,borderRadius:13,padding:14,marginBottom:8},rowRail:{position:'absolute',left:0,top:0,bottom:0,width:3,opacity:.7},timeCol:{minWidth:72},rowTime:{fontSize:15,fontWeight:'900'},rowDuration:{fontSize:10,marginTop:2},rowBody:{flex:1},clientName:{fontSize:14,fontWeight:'800'},rowNotes:{fontSize:11,marginTop:3},status:{flexDirection:'row',alignItems:'center',gap:4},statusText:{fontSize:10,fontWeight:'800',textTransform:'uppercase'},addBtn:{position:'absolute',right:spacing.md,bottom:24,flexDirection:'row',alignItems:'center',gap:6,backgroundColor:BRAND.navy,borderRadius:10,paddingHorizontal:15,paddingVertical:12},addText:{color:'#fff',fontWeight:'900',fontSize:13}});

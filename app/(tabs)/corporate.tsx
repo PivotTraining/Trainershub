@@ -1,11 +1,4 @@
-/**
- * Corporate / B2B hub screen.
- *
- * Three states:
- * 1. No corporate account → onboarding CTA to create one.
- * 2. Member (not admin) → read-only "Your benefit" card.
- * 3. Admin/owner → full HR dashboard with seat gauge, member list, invite flow.
- */
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { EnergyHero } from '@/components/EnergyHero';
 import {
   useBulkInviteMembers,
   useCorporateMembers,
@@ -34,223 +28,129 @@ import {
   useSeatUsage,
   useSuspendMember,
 } from '@/lib/queries/corporate';
+import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
-import type { CorporateMemberWithProfile, CorporateInvite } from '@/lib/types/corporate';
-
-// ── Seat gauge ────────────────────────────────────────────────────────────────
+import type { CorporateInvite, CorporateMemberWithProfile } from '@/lib/types/corporate';
 
 function SeatGauge({ used, total, accent }: { used: number; total: number; accent: string }) {
-  const pct = total > 0 ? Math.min(used / total, 1) : 0;
   const { colors } = useTheme();
+  const pct = total ? Math.min(used / total, 1) : 0;
   return (
-    <View style={gauge.wrap}>
-      <View style={[gauge.track, { backgroundColor: colors.border }]}>
-        <View style={[gauge.fill, { width: `${pct * 100}%`, backgroundColor: accent }]} />
+    <View style={styles.gaugeWrap}>
+      <View style={[styles.gaugeTrack, { backgroundColor: colors.border }]}>
+        <View style={[styles.gaugeFill, { width: `${pct * 100}%`, backgroundColor: accent }]} />
       </View>
-      <Text style={[gauge.label, { color: colors.muted }]}>
-        {used} / {total} seats used
-      </Text>
+      <Text style={[styles.gaugeLabel, { color: colors.muted }]}>{used} / {total} seats used</Text>
     </View>
   );
 }
 
-const gauge = StyleSheet.create({
-  wrap:  { gap: 6, marginBottom: 20 },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  fill:  { height: 8, borderRadius: 4 },
-  label: { fontSize: 12, fontWeight: '600' },
-});
-
-// ── Member row ────────────────────────────────────────────────────────────────
-
-interface MemberRowProps {
-  member: CorporateMemberWithProfile;
-  acctId: string;
-  isAdmin: boolean;
-}
-
-function MemberRow({ member, acctId, isAdmin }: MemberRowProps) {
-  const { colors } = useTheme();
-  const suspend    = useSuspendMember();
+function MemberRow({ member, acctId, isAdmin }: { member: CorporateMemberWithProfile; acctId: string; isAdmin: boolean }) {
+  const { colors, accent } = useTheme();
+  const suspend = useSuspendMember();
   const reactivate = useReactivateMember();
-  const isSuspended = member.status === 'suspended';
+  const suspended = member.status === 'suspended';
 
-  const handleToggle = () => {
-    if (isSuspended) {
+  const toggle = () => {
+    if (suspended) {
       reactivate.mutate({ memberId: member.id, acctId });
-    } else {
-      Alert.alert(
-        'Suspend member?',
-        `${member.profile.full_name ?? member.profile.email} will lose access.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Suspend',
-            style: 'destructive',
-            onPress: () => suspend.mutate({ memberId: member.id, acctId }),
-          },
-        ],
-      );
+      return;
     }
+    Alert.alert('Suspend member?', `${member.profile.full_name ?? member.profile.email} will lose access.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Suspend', style: 'destructive', onPress: () => suspend.mutate({ memberId: member.id, acctId }) },
+    ]);
   };
 
   return (
-    <View style={[mrow.wrap, { borderBottomColor: colors.border }]}>
-      <View style={mrow.info}>
-        <Text style={[mrow.name, { color: colors.ink }]} numberOfLines={1}>
-          {member.profile.full_name ?? '—'}
-        </Text>
-        <Text style={[mrow.email, { color: colors.muted }]} numberOfLines={1}>
-          {member.profile.email}
-        </Text>
+    <View style={[styles.personRow, { borderBottomColor: colors.border }]}>
+      <View style={[styles.personRail, { backgroundColor: suspended ? colors.danger : accent }]} />
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.personName, { color: colors.ink }]}>{member.profile.full_name ?? '—'}</Text>
+        <Text style={[styles.personMeta, { color: colors.muted }]}>{member.profile.email}</Text>
       </View>
-      <View style={mrow.right}>
-        <View style={[mrow.badge, { backgroundColor: isSuspended ? '#FEF2F2' : '#F0FDF4' }]}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: isSuspended ? '#DC2626' : '#16A34A' }}>
-            {isSuspended ? 'Suspended' : 'Active'}
-          </Text>
-        </View>
-        {isAdmin && (
-          <TouchableOpacity onPress={handleToggle} style={mrow.toggleBtn}>
-            <Text style={[mrow.toggleText, { color: isSuspended ? '#16A34A' : '#DC2626' }]}>
-              {isSuspended ? 'Restore' : 'Suspend'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <Text style={[styles.statusText, { color: suspended ? colors.danger : colors.success }]}>{suspended ? 'SUSPENDED' : 'ACTIVE'}</Text>
+      {isAdmin ? (
+        <TouchableOpacity onPress={toggle}>
+          <Text style={{ color: suspended ? colors.success : colors.danger, fontSize: 11, fontWeight: '800' }}>{suspended ? 'Restore' : 'Suspend'}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
-
-const mrow = StyleSheet.create({
-  wrap:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
-  info:       { flex: 1, gap: 2 },
-  name:       { fontSize: 14, fontWeight: '600' },
-  email:      { fontSize: 12 },
-  right:      { alignItems: 'flex-end', gap: 4 },
-  badge:      { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  toggleBtn:  { paddingHorizontal: 4 },
-  toggleText: { fontSize: 12, fontWeight: '600' },
-});
-
-// ── Invite row ────────────────────────────────────────────────────────────────
 
 function InviteRow({ invite, isAdmin }: { invite: CorporateInvite; isAdmin: boolean }) {
-  const { colors } = useTheme();
+  const { colors, accent } = useTheme();
   const revoke = useRevokeInvite();
   return (
-    <View style={[irow.wrap, { borderBottomColor: colors.border }]}>
-      <Text style={[irow.email, { color: colors.ink }]} numberOfLines={1}>{invite.email}</Text>
-      <View style={irow.right}>
-        <Text style={[irow.expires, { color: colors.muted }]}>
-          Expires {new Date(invite.expires_at).toLocaleDateString()}
-        </Text>
-        {isAdmin && (
-          <TouchableOpacity
-            onPress={() => revoke.mutate({ inviteId: invite.id, acctId: invite.corporate_account_id })}
-          >
-            <Text style={irow.revoke}>Revoke</Text>
-          </TouchableOpacity>
-        )}
+    <View style={[styles.personRow, { borderBottomColor: colors.border }]}>
+      <View style={[styles.personRail, { backgroundColor: BRAND.blue }]} />
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.personName, { color: colors.ink }]}>{invite.email}</Text>
+        <Text style={[styles.personMeta, { color: colors.muted }]}>Expires {new Date(invite.expires_at).toLocaleDateString()}</Text>
       </View>
+      <Text style={[styles.statusText, { color: accent }]}>PENDING</Text>
+      {isAdmin ? (
+        <TouchableOpacity onPress={() => revoke.mutate({ inviteId: invite.id, acctId: invite.corporate_account_id })}>
+          <Text style={{ color: colors.danger, fontSize: 11, fontWeight: '800' }}>Revoke</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
-
-const irow = StyleSheet.create({
-  wrap:    { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
-  email:   { flex: 1, fontSize: 13, fontWeight: '500' },
-  right:   { alignItems: 'flex-end', gap: 2 },
-  expires: { fontSize: 11 },
-  revoke:  { fontSize: 12, fontWeight: '600', color: '#DC2626' },
-});
-
-// ── Create account modal ──────────────────────────────────────────────────────
 
 function CreateAccountModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { colors, accent } = useTheme();
   const create = useCreateCorporateAccount();
-  const [name, setName]   = useState('');
+  const [name, setName] = useState('');
   const [domain, setDomain] = useState('');
   const [seats, setSeats] = useState('10');
 
-  const handleCreate = async () => {
-    if (!name.trim()) { Alert.alert('Name required'); return; }
+  const handle = async () => {
+    if (!name.trim()) return Alert.alert('Name required');
     try {
-      await create.mutateAsync({
-        name: name.trim(),
-        domain: domain.trim() || undefined,
-        seat_count: parseInt(seats, 10) || 10,
-      });
+      await create.mutateAsync({ name: name.trim(), domain: domain.trim() || undefined, seat_count: parseInt(seats, 10) || 10 });
       onClose();
-    } catch (err: unknown) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Unknown error');
+    } catch (error: unknown) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[cam.root, { backgroundColor: colors.background }]}>
-        <View style={cam.header}>
-          <Text style={[cam.title, { color: colors.ink }]}>Create corporate account</Text>
-          <TouchableOpacity onPress={onClose}><Text style={{ color: accent, fontSize: 16 }}>Cancel</Text></TouchableOpacity>
+      <SafeAreaView style={[styles.modalRoot, { backgroundColor: colors.background }]}>
+        <View style={styles.modalHead}>
+          <Text style={[styles.modalTitle, { color: colors.ink }]}>Create corporate account</Text>
+          <TouchableOpacity onPress={onClose}><Text style={{ color: accent }}>Cancel</Text></TouchableOpacity>
         </View>
-
-        <Text style={[cam.label, { color: colors.muted }]}>Company name</Text>
-        <TextInput style={[cam.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surface }]}
-          placeholder="Acme Inc." placeholderTextColor={colors.placeholder}
-          value={name} onChangeText={setName} />
-
-        <Text style={[cam.label, { color: colors.muted }]}>Email domain (optional)</Text>
-        <TextInput style={[cam.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surface }]}
-          placeholder="acme.com" placeholderTextColor={colors.placeholder} autoCapitalize="none"
-          value={domain} onChangeText={setDomain} keyboardType="url" />
-
-        <Text style={[cam.label, { color: colors.muted }]}>Seat count</Text>
-        <TextInput style={[cam.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surface }]}
-          placeholder="10" placeholderTextColor={colors.placeholder} keyboardType="number-pad"
-          value={seats} onChangeText={setSeats} />
-
-        <TouchableOpacity
-          style={[cam.btn, { backgroundColor: accent }]}
-          onPress={handleCreate}
-          disabled={create.isPending}
-        >
-          {create.isPending
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={cam.btnText}>Create account</Text>}
+        <FormLabel text="COMPANY NAME" colors={colors} />
+        <TextInput style={[styles.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]} value={name} onChangeText={setName} placeholder="Acme Inc." placeholderTextColor={colors.placeholder} />
+        <FormLabel text="EMAIL DOMAIN · OPTIONAL" colors={colors} />
+        <TextInput style={[styles.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]} value={domain} onChangeText={setDomain} autoCapitalize="none" placeholder="acme.com" placeholderTextColor={colors.placeholder} />
+        <FormLabel text="SEAT COUNT" colors={colors} />
+        <TextInput style={[styles.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]} value={seats} onChangeText={setSeats} keyboardType="number-pad" />
+        <TouchableOpacity style={styles.primary} onPress={handle} disabled={create.isPending}>
+          {create.isPending ? <ActivityIndicator color="#fff" /> : <><Text style={styles.primaryText}>Create account</Text><Ionicons name="arrow-forward" size={16} color="#fff" /></>}
         </TouchableOpacity>
       </SafeAreaView>
     </Modal>
   );
 }
 
-const cam = StyleSheet.create({
-  root:    { flex: 1, padding: 24 },
-  header:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
-  title:   { fontSize: 20, fontWeight: '700' },
-  label:   { fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 6, marginTop: 16 },
-  input:   { borderWidth: 1.5, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
-  btn:     { borderRadius: 14, paddingVertical: 15, alignItems: 'center', marginTop: 28 },
-  btnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-});
-
-// ── Invite modal ──────────────────────────────────────────────────────────────
-
 function InviteModal({ visible, acctId, onClose }: { visible: boolean; acctId: string; onClose: () => void }) {
   const { colors, accent } = useTheme();
-  const invite     = useInviteMember();
-  const bulkInvite = useBulkInviteMembers();
+  const invite = useInviteMember();
+  const bulk = useBulkInviteMembers();
   const [text, setText] = useState('');
-  const isMulti = text.includes('\n') || text.includes(',');
+  const multi = text.includes('\n') || text.includes(',');
 
-  const handleInvite = async () => {
+  const handle = async () => {
     const raw = text.trim();
     if (!raw) return;
     try {
-      if (isMulti) {
-        const emails = raw.split(/[\n,]+/).map((e) => e.trim()).filter(Boolean);
-        await bulkInvite.mutateAsync({ corporate_account_id: acctId, emails });
+      if (multi) {
+        const emails = raw.split(/[\n,]+/).map((email) => email.trim()).filter(Boolean);
+        await bulk.mutateAsync({ corporate_account_id: acctId, emails });
         Alert.alert('Invites sent', `${emails.length} invites queued.`);
       } else {
         await invite.mutateAsync({ corporate_account_id: acctId, email: raw });
@@ -258,244 +158,154 @@ function InviteModal({ visible, acctId, onClose }: { visible: boolean; acctId: s
       }
       setText('');
       onClose();
-    } catch (err: unknown) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Unknown error');
+    } catch (error: unknown) {
+      Alert.alert('Error', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 
-  const isPending = invite.isPending || bulkInvite.isPending;
-
+  const pending = invite.isPending || bulk.isPending;
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <SafeAreaView style={[cam.root, { backgroundColor: colors.background }]}>
-        <View style={cam.header}>
-          <Text style={[cam.title, { color: colors.ink }]}>Invite members</Text>
-          <TouchableOpacity onPress={onClose}><Text style={{ color: accent, fontSize: 16 }}>Cancel</Text></TouchableOpacity>
+      <SafeAreaView style={[styles.modalRoot, { backgroundColor: colors.background }]}>
+        <View style={styles.modalHead}>
+          <Text style={[styles.modalTitle, { color: colors.ink }]}>Invite members</Text>
+          <TouchableOpacity onPress={onClose}><Text style={{ color: accent }}>Cancel</Text></TouchableOpacity>
         </View>
-        <Text style={[cam.label, { color: colors.muted }]}>Email address(es)</Text>
-        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>
-          One email per line, or comma-separated for bulk invite.
-        </Text>
-        <TextInput
-          style={[cam.input, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surface, height: 120, textAlignVertical: 'top' }]}
-          placeholder={'jane@acme.com\njohn@acme.com'}
-          placeholderTextColor={colors.placeholder}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          multiline
-          value={text}
-          onChangeText={setText}
-        />
-        <TouchableOpacity
-          style={[cam.btn, { backgroundColor: accent }]}
-          onPress={handleInvite}
-          disabled={isPending}
-        >
-          {isPending
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={cam.btnText}>{isMulti ? 'Send all invites' : 'Send invite'}</Text>}
+        <FormLabel text="EMAIL ADDRESS(ES)" colors={colors} />
+        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>One per line or comma-separated.</Text>
+        <TextInput style={[styles.input, styles.inviteInput, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]} value={text} onChangeText={setText} autoCapitalize="none" keyboardType="email-address" multiline placeholder={'jane@acme.com\njohn@acme.com'} placeholderTextColor={colors.placeholder} />
+        <TouchableOpacity style={styles.primary} onPress={handle} disabled={pending}>
+          {pending ? <ActivityIndicator color="#fff" /> : <><Text style={styles.primaryText}>{multi ? 'Send all invites' : 'Send invite'}</Text><Ionicons name="arrow-forward" size={16} color="#fff" /></>}
         </TouchableOpacity>
       </SafeAreaView>
     </Modal>
   );
 }
 
-// ── Main screen ───────────────────────────────────────────────────────────────
+function FormLabel({ text, colors }: { text: string; colors: ReturnType<typeof useTheme>['colors'] }) {
+  return <Text style={[styles.formLabel, { color: colors.muted }]}>{text}</Text>;
+}
+
+function Section({ eyebrow, title, children, colors, accent, rail = BRAND.purple }: { eyebrow: string; title: string; children: React.ReactNode; colors: ReturnType<typeof useTheme>['colors']; accent: string; rail?: string }) {
+  return (
+    <View style={[styles.section, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
+      <View style={[styles.sectionRail, { backgroundColor: rail }]} />
+      <Text style={[styles.sectionEyebrow, { color: accent }]}>{eyebrow}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.ink }]}>{title}</Text>
+      {children}
+    </View>
+  );
+}
 
 export default function CorporateScreen() {
-  const { colors, accent, spacing, typography, radius } = useTheme();
-  const accountQuery = useMyCorporateAccount();
-  const account      = accountQuery.data;
-  const acctId       = account?.id;
-
-  const adminRoleQuery = useMyCorpAdminRole(acctId);
-  const adminRole      = adminRoleQuery.data;
-  const isAdmin        = !!adminRole;
-
-  const membersQuery  = useCorporateMembers(acctId);
-  const invitesQuery  = usePendingInvites(acctId);
-  const seatQuery     = useSeatUsage(acctId);
-
+  const { colors, accent } = useTheme();
+  const accountQ = useMyCorporateAccount();
+  const account = accountQ.data;
+  const acctId = account?.id;
+  const adminQ = useMyCorpAdminRole(acctId);
+  const isAdmin = !!adminQ.data;
+  const membersQ = useCorporateMembers(acctId);
+  const invitesQ = usePendingInvites(acctId);
+  const seatQ = useSeatUsage(acctId);
   const [showCreate, setShowCreate] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
 
-  const isLoading = accountQuery.isLoading;
+  if (accountQ.isLoading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={accent} /></View>;
 
-  if (isLoading) {
-    return (
-      <View style={[s.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={accent} />
-      </View>
-    );
-  }
-
-  // ── No account ──────────────────────────────────────────────────────────────
   if (!account) {
     return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={[s.inner, { paddingHorizontal: spacing.lg }]}>
-          <Text style={[s.pageTitle, { color: colors.ink, fontSize: typography.xxl }]}>
-            Corporate accounts
-          </Text>
-          <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-            <Text style={[s.cardTitle, { color: colors.ink }]}>Set up your company</Text>
-            <Text style={[s.cardBody, { color: colors.muted }]}>
-              Create a corporate account to give your team access to TrainerHub. Employees book sessions with no payment friction — everything is billed to your company.
-            </Text>
-            <TouchableOpacity
-              style={[s.primaryBtn, { backgroundColor: accent, borderRadius: radius.lg }]}
-              onPress={() => setShowCreate(true)}
-            >
-              <Text style={s.primaryBtnText}>Create corporate account</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginTop: 12 }]}>
-            <Text style={[s.cardTitle, { color: colors.ink }]}>Already have an invite?</Text>
-            <Text style={[s.cardBody, { color: colors.muted }]}>
-              Check your email for an invite link from your HR team. Tap it to join your company&apos;s account automatically.
-            </Text>
-          </View>
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
+        <ScrollView contentContainerStyle={styles.inner}>
+          <EnergyHero eyebrow="FOR TEAMS" title="Corporate TrainerHub" subtitle="Give employees access to coaching without individual payment friction." icon="business-outline" compact />
+          <Section eyebrow="START" title="Set up your company" colors={colors} accent={accent}>
+            <Text style={[styles.body, { color: colors.muted }]}>Create a corporate account, define your seat count, and invite your team.</Text>
+            <TouchableOpacity style={styles.primary} onPress={() => setShowCreate(true)}><Text style={styles.primaryText}>Create corporate account</Text><Ionicons name="arrow-forward" size={16} color="#fff" /></TouchableOpacity>
+          </Section>
+          <Section eyebrow="JOIN" title="Already invited?" colors={colors} accent={accent} rail={BRAND.blue}>
+            <Text style={[styles.body, { color: colors.muted }]}>Open the invite link from your HR team to join automatically.</Text>
+          </Section>
         </ScrollView>
         <CreateAccountModal visible={showCreate} onClose={() => setShowCreate(false)} />
       </SafeAreaView>
     );
   }
 
-  // ── Member (not admin) — read-only benefit card ─────────────────────────────
   if (!isAdmin) {
     return (
-      <SafeAreaView style={[s.root, { backgroundColor: colors.background }]}>
-        <ScrollView contentContainerStyle={[s.inner, { paddingHorizontal: spacing.lg }]}>
-          <Text style={[s.pageTitle, { color: colors.ink, fontSize: typography.xxl }]}>
-            Corporate benefit
-          </Text>
-          <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-            <Text style={[s.acctName, { color: accent }]}>{account.name}</Text>
-            <Text style={[s.cardBody, { color: colors.muted }]}>
-              Your sessions are covered by your company. Book any trainer and your company&apos;s account will be charged — you&apos;ll never see a payment screen.
-            </Text>
-          </View>
-          {seatQuery.data && (
-            <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginTop: 12 }]}>
-              <Text style={[s.cardTitle, { color: colors.ink }]}>Company usage</Text>
-              <SeatGauge used={seatQuery.data.seats_used} total={seatQuery.data.seat_count} accent={accent} />
-            </View>
-          )}
+      <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
+        <ScrollView contentContainerStyle={styles.inner}>
+          <EnergyHero eyebrow="COMPANY BENEFIT" title={account.name} subtitle="Your sessions are covered through your organization." icon="business-outline" compact />
+          <Section eyebrow="YOUR BENEFIT" title="Train without checkout" colors={colors} accent={accent}>
+            <Text style={[styles.body, { color: colors.muted }]}>Book any trainer available to your plan. Your company account handles payment.</Text>
+          </Section>
+          {seatQ.data ? <Section eyebrow="USAGE" title="Company seats" colors={colors} accent={accent} rail={BRAND.blue}><SeatGauge used={seatQ.data.seats_used} total={seatQ.data.seat_count} accent={accent} /></Section> : null}
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // ── Admin dashboard ─────────────────────────────────────────────────────────
-  const members = membersQuery.data ?? [];
-  const invites = invitesQuery.data ?? [];
-  const seats   = seatQuery.data;
+  const members = membersQ.data ?? [];
+  const invites = invitesQ.data ?? [];
+  const seats = seatQ.data;
 
   return (
-    <SafeAreaView style={[s.root, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[s.inner, { paddingHorizontal: spacing.lg }]}
+        contentContainerStyle={styles.inner}
         refreshControl={
           <RefreshControl
-            refreshing={membersQuery.isFetching || invitesQuery.isFetching}
-            onRefresh={() => { membersQuery.refetch(); invitesQuery.refetch(); seatQuery.refetch(); }}
+            refreshing={membersQ.isFetching || invitesQ.isFetching}
+            onRefresh={() => { membersQ.refetch(); invitesQ.refetch(); seatQ.refetch(); }}
             tintColor={accent}
           />
         }
       >
-        {/* Header */}
-        <View style={s.headerRow}>
-          <View>
-            <Text style={[s.pageTitle, { color: colors.ink, fontSize: typography.xxl }]}>
-              {account.name}
-            </Text>
-            <Text style={[s.planBadge, { color: accent }]}>
-              {account.plan.charAt(0).toUpperCase() + account.plan.slice(1)} plan
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[s.inviteBtn, { backgroundColor: accent, borderRadius: radius.md }]}
-            onPress={() => setShowInvite(true)}
-          >
-            <Text style={s.inviteBtnText}>+ Invite</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Seat gauge */}
-        {seats && (
-          <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
-            <Text style={[s.cardTitle, { color: colors.ink }]}>Seat usage</Text>
-            <SeatGauge used={seats.seats_used} total={seats.seat_count} accent={accent} />
-          </View>
-        )}
-
-        {/* Members */}
-        <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginTop: 12 }]}>
-          <Text style={[s.cardTitle, { color: colors.ink }]}>
-            Members ({members.length})
-          </Text>
-          {members.length === 0 ? (
-            <Text style={[s.empty, { color: colors.placeholder }]}>No members yet.</Text>
-          ) : (
-            members.map((m) => (
-              <MemberRow key={m.id} member={m} acctId={account.id} isAdmin={isAdmin} />
-            ))
-          )}
-        </View>
-
-        {/* Pending invites */}
-        {invites.length > 0 && (
-          <View style={[s.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border, marginTop: 12 }]}>
-            <Text style={[s.cardTitle, { color: colors.ink }]}>
-              Pending invites ({invites.length})
-            </Text>
-            {invites.map((inv) => (
-              <InviteRow key={inv.id} invite={inv} isAdmin={isAdmin} />
-            ))}
-          </View>
-        )}
+        <EnergyHero
+          eyebrow={`${account.plan.toUpperCase()} PLAN`}
+          title={account.name}
+          subtitle="Manage seats, members and access from one place."
+          icon="business-outline"
+          compact
+          right={<TouchableOpacity style={styles.inviteBtn} onPress={() => setShowInvite(true)}><Ionicons name="add" size={16} color="#fff" /><Text style={styles.inviteText}>Invite</Text></TouchableOpacity>}
+        />
+        {seats ? <Section eyebrow="CAPACITY" title="Seat usage" colors={colors} accent={accent}><SeatGauge used={seats.seats_used} total={seats.seat_count} accent={accent} /></Section> : null}
+        <Section eyebrow="PEOPLE" title={`Members · ${members.length}`} colors={colors} accent={accent} rail={BRAND.blue}>
+          {members.length ? members.map((member) => <MemberRow key={member.id} member={member} acctId={account.id} isAdmin={isAdmin} />) : <Text style={[styles.empty, { color: colors.muted }]}>No members yet.</Text>}
+        </Section>
+        {invites.length ? <Section eyebrow="PENDING" title={`Invites · ${invites.length}`} colors={colors} accent={accent} rail={BRAND.purple}>{invites.map((invite) => <InviteRow key={invite.id} invite={invite} isAdmin={isAdmin} />)}</Section> : null}
       </ScrollView>
-
-      <InviteModal
-        visible={showInvite}
-        acctId={account.id}
-        onClose={() => setShowInvite(false)}
-      />
+      <InviteModal visible={showInvite} acctId={account.id} onClose={() => setShowInvite(false)} />
     </SafeAreaView>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const s = StyleSheet.create({
-  root:  { flex: 1 },
+const styles = StyleSheet.create({
+  root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  inner: { paddingTop: 16, paddingBottom: 40 },
-
-  pageTitle: { fontWeight: '800', letterSpacing: -0.5, marginBottom: 4 },
-  planBadge: { fontSize: 13, fontWeight: '600', marginBottom: 16 },
-  acctName:  { fontSize: 22, fontWeight: '800', marginBottom: 8 },
-
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  inviteBtn:     { paddingHorizontal: 16, paddingVertical: 10 },
-  inviteBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-  card: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 4,
-  },
-  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 12 },
-  cardBody:  { fontSize: 14, lineHeight: 22 },
-  empty:     { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
-
-  primaryBtn:     { marginTop: 16, paddingVertical: 14, alignItems: 'center' },
-  primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  inner: { width: '100%', maxWidth: 900, alignSelf: 'center', padding: 18, paddingBottom: 48, gap: 12 },
+  section: { position: 'relative', overflow: 'hidden', borderWidth: 1, borderRadius: 14, padding: 16 },
+  sectionRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, opacity: 0.7 },
+  sectionEyebrow: { fontSize: 8, fontWeight: '900', letterSpacing: 1.4 },
+  sectionTitle: { fontSize: 18, fontWeight: '900', marginTop: 2, marginBottom: 8 },
+  body: { fontSize: 13, lineHeight: 20 },
+  primary: { marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: BRAND.navy, borderRadius: 9, paddingVertical: 12 },
+  primaryText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  inviteBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,.15)', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 9 },
+  inviteText: { color: '#fff', fontWeight: '900', fontSize: 12 },
+  gaugeWrap: { gap: 6, marginTop: 5 },
+  gaugeTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  gaugeFill: { height: '100%', borderRadius: 3 },
+  gaugeLabel: { fontSize: 11, fontWeight: '700' },
+  personRow: { position: 'relative', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, paddingLeft: 9 },
+  personRail: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 2, opacity: 0.7 },
+  personName: { fontSize: 13, fontWeight: '900' },
+  personMeta: { fontSize: 11, marginTop: 2 },
+  statusText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  empty: { fontSize: 12, paddingVertical: 8 },
+  modalRoot: { flex: 1, padding: 24 },
+  modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '900' },
+  formLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.9, marginBottom: 6, marginTop: 16 },
+  input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 12, fontSize: 15 },
+  inviteInput: { height: 120, textAlignVertical: 'top' },
 });
