@@ -1,6 +1,6 @@
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -9,7 +9,8 @@ import 'react-native-reanimated';
 
 import { AppCanvas } from '@/components/AppCanvas';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AuthProvider } from '@/lib/auth';
+import { trackEvent } from '@/lib/analytics';
+import { AuthProvider, useAuth } from '@/lib/auth';
 import { PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
 
@@ -42,11 +43,24 @@ const trainerHubNavigationTheme = {
   },
 };
 
+function AnalyticsTracker() {
+  const pathname = usePathname();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    if (!session?.user?.id || !pathname) return;
+    void trackEvent('screen_view', { path: pathname });
+  }, [pathname, session?.user?.id]);
+
+  return null;
+}
+
 function ThemedStack() {
   return (
     <View style={styles.root}>
       <AppCanvas />
       <ThemeProvider value={trainerHubNavigationTheme}>
+        <AnalyticsTracker />
         <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
