@@ -2,6 +2,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   RefreshControl,
   StyleSheet,
   Text,
@@ -14,13 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { EnergyHero } from '@/components/EnergyHero';
 import { useAuth } from '@/lib/auth';
 import { useMyBookingsAsTrainer, useUpdateBookingStatus } from '@/lib/queries/bookings';
+import { useEnsureVirtualMeeting } from '@/lib/queries/integrations';
 import { BRAND, spacing, typography } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 import type { BookingWithNames } from '@/lib/types';
 
 interface BookingCardProps {
   booking: BookingWithNames;
-  onConfirm?: (id: string) => void;
+  onConfirm?: (booking: BookingWithNames) => void;
   onDecline?: (id: string) => void;
 }
 
@@ -40,6 +42,14 @@ function BookingCard({ booking, onConfirm, onDecline }: BookingCardProps) {
             {bookingDate.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
           </Text>
           <Text style={[styles.cardMeta, { color: colors.muted }]}>{booking.duration_min} min · {booking.session_type === 'in-person' ? 'In-Person' : 'Virtual'}</Text>
+          {booking.virtual_meeting_url ? (
+            <TouchableOpacity style={styles.meetingPill} onPress={() => Linking.openURL(booking.virtual_meeting_url!)}>
+              <Ionicons name="videocam" size={13} color="#FFFFFF" />
+              <Text style={styles.meetingPillText}>Open {booking.virtual_meeting_provider === 'zoom' ? 'Zoom' : 'Google Meet'}</Text>
+            </TouchableOpacity>
+          ) : booking.session_type === 'virtual' && !isPending ? (
+            <Text style={[styles.meetingPending, { color: colors.muted }]}>Connect Zoom or Google Calendar to auto-create a meeting link.</Text>
+          ) : null}
           {booking.notes ? <Text style={[styles.notes, { color: colors.muted }]} numberOfLines={2}>“{booking.notes}”</Text> : null}
         </View>
         {!isPending ? <Ionicons name="checkmark-circle-outline" size={22} color={colors.success} /> : null}
@@ -47,7 +57,7 @@ function BookingCard({ booking, onConfirm, onDecline }: BookingCardProps) {
 
       {isPending && onConfirm && onDecline ? (
         <View style={[styles.actions, { borderTopColor: colors.border }]}>
-          <TouchableOpacity style={styles.confirmBtn} onPress={() => onConfirm(booking.id)}>
+          <TouchableOpacity style={styles.confirmBtn} onPress={() => onConfirm(booking)}>
             <Text style={styles.confirmText}>Confirm</Text>
             <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
           </TouchableOpacity>
@@ -66,14 +76,31 @@ export default function Requests() {
   const { colors, accent } = useTheme();
   const bookingsQuery = useMyBookingsAsTrainer(userId);
   const updateStatus = useUpdateBookingStatus(userId, 'trainer');
+  const ensureVirtualMeeting = useEnsureVirtualMeeting();
 
   const allBookings = bookingsQuery.data ?? [];
   const pending = allBookings.filter((b) => b.status === 'pending');
   const confirmed = allBookings.filter((b) => b.status === 'confirmed');
 
-  const handleConfirm = async (bookingId: string) => {
-    try { await updateStatus.mutateAsync({ id: bookingId, status: 'confirmed' }); }
-    catch (err: unknown) { Alert.alert('Error', err instanceof Error ? err.message : 'Unknown error'); }
+  const handleConfirm = async (booking: BookingWithNames) => {
+    try {
+      await updateStatus.mutateAsync({ id: booking.id, status: 'confirmed' });
+      if (booking.session_type === 'virtual') {
+        try {
+          const result = await ensureVirtualMeeting.mutateAsync(booking.id);
+          if (result.skipped && result.reason === 'no_virtual_provider') {
+            Alert.alert('Session confirmed', 'The booking is confirmed. Connect Zoom or Google Calendar in Integrations to generate virtual-session links automatically.');
+          } else if (result.join_url) {
+            Alert.alert('Session confirmed', `${result.provider === 'zoom' ? 'Zoom' : 'Google Meet'} link created automatically.`);
+          }
+        } catch {
+          Alert.alert('Session confirmed', 'The booking is confirmed, but TrainerHub could not create the virtual meeting link. You can reconnect your provider and try again.');
+        }
+      }
+      await bookingsQuery.refetch();
+    } catch (err: unknown) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Unknown error');
+    }
   };
 
   const handleDecline = (bookingId: string) => {
@@ -142,6 +169,9 @@ const styles = StyleSheet.create({
   clientName: { fontSize: 16, fontWeight: '900', marginTop: 3 },
   cardDate: { fontSize: typography.sm, marginTop: 4, fontWeight: '700' },
   cardMeta: { fontSize: typography.xs, marginTop: 3 },
+  meetingPill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: BRAND.purple, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, marginTop: 10 },
+  meetingPillText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  meetingPending: { fontSize: 10, lineHeight: 15, marginTop: 8 },
   notes: { fontSize: typography.xs, marginTop: spacing.sm, fontStyle: 'italic', lineHeight: 18 },
   actions: { flexDirection: 'row', gap: spacing.sm, padding: 10, borderTopWidth: 1 },
   confirmBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: BRAND.navy, borderRadius: 9, paddingVertical: 10 },
