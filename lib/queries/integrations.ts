@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 
 export type IntegrationScope = 'personal' | 'enterprise';
 export type IntegrationStatus = 'available' | 'pending' | 'connected' | 'needs_setup' | 'disabled' | 'error';
+export type OAuthIntegrationProvider = 'google_calendar' | 'microsoft_365' | 'zoom';
 
 export interface IntegrationConnection {
   id: string;
@@ -27,9 +28,7 @@ export function useIntegrationConnections(ownerUserId?: string, corporateAccount
     queryKey: ['integration_connections', ownerUserId ?? null, corporateAccountId ?? null],
     queryFn: async (): Promise<IntegrationConnection[]> => {
       let query = supabase.from('integration_connections').select('*').order('provider');
-      query = corporateAccountId
-        ? query.eq('corporate_account_id', corporateAccountId)
-        : query.eq('owner_user_id', ownerUserId!);
+      query = corporateAccountId ? query.eq('corporate_account_id', corporateAccountId) : query.eq('owner_user_id', ownerUserId!);
       const { data, error } = await query;
       if (error) throw new Error(error.message);
       return (data ?? []) as IntegrationConnection[];
@@ -37,21 +36,11 @@ export function useIntegrationConnections(ownerUserId?: string, corporateAccount
   });
 }
 
-export function useStartCalendarOAuth() {
+export function useStartIntegrationOAuth() {
   return useMutation({
-    mutationFn: async (input: {
-      provider: 'google_calendar' | 'microsoft_365';
-      scope: IntegrationScope;
-      corporateAccountId?: string;
-      returnUrl: string;
-    }): Promise<{ authorization_url: string }> => {
+    mutationFn: async (input: { provider: OAuthIntegrationProvider; scope: IntegrationScope; corporateAccountId?: string; returnUrl: string }): Promise<{ authorization_url: string }> => {
       const { data, error } = await supabase.functions.invoke('integration-oauth-start', {
-        body: {
-          provider: input.provider,
-          scope: input.scope,
-          corporate_account_id: input.corporateAccountId,
-          return_url: input.returnUrl,
-        },
+        body: { provider: input.provider, scope: input.scope, corporate_account_id: input.corporateAccountId, return_url: input.returnUrl },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.message || data.error);
@@ -64,17 +53,9 @@ export function useStartCalendarOAuth() {
 export function useCalendarSync() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      provider: 'google_calendar' | 'microsoft_365';
-      scope: IntegrationScope;
-      corporateAccountId?: string;
-    }): Promise<{ synced: number; failed: number; last_sync_at: string }> => {
+    mutationFn: async (input: { provider: 'google_calendar' | 'microsoft_365'; scope: IntegrationScope; corporateAccountId?: string }): Promise<{ synced: number; failed: number; last_sync_at: string }> => {
       const { data, error } = await supabase.functions.invoke('integration-calendar-sync', {
-        body: {
-          provider: input.provider,
-          scope: input.scope,
-          corporate_account_id: input.corporateAccountId,
-        },
+        body: { provider: input.provider, scope: input.scope, corporate_account_id: input.corporateAccountId },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
@@ -84,29 +65,28 @@ export function useCalendarSync() {
   });
 }
 
+export function useEnsureVirtualMeeting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (bookingId: string): Promise<{ skipped?: boolean; reason?: string; message?: string; provider?: string; join_url?: string; existing?: boolean }> => {
+      const { data, error } = await supabase.functions.invoke('ensure-virtual-meeting', { body: { booking_id: bookingId } });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data ?? {};
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bookings'] }),
+  });
+}
+
 export function useSaveIntegrationConnection() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      ownerUserId?: string;
-      corporateAccountId?: string;
-      provider: string;
-      category: string;
-      scope: IntegrationScope;
-      status: IntegrationStatus;
-      displayName: string;
-      configPublic?: Record<string, unknown>;
-    }) => {
+    mutationFn: async (input: { ownerUserId?: string; corporateAccountId?: string; provider: string; category: string; scope: IntegrationScope; status: IntegrationStatus; displayName: string; configPublic?: Record<string, unknown> }) => {
       const scopeColumn = input.corporateAccountId ? 'corporate_account_id' : 'owner_user_id';
       const scopeValue = input.corporateAccountId ?? input.ownerUserId;
       if (!scopeValue) throw new Error('Missing integration owner.');
 
-      const { data: existing, error: findError } = await supabase
-        .from('integration_connections')
-        .select('id')
-        .eq(scopeColumn, scopeValue)
-        .eq('provider', input.provider)
-        .maybeSingle();
+      const { data: existing, error: findError } = await supabase.from('integration_connections').select('id').eq(scopeColumn, scopeValue).eq('provider', input.provider).maybeSingle();
       if (findError) throw new Error(findError.message);
 
       const payload = {

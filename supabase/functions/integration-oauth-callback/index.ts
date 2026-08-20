@@ -9,13 +9,15 @@ const admin = createClient(
 function redirect(base: string, params: Record<string, string>) {
   const fallback = 'https://trainershub.app/integrations';
   let url: URL;
-  try {
-    url = new URL(base || fallback);
-  } catch {
-    url = new URL(fallback);
-  }
+  try { url = new URL(base || fallback); } catch { url = new URL(fallback); }
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
   return Response.redirect(url.toString(), 302);
+}
+
+function providerLabel(provider: string) {
+  if (provider === 'google_calendar') return 'Google Calendar';
+  if (provider === 'microsoft_365') return 'Microsoft 365';
+  return 'Zoom';
 }
 
 async function exchangeGoogle(code: string, callbackUrl: string) {
@@ -45,12 +47,28 @@ async function exchangeMicrosoft(code: string, callbackUrl: string) {
   return { tokens, label: String(profile.mail || profile.userPrincipalName || profile.displayName || 'Microsoft 365') };
 }
 
+async function exchangeZoom(code: string, callbackUrl: string) {
+  const clientId = Deno.env.get('ZOOM_CLIENT_ID') ?? '';
+  const clientSecret = Deno.env.get('ZOOM_CLIENT_SECRET') ?? '';
+  if (!clientId || !clientSecret) throw new Error('Zoom OAuth is not configured.');
+  const tokenUrl = new URL('https://zoom.us/oauth/token');
+  tokenUrl.searchParams.set('grant_type', 'authorization_code');
+  tokenUrl.searchParams.set('code', code);
+  tokenUrl.searchParams.set('redirect_uri', callbackUrl);
+  const basic = btoa(`${clientId}:${clientSecret}`);
+  const response = await fetch(tokenUrl, { method: 'POST', headers: { Authorization: `Basic ${basic}` } });
+  const tokens = await response.json();
+  if (!response.ok || !tokens.access_token) throw new Error(tokens.reason || tokens.error || 'Zoom token exchange failed.');
+  const profileResponse = await fetch('https://api.zoom.us/v2/users/me', { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+  const profile = profileResponse.ok ? await profileResponse.json() : {};
+  return { tokens, label: String(profile.email || profile.display_name || 'Zoom') };
+}
+
 Deno.serve(async (req) => {
   const requestUrl = new URL(req.url);
   const state = requestUrl.searchParams.get('state') ?? '';
   const code = requestUrl.searchParams.get('code') ?? '';
   const providerError = requestUrl.searchParams.get('error') ?? '';
-
   if (!state) return redirect('https://trainershub.app/integrations', { oauth_error: 'missing_state' });
 
   const { data: stateRows, error: stateError } = await admin.rpc('integration_oauth_state_consume', { p_state: state });
@@ -62,7 +80,6 @@ Deno.serve(async (req) => {
   const scope = String(stateRow.scope);
   const userId = String(stateRow.user_id);
   const corporateAccountId = stateRow.corporate_account_id ? String(stateRow.corporate_account_id) : null;
-
   if (providerError) return redirect(returnUrl, { oauth_error: providerError, provider });
   if (!code) return redirect(returnUrl, { oauth_error: 'missing_code', provider });
 
@@ -70,7 +87,9 @@ Deno.serve(async (req) => {
     const callbackUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/integration-oauth-callback`;
     const exchanged = provider === 'google_calendar'
       ? await exchangeGoogle(code, callbackUrl)
-      : await exchangeMicrosoft(code, callbackUrl);
+      : provider === 'microsoft_365'
+        ? await exchangeMicrosoft(code, callbackUrl)
+        : await exchangeZoom(code, callbackUrl);
 
     const ownerId = scope === 'enterprise' ? corporateAccountId : userId;
     if (!ownerId) throw new Error('OAuth owner missing.');
@@ -78,9 +97,7 @@ Deno.serve(async (req) => {
 
     const { data: priorSecret } = await admin.rpc('integration_secret_read', { p_name: secretName });
     let prior: Record<string, unknown> = {};
-    if (priorSecret) {
-      try { prior = JSON.parse(String(priorSecret)); } catch { prior = {}; }
-    }
+    if (priorSecret) { try { prior = JSON.parse(String(priorSecret)); } catch { prior = {}; } }
 
     const expiresIn = Number(exchanged.tokens.expires_in ?? 3600);
     const secureToken = {
@@ -95,16 +112,13 @@ Deno.serve(async (req) => {
     };
 
     const { error: vaultError } = await admin.rpc('integration_secret_upsert', {
-      p_name: secretName,
-      p_secret: JSON.stringify(secureToken),
+      p_name: secretName, p_secret: JSON.stringify(secureToken),
       p_description: `TrainerHub ${provider} OAuth token for ${scope} owner ${ownerId}`,
     });
     if (vaultError) throw new Error(vaultError.message);
 
     let lookup = admin.from('integration_connections').select('id, config_public').eq('provider', provider);
-    lookup = scope === 'enterprise'
-      ? lookup.eq('corporate_account_id', corporateAccountId)
-      : lookup.eq('owner_user_id', userId);
+    lookup = scope === 'enterprise' ? lookup.eq('corporate_account_id', corporateAccountId) : lookup.eq('owner_user_id', userId);
     const { data: connection, error: lookupError } = await lookup.maybeSingle();
     if (lookupError) throw new Error(lookupError.message);
 
@@ -113,15 +127,15 @@ Deno.serve(async (req) => {
       owner_user_id: scope === 'personal' ? userId : null,
       corporate_account_id: scope === 'enterprise' ? corporateAccountId : null,
       provider,
-      category: 'Calendar',
+      category: provider === 'zoom' ? 'Virtual sessions' : 'Calendar',
       scope,
       status: 'connected',
-      display_name: provider === 'google_calendar' ? 'Google Calendar' : 'Microsoft 365',
+      display_name: providerLabel(provider),
       external_account_label: exchanged.label,
       credentials_ref: secretName,
       connected_at: now,
       updated_at: now,
-      config_public: { ...(connection?.config_public || {}), sync_direction: 'trainerhub_to_provider', oauth_completed_at: now },
+      config_public: { ...(connection?.config_public || {}), oauth_completed_at: now, ...(provider === 'zoom' ? { meeting_provider: true } : { sync_direction: 'trainerhub_to_provider' }) },
     };
 
     let connectionId = connection?.id;
@@ -134,14 +148,7 @@ Deno.serve(async (req) => {
       connectionId = inserted.id;
     }
 
-    await admin.from('integration_sync_events').insert({
-      integration_connection_id: connectionId,
-      event_type: 'oauth_connected',
-      status: 'success',
-      summary: `${payload.display_name} connected`,
-      metadata: { external_account_label: exchanged.label },
-    });
-
+    await admin.from('integration_sync_events').insert({ integration_connection_id: connectionId, event_type: 'oauth_connected', status: 'success', summary: `${payload.display_name} connected`, metadata: { external_account_label: exchanged.label } });
     return redirect(returnUrl, { connected: '1', provider });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'OAuth callback failed';

@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -51,13 +52,7 @@ function ReviewModal({ visible, booking, clientId, onClose }: ReviewModalProps) 
       return;
     }
     try {
-      await createReview.mutateAsync({
-        booking_id: booking.id,
-        client_id: clientId,
-        trainer_id: booking.trainer_id,
-        rating,
-        body: body.trim() || null,
-      });
+      await createReview.mutateAsync({ booking_id: booking.id, client_id: clientId, trainer_id: booking.trainer_id, rating, body: body.trim() || null });
       setRating(0);
       setBody('');
       onClose();
@@ -87,14 +82,7 @@ function ReviewModal({ visible, booking, clientId, onClose }: ReviewModalProps) 
             ))}
           </View>
           <Text style={[styles.label, { color: colors.muted }]}>Comment (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]}
-            value={body}
-            onChangeText={setBody}
-            placeholder="Share your experience…"
-            placeholderTextColor={colors.placeholder}
-            multiline
-          />
+          <TextInput style={[styles.input, styles.multiline, { borderColor: colors.borderInput, color: colors.ink, backgroundColor: colors.surfaceCard }]} value={body} onChangeText={setBody} placeholder="Share your experience…" placeholderTextColor={colors.placeholder} multiline />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -119,6 +107,7 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard, isC
   const canCancel = booking.status === 'pending' && !isPast;
   const canReview = booking.status === 'confirmed' && isPast;
   const canPay = booking.status === 'confirmed' && !isPast && booking.payment_status === 'unpaid' && !booking.package_purchase_id;
+  const canJoin = booking.status === 'confirmed' && !isPast && booking.session_type === 'virtual' && !!booking.virtual_meeting_url;
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surfaceCard, borderColor: colors.border }]}>
@@ -127,38 +116,30 @@ function BookingCard({ booking, onCancel, onReview, onPay, isPayingThisCard, isC
         <View style={styles.cardLeft}>
           {booking.trainerSpecialty ? <Text style={[styles.activityText, { color: accent }]}>{booking.trainerSpecialty.toUpperCase()}</Text> : null}
           <Text style={[styles.cardTrainer, { color: colors.ink }]}>with {booking.trainerName ?? 'Trainer'}</Text>
-          <Text style={[styles.cardDate, { color: colors.muted }]}>
-            {bookingDate.toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-          </Text>
+          <Text style={[styles.cardDate, { color: colors.muted }]}>{bookingDate.toLocaleString([], { weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</Text>
           <Text style={[styles.cardMeta, { color: colors.muted }]}>{booking.duration_min} min · {booking.session_type === 'in-person' ? 'In-Person' : 'Virtual'}</Text>
           {booking.payment_status === 'paid' ? <Text style={[styles.paymentConfirmed, { color: colors.success }]}>✓ Payment confirmed</Text> : null}
           {booking.payment_status === 'failed' ? <Text style={[styles.paymentConfirmed, { color: colors.danger }]}>Payment failed — try again</Text> : null}
+          {booking.session_type === 'virtual' && booking.status === 'confirmed' && !booking.virtual_meeting_url ? <Text style={[styles.meetingPending, { color: colors.muted }]}>Meeting link will appear here when your trainer’s virtual provider is ready.</Text> : null}
         </View>
-        <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}>
-          <Text style={[styles.badgeText, { color: statusStyle.text }]}>{booking.status}</Text>
-        </View>
+        <View style={[styles.badge, { backgroundColor: statusStyle.bg }]}><Text style={[styles.badgeText, { color: statusStyle.text }]}>{booking.status}</Text></View>
       </View>
 
-      {(canCancel || canReview || canPay) ? (
+      {(canCancel || canReview || canPay || canJoin) ? (
         <View style={[styles.cardActions, { borderTopColor: colors.border }]}>
+          {canJoin ? (
+            <TouchableOpacity style={styles.joinAction} onPress={() => Linking.openURL(booking.virtual_meeting_url!)}>
+              <Text style={styles.joinActionText}>Join {booking.virtual_meeting_provider === 'zoom' ? 'Zoom' : 'Google Meet'}</Text>
+            </TouchableOpacity>
+          ) : null}
           {canPay && !isCorporateMember ? (
             <TouchableOpacity style={styles.primaryAction} onPress={() => onPay(booking)} disabled={isPayingThisCard}>
               {isPayingThisCard ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryActionText}>Pay now</Text>}
             </TouchableOpacity>
           ) : null}
-          {canPay && isCorporateMember ? (
-            <View style={[styles.actionBtn, { borderColor: colors.success }]}><Text style={[styles.actionBtnText, { color: colors.success }]}>Covered by your company</Text></View>
-          ) : null}
-          {canCancel ? (
-            <TouchableOpacity style={[styles.actionBtn, { borderColor: colors.danger }]} onPress={() => onCancel(booking.id)}>
-              <Text style={[styles.actionBtnText, { color: colors.danger }]}>Cancel</Text>
-            </TouchableOpacity>
-          ) : null}
-          {canReview ? (
-            <TouchableOpacity style={[styles.actionBtn, { borderColor: accent }]} onPress={() => onReview(booking)}>
-              <Text style={[styles.actionBtnText, { color: accent }]}>Leave review</Text>
-            </TouchableOpacity>
-          ) : null}
+          {canPay && isCorporateMember ? <View style={[styles.actionBtn, { borderColor: colors.success }]}><Text style={[styles.actionBtnText, { color: colors.success }]}>Covered by your company</Text></View> : null}
+          {canCancel ? <TouchableOpacity style={[styles.actionBtn, { borderColor: colors.danger }]} onPress={() => onCancel(booking.id)}><Text style={[styles.actionBtnText, { color: colors.danger }]}>Cancel</Text></TouchableOpacity> : null}
+          {canReview ? <TouchableOpacity style={[styles.actionBtn, { borderColor: accent }]} onPress={() => onReview(booking)}><Text style={[styles.actionBtnText, { color: accent }]}>Leave review</Text></TouchableOpacity> : null}
         </View>
       ) : null}
     </View>
@@ -171,11 +152,9 @@ export default function Bookings() {
   const { colors } = useTheme();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const { data: isCorporateMember = false } = useCorporateMember();
-
   const bookingsQuery = useMyBookingsAsClient(userId);
   const updateStatus = useUpdateBookingStatus(userId, 'client');
   const createPaymentIntent = useCreatePaymentIntent();
-
   const [reviewBooking, setReviewBooking] = useState<BookingWithNames | null>(null);
   const [payingBookingId, setPayingBookingId] = useState<string | null>(null);
 
@@ -192,16 +171,11 @@ export default function Bookings() {
       }
       const refreshed = await bookingsQuery.refetch();
       const latestBooking = refreshed.data?.find((item) => item.id === booking.id);
-      if (latestBooking?.payment_status === 'paid') {
-        Alert.alert('Payment confirmed', 'Stripe confirmed your payment. Your booking is paid.');
-      } else {
-        Alert.alert('Payment submitted', 'Stripe received your payment. TrainerHub will mark the booking paid after the secure payment confirmation arrives.');
-      }
+      if (latestBooking?.payment_status === 'paid') Alert.alert('Payment confirmed', 'Stripe confirmed your payment. Your booking is paid.');
+      else Alert.alert('Payment submitted', 'Stripe received your payment. TrainerHub will mark the booking paid after the secure payment confirmation arrives.');
     } catch (err: unknown) {
       Alert.alert('Payment failed', err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setPayingBookingId(null);
-    }
+    } finally { setPayingBookingId(null); }
   };
 
   const allBookings = bookingsQuery.data ?? [];
@@ -219,9 +193,7 @@ export default function Bookings() {
     ]);
   };
 
-  if (bookingsQuery.isLoading) {
-    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
-  }
+  if (bookingsQuery.isLoading) return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator /></View>;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['bottom']}>
@@ -234,27 +206,12 @@ export default function Bookings() {
         ListHeaderComponent={
           <>
             <EnergyHero eyebrow="YOUR SESSIONS" title="Bookings" subtitle="See what’s pending, confirmed, completed and ready for payment." icon="calendar-outline" compact />
-
-            <View style={styles.sectionRow}>
-              <View><Text style={styles.sectionEyebrow}>UPCOMING</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>{upcoming.length} active</Text></View>
-              <View style={styles.sectionBeam} />
-            </View>
+            <View style={styles.sectionRow}><View><Text style={styles.sectionEyebrow}>UPCOMING</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>{upcoming.length} active</Text></View><View style={styles.sectionBeam} /></View>
             {upcoming.length === 0 ? (
-              <View style={[styles.emptyState, { borderColor: colors.border }]}>
-                <Text style={[styles.emptyTitle, { color: colors.ink }]}>Nothing on deck.</Text>
-                <Text style={[styles.empty, { color: colors.muted }]}>Your next booking will appear here.</Text>
-              </View>
-            ) : upcoming.map((b) => (
-              <BookingCard key={b.id} booking={b} onCancel={handleCancel} onReview={setReviewBooking} onPay={handlePay} isPayingThisCard={payingBookingId === b.id} isCorporateMember={isCorporateMember} />
-            ))}
-
-            <View style={styles.sectionRow}>
-              <View><Text style={styles.sectionEyebrow}>HISTORY</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>Past sessions</Text></View>
-              <View style={styles.sectionBeam} />
-            </View>
-            {past.length === 0 ? <Text style={[styles.empty, { color: colors.muted }]}>No past bookings yet.</Text> : past.map((b) => (
-              <BookingCard key={b.id} booking={b} onCancel={handleCancel} onReview={setReviewBooking} onPay={handlePay} />
-            ))}
+              <View style={[styles.emptyState, { borderColor: colors.border }]}><Text style={[styles.emptyTitle, { color: colors.ink }]}>Nothing on deck.</Text><Text style={[styles.empty, { color: colors.muted }]}>Your next booking will appear here.</Text></View>
+            ) : upcoming.map((b) => <BookingCard key={b.id} booking={b} onCancel={handleCancel} onReview={setReviewBooking} onPay={handlePay} isPayingThisCard={payingBookingId === b.id} isCorporateMember={isCorporateMember} />)}
+            <View style={styles.sectionRow}><View><Text style={styles.sectionEyebrow}>HISTORY</Text><Text style={[styles.sectionTitle, { color: colors.ink }]}>Past sessions</Text></View><View style={styles.sectionBeam} /></View>
+            {past.length === 0 ? <Text style={[styles.empty, { color: colors.muted }]}>No past bookings yet.</Text> : past.map((b) => <BookingCard key={b.id} booking={b} onCancel={handleCancel} onReview={setReviewBooking} onPay={handlePay} />)}
           </>
         }
       />
@@ -283,13 +240,16 @@ const styles = StyleSheet.create({
   cardDate: { fontSize: typography.sm, marginTop: 5, fontWeight: '700' },
   cardMeta: { fontSize: typography.xs, marginTop: 3 },
   paymentConfirmed: { fontSize: typography.xs, marginTop: 7, fontWeight: '800' },
+  meetingPending: { fontSize: 10, lineHeight: 15, marginTop: 8 },
   badge: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  cardActions: { flexDirection: 'row', gap: spacing.sm, padding: 10, borderTopWidth: 1 },
-  actionBtn: { flex: 1, borderWidth: 1, borderRadius: 9, paddingVertical: 9, alignItems: 'center' },
+  cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: 10, borderTopWidth: 1 },
+  actionBtn: { flex: 1, minWidth: 120, borderWidth: 1, borderRadius: 9, paddingVertical: 9, alignItems: 'center' },
   actionBtnText: { fontSize: typography.sm, fontWeight: '700' },
-  primaryAction: { flex: 1, borderRadius: 9, paddingVertical: 10, alignItems: 'center', backgroundColor: BRAND.navy },
+  primaryAction: { flex: 1, minWidth: 120, borderRadius: 9, paddingVertical: 10, alignItems: 'center', backgroundColor: BRAND.navy },
   primaryActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  joinAction: { flex: 1, minWidth: 160, borderRadius: 9, paddingVertical: 10, alignItems: 'center', backgroundColor: BRAND.purple },
+  joinActionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
   modalSafe: { flex: 1 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, borderBottomWidth: 1 },
   modalTitle: { fontSize: typography.md, fontWeight: '800' },
