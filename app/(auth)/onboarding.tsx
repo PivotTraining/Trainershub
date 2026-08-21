@@ -35,6 +35,24 @@ function isAtLeast(years: number, dob: Date): boolean {
 }
 function formatDate(d: Date): string { return d.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' }); }
 function isoDate(d: Date): string { return d.toISOString().slice(0, 10); }
+function formatDobInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+function parseDobInput(value: string): Date | null {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const year = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900) return null;
+  const parsed = new Date(year, month - 1, day);
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
+  if (parsed > new Date()) return null;
+  return parsed;
+}
 
 export default function Onboarding() {
   const router = useRouter();
@@ -44,6 +62,7 @@ export default function Onboarding() {
 
   const [name, setName] = useState(profile?.full_name ?? '');
   const [dob, setDob] = useState<Date | null>(null);
+  const [dobInput, setDobInput] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [phone, setPhone] = useState('');
   const [city, setCity] = useState('');
@@ -83,9 +102,15 @@ export default function Onboarding() {
     setDob(selected);
   };
 
+  const handleDobTextChange = (value: string) => {
+    const formatted = formatDobInput(value);
+    setDobInput(formatted);
+    setDob(parseDobInput(formatted));
+  };
+
   const validate = (): string | null => {
     if (!name.trim()) return 'Please enter your name.';
-    if (!dob) return 'Please select your date of birth.';
+    if (!dob) return Platform.OS === 'web' ? 'Please enter a valid date of birth in MM/DD/YYYY format.' : 'Please select your date of birth.';
     if (!isAtLeast(MIN_AGE, dob)) return `You must be at least ${MIN_AGE} years old to use TrainerHub.`;
     if (!city.trim()) return 'Please add your city or use the location button.';
     if (!phone.trim() || phone.replace(/\D/g, '').length < 7) return 'Please enter a valid phone number.';
@@ -133,11 +158,30 @@ export default function Onboarding() {
           <TextInput style={[styles.input, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard, color: colors.ink }]} value={name} onChangeText={setName} placeholder="Alex Johnson" placeholderTextColor={colors.placeholder} autoCapitalize="words" />
 
           <FieldLabel text="Date of birth" colors={colors} />
-          <TouchableOpacity style={[styles.input, styles.dateInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard }]} onPress={() => setShowDatePicker((current) => !current)}>
-            <Text style={{ color: dob ? colors.ink : colors.placeholder, fontSize: 16 }}>{dob ? formatDate(dob) : 'Choose date'}</Text>
-            <Ionicons name="calendar-outline" size={17} color={accent} />
-          </TouchableOpacity>
-          {showDatePicker ? <DateTimePicker value={dob ?? new Date(2000, 0, 1)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={new Date()} onChange={handleDateChange} /> : null}
+          {Platform.OS === 'web' ? (
+            <View style={[styles.input, styles.dateInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard }]}>
+              <TextInput
+                style={[styles.webDateTextInput, { color: colors.ink }]}
+                value={dobInput}
+                onChangeText={handleDobTextChange}
+                placeholder="MM/DD/YYYY"
+                placeholderTextColor={colors.placeholder}
+                keyboardType="number-pad"
+                inputMode="numeric"
+                maxLength={10}
+                accessibilityLabel="Date of birth"
+              />
+              <Ionicons name="calendar-outline" size={17} color={accent} />
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity style={[styles.input, styles.dateInput, { borderColor: colors.borderInput, backgroundColor: colors.surfaceCard }]} onPress={() => setShowDatePicker((current) => !current)}>
+                <Text style={{ color: dob ? colors.ink : colors.placeholder, fontSize: 16 }}>{dob ? formatDate(dob) : 'Choose date'}</Text>
+                <Ionicons name="calendar-outline" size={17} color={accent} />
+              </TouchableOpacity>
+              {showDatePicker ? <DateTimePicker value={dob ?? new Date(2000, 0, 1)} mode="date" display={Platform.OS === 'ios' ? 'spinner' : 'default'} maximumDate={new Date()} onChange={handleDateChange} /> : null}
+            </>
+          )}
 
           <SectionLabel number="02" title="Where you train" accent={accent} colors={colors} />
           <FieldLabel text="City" colors={colors} />
@@ -206,6 +250,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginTop: 13, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 13, fontSize: 16 },
   dateInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  webDateTextInput: { flex: 1, padding: 0, fontSize: 16, outlineStyle: 'none' as never },
   locationRow: { flexDirection: 'row', gap: 8 },
   locationInput: { flex: 1 },
   locationBtn: { width: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: BRAND.navy, borderRadius: 10 },
