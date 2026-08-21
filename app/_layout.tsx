@@ -62,6 +62,7 @@ function ThemedStack() {
       <ThemeProvider value={trainerHubNavigationTheme}>
         <AnalyticsTracker />
         <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="session/new" options={{ presentation: 'modal', title: 'New session' }} />
