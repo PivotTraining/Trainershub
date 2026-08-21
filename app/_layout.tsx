@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { AppCanvas } from '@/components/AppCanvas';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LaunchWelcomeGate } from '@/components/LaunchWelcomeGate';
 import { trackEvent } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PreferencesProvider } from '@/lib/preferences';
@@ -93,7 +94,9 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <PreferencesProvider>
             <AuthProvider>
-              <ThemedStack />
+              <LaunchWelcomeGate>
+                <ThemedStack />
+              </LaunchWelcomeGate>
             </AuthProvider>
           </PreferencesProvider>
         </QueryClientProvider>
