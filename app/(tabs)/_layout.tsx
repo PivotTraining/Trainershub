@@ -29,11 +29,14 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      detachInactiveScreens
       tabBar={(props) => <TabBar {...props} visibleRouteNames={visibleRouteNames} sidebar={useSidebar} />}
       screenOptions={{
         tabBarPosition: useSidebar ? 'left' : 'bottom',
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
+        sceneStyle: { backgroundColor: colors.background },
+        freezeOnBlur: true,
         tabBarStyle: useSidebar
           ? { backgroundColor: colors.surface, borderRightColor: colors.border, borderRightWidth: 1, borderTopWidth: 0, width: 236 }
           : { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 },
