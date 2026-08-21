@@ -13,6 +13,7 @@ import { trackEvent } from '@/lib/analytics';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
+import { useTheme } from '@/lib/useTheme';
 
 SplashScreen.preventAutoHideAsync().catch(() => null);
 
@@ -35,14 +36,6 @@ const queryClient = new QueryClient({
   },
 });
 
-const trainerHubNavigationTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: 'transparent',
-  },
-};
-
 function AnalyticsTracker() {
   const pathname = usePathname();
   const { session } = useAuth();
@@ -56,12 +49,24 @@ function AnalyticsTracker() {
 }
 
 function ThemedStack() {
+  const { colors } = useTheme();
+  const navigationTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.ink,
+      border: colors.border,
+    },
+  };
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <AppCanvas />
-      <ThemeProvider value={trainerHubNavigationTheme}>
+      <ThemeProvider value={navigationTheme}>
         <AnalyticsTracker />
-        <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -98,5 +103,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1 },
 });
