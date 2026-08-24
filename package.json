@@ -9,7 +9,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "security:audit": "node scripts/security-audit.cjs",
+    "web:export": "expo export --platform web --output-dir dist-ci"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
