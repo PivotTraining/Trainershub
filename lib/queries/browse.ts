@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { trackEvent } from '../analytics';
 import { supabase } from '../supabase';
 import type { Package, Review, TrainerListing } from '../types';
 
@@ -42,7 +43,10 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
         if (slotsError) throw new Error(slotsError.message);
 
         availableTrainerIds = [...new Set((slots ?? []).map((slot) => slot.trainer_id as string))];
-        if (availableTrainerIds.length === 0) return [];
+        if (availableTrainerIds.length === 0) {
+          void trackEvent('discover_searched', { ...filters, result_count: 0 });
+          return [];
+        }
       }
 
       const { data, error } = await supabase.rpc('get_trainer_directory', {
@@ -50,7 +54,7 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
       });
       if (error) throw new Error(error.message);
 
-      return ((data ?? []) as TrainerListing[]).filter((trainer) =>
+      const results = ((data ?? []) as TrainerListing[]).filter((trainer) =>
         matchesSearch(trainer, filters.search)
         && (!filters.specialty || trainer.specialties.includes(filters.specialty))
         && (!filters.sessionType || trainer.session_types.includes(filters.sessionType))
@@ -59,6 +63,19 @@ export function useBrowseTrainers(filters: BrowseFilters = {}) {
         && (!filters.language || trainer.languages.includes(filters.language))
         && (!availableTrainerIds || availableTrainerIds.includes(trainer.user_id)),
       );
+
+      const hasIntent = Boolean(
+        filters.search?.trim()
+        || filters.specialty
+        || filters.sessionType
+        || filters.language
+        || filters.availableToday
+        || filters.maxRateCents != null
+        || filters.minRateCents != null,
+      );
+      if (hasIntent) void trackEvent('discover_searched', { ...filters, result_count: results.length });
+
+      return results;
     },
   });
 }
@@ -85,7 +102,16 @@ export function usePublicTrainerProfile(trainerId: string | undefined) {
         p_trainer_id: trainerId!,
       });
       if (error) throw new Error(error.message);
-      return ((data ?? [])[0] as TrainerListing | undefined) ?? null;
+      const trainer = ((data ?? [])[0] as TrainerListing | undefined) ?? null;
+      if (trainer) {
+        void trackEvent('trainer_profile_viewed', {
+          trainer_id: trainer.user_id,
+          specialty: trainer.specialties[0] ?? null,
+          location: trainer.location,
+          verified: trainer.is_verified,
+        });
+      }
+      return trainer;
     },
   });
 }
