@@ -1,9 +1,15 @@
 appId: com.trainerhub.app
 ---
-# ── Step 1: Launch and land on sign-in ──────────────────────────────────────
+# ── Step 1: Launch through the real first-time welcome path ──────────────────
 - launchApp:
     clearState: true
 - assertVisible: "TrainerHub"
+- runFlow:
+    when:
+      visible: "Get Started"
+    commands:
+      - assertVisible: "WELCOME TO TRAINERHUB"
+      - tapOn: "Get Started"
 - assertVisible: "Sign in with your email."
 
 # ── Step 2: Enter trainer email ──────────────────────────────────────────────
