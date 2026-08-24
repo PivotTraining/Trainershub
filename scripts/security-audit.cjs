@@ -5,9 +5,9 @@ const ALLOWED_ADVISORIES = new Set([
   'GHSA-5p2g-fcmc-qvqq',
 ]);
 
-// These two image-size advisories currently have no published patched release.
-// Metro reaches image-size through Expo build tooling. Re-review this exception
-// frequently and remove it immediately once Expo/image-size provides a fix.
+// Temporary exception: both advisories currently have no published patched
+// image-size release and are reached through Expo/Metro build tooling.
+// Force a human re-review instead of allowing this exception to live forever.
 const EXCEPTION_REVIEW_BY = new Date('2026-09-15T00:00:00Z');
 
 function audit() {
@@ -20,58 +20,70 @@ function audit() {
   }
 }
 
-function advisoryIds(vulnerability) {
-  const ids = new Set();
-  for (const via of vulnerability.via || []) {
-    if (!via || typeof via === 'string') continue;
-    const haystack = `${via.source || ''} ${via.url || ''} ${via.title || ''}`;
-    const matches = haystack.match(/GHSA-[a-z0-9-]+/gi) || [];
-    for (const match of matches) ids.add(match);
-  }
-  return ids;
+function advisoryIdsFromVia(via) {
+  if (!via || typeof via === 'string') return [];
+  const text = `${via.source || ''} ${via.url || ''} ${via.title || ''}`;
+  return text.match(/GHSA-[a-z0-9-]+/gi) || [];
 }
 
 const report = audit();
 const vulnerabilities = report.vulnerabilities || {};
+const memo = new Map();
+
+function isAllowedChain(name, visiting = new Set()) {
+  if (memo.has(name)) return memo.get(name);
+  if (visiting.has(name)) return false;
+
+  const vulnerability = vulnerabilities[name];
+  if (!vulnerability) return false;
+  if (!['high', 'critical'].includes(vulnerability.severity)) return true;
+
+  const nextVisiting = new Set(visiting);
+  nextVisiting.add(name);
+
+  let sawCause = false;
+  for (const via of vulnerability.via || []) {
+    sawCause = true;
+
+    if (typeof via === 'string') {
+      if (!isAllowedChain(via, nextVisiting)) {
+        memo.set(name, false);
+        return false;
+      }
+      continue;
+    }
+
+    const ids = advisoryIdsFromVia(via);
+    if (ids.length === 0 || !ids.every((id) => ALLOWED_ADVISORIES.has(id))) {
+      memo.set(name, false);
+      return false;
+    }
+  }
+
+  const allowed = sawCause && (name === 'image-size' || (vulnerability.via || []).every((via) => typeof via === 'string' ? isAllowedChain(via, nextVisiting) : advisoryIdsFromVia(via).every((id) => ALLOWED_ADVISORIES.has(id))));
+  memo.set(name, allowed);
+  return allowed;
+}
+
 const blocking = [];
 const allowed = [];
 
 for (const [name, vulnerability] of Object.entries(vulnerabilities)) {
   if (!['high', 'critical'].includes(vulnerability.severity)) continue;
-
-  const ids = advisoryIds(vulnerability);
-  const onlyKnownImageSizeIssue =
-    name === 'image-size' &&
-    ids.size > 0 &&
-    [...ids].every((id) => ALLOWED_ADVISORIES.has(id));
-
-  // npm can roll the parent dependency chain up as high because it ultimately
-  // reaches image-size. Allow those parents only when every advisory object in
-  // the chain points exclusively at the two known image-size advisories.
-  const viaObjects = (vulnerability.via || []).filter((via) => via && typeof via !== 'string');
-  const parentOnlyKnownIssue =
-    viaObjects.length > 0 &&
-    viaObjects.every((via) => {
-      const text = `${via.source || ''} ${via.url || ''} ${via.title || ''}`;
-      const matches = text.match(/GHSA-[a-z0-9-]+/gi) || [];
-      return matches.length > 0 && matches.every((id) => ALLOWED_ADVISORIES.has(id));
-    });
-
-  if (onlyKnownImageSizeIssue || parentOnlyKnownIssue) {
-    allowed.push({ name, severity: vulnerability.severity, advisories: [...ids] });
-  } else {
-    blocking.push({ name, severity: vulnerability.severity, advisories: [...ids] });
-  }
+  const ids = (vulnerability.via || []).flatMap(advisoryIdsFromVia);
+  const item = { name, severity: vulnerability.severity, advisories: [...new Set(ids)] };
+  if (isAllowedChain(name)) allowed.push(item);
+  else blocking.push(item);
 }
 
 if (allowed.length > 0) {
-  console.warn('Allowed temporary security exceptions:');
+  console.warn('Temporary approved security exception chain:');
   for (const item of allowed) console.warn(`- ${item.name} (${item.severity}) ${item.advisories.join(', ')}`);
-  console.warn(`Exception review deadline: ${EXCEPTION_REVIEW_BY.toISOString()}`);
+  console.warn(`Mandatory exception review deadline: ${EXCEPTION_REVIEW_BY.toISOString()}`);
 }
 
 if (Date.now() >= EXCEPTION_REVIEW_BY.getTime() && allowed.length > 0) {
-  console.error('Security exception review deadline has passed. Re-review the image-size advisories before releasing.');
+  console.error('Security exception review deadline has passed. Re-review before releasing.');
   process.exit(1);
 }
 
