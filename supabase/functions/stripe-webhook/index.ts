@@ -4,13 +4,12 @@
  * Handles Stripe webhook events:
  *   - payment_intent.succeeded  → marks booking payment_status = 'paid'
  *   - payment_intent.payment_failed → marks booking payment_status = 'failed'
+ *   - charge.refunded → marks a fully refunded booking as refunded
  *   - account.updated → updates stripe_onboarded flag on trainer_profiles
  *
- * Required env vars:
- *   STRIPE_SECRET_KEY
- *   STRIPE_WEBHOOK_SECRET   (from Stripe Dashboard → Webhooks → Signing secret)
- *   SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY
+ * Conversion events that depend on Stripe confirmation are written here,
+ * server-side, so marketing analytics reflects trusted payment state rather
+ * than a client-side success screen.
  */
 
 import Stripe from 'https://esm.sh/stripe@14?target=deno';
@@ -52,21 +51,46 @@ Deno.serve(async (req: Request) => {
     const updateBookingPayment = async (
       paymentIntentId: string,
       paymentStatus: 'paid' | 'failed' | 'refunded',
-    ): Promise<void> => {
-      const { data, error } = await supabase
+    ) => {
+      const { data: current, error: currentError } = await supabase
         .from('bookings')
-        .update({ payment_status: paymentStatus })
+        .select('id, client_id, trainer_id, payment_status')
         .eq('payment_intent_id', paymentIntentId)
-        .select('id')
         .maybeSingle();
-      if (error) throw new Error(error.message);
-      if (!data) throw new Error(`No booking found for PaymentIntent ${paymentIntentId}`);
+      if (currentError) throw new Error(currentError.message);
+      if (!current) throw new Error(`No booking found for PaymentIntent ${paymentIntentId}`);
+
+      const changed = current.payment_status !== paymentStatus;
+      if (changed) {
+        const { error } = await supabase
+          .from('bookings')
+          .update({ payment_status: paymentStatus })
+          .eq('id', current.id);
+        if (error) throw new Error(error.message);
+      }
+
+      return { ...current, changed };
     };
 
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent;
-        await updateBookingPayment(pi.id, 'paid');
+        const booking = await updateBookingPayment(pi.id, 'paid');
+        if (booking.changed) {
+          const { error } = await supabase.from('product_events').insert({
+            user_id: booking.client_id,
+            event_name: 'payment_completed',
+            properties: {
+              booking_id: booking.id,
+              trainer_id: booking.trainer_id,
+              payment_intent_id: pi.id,
+              amount_cents: pi.amount_received,
+              currency: pi.currency,
+              source: 'stripe_webhook',
+            },
+          });
+          if (error) throw new Error(error.message);
+        }
         break;
       }
 
@@ -89,20 +113,36 @@ Deno.serve(async (req: Request) => {
 
       case 'account.updated': {
         const account = event.data.object as Stripe.Account;
-        const onboarded =
-          account.details_submitted === true &&
-          account.charges_enabled === true;
-        // Find trainer by stripe_account_id
-        const { error } = await supabase
+        const onboarded = account.details_submitted === true && account.charges_enabled === true;
+
+        const { data: trainer, error: trainerError } = await supabase
           .from('trainer_profiles')
-          .update({ stripe_onboarded: onboarded })
-          .eq('stripe_account_id', account.id);
-        if (error) throw new Error(error.message);
+          .select('user_id, stripe_onboarded')
+          .eq('stripe_account_id', account.id)
+          .maybeSingle();
+        if (trainerError) throw new Error(trainerError.message);
+
+        if (trainer) {
+          const becameConnected = onboarded && !trainer.stripe_onboarded;
+          const { error } = await supabase
+            .from('trainer_profiles')
+            .update({ stripe_onboarded: onboarded })
+            .eq('user_id', trainer.user_id);
+          if (error) throw new Error(error.message);
+
+          if (becameConnected) {
+            const { error: eventError } = await supabase.from('product_events').insert({
+              user_id: trainer.user_id,
+              event_name: 'stripe_connected',
+              properties: { stripe_account_id: account.id, source: 'stripe_webhook' },
+            });
+            if (eventError) throw new Error(eventError.message);
+          }
+        }
         break;
       }
 
       default:
-        // Unhandled event type — ignore
         break;
     }
 

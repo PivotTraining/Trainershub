@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { trackEvent } from '../analytics';
 import { supabase } from '../supabase';
 
 /**
@@ -10,6 +11,8 @@ export function useStartStripeOnboarding() {
     mutationFn: async (): Promise<{ url: string; account_id: string }> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Not authenticated');
+
+      void trackEvent('trainer_profile_started', { step: 'stripe_onboarding' });
 
       const res = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-connect-account`,
@@ -37,6 +40,8 @@ export function useCreatePaymentIntent() {
     mutationFn: async (bookingId: string): Promise<string> => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Not authenticated');
+
+      void trackEvent('payment_started', { booking_id: bookingId });
 
       const res = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/create-payment-intent`,

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { trackEvent } from '../analytics';
 import { supabase } from '../supabase';
 import type { Review } from '../types';
 
@@ -38,6 +39,12 @@ export function useCreateReview() {
       return data as Review;
     },
     onSuccess: (r) => {
+      void trackEvent('review_submitted', {
+        review_id: r.id,
+        booking_id: r.booking_id,
+        trainer_id: r.trainer_id,
+        rating: r.rating,
+      });
       qc.invalidateQueries({ queryKey: ['reviews', r.trainer_id] });
       qc.invalidateQueries({ queryKey: ['my_review', r.booking_id] });
     },
