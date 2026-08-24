@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/trainers/:trainerId",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "headers": [
