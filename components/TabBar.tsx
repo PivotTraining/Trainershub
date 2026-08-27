@@ -27,7 +27,7 @@ export function TabBar({ state, navigation, visibleRouteNames, sidebar = false }
       navigation.reset({ index: 0, routes: [{ name: route.name, params: route.params }] });
       return;
     }
-    navigation.navigate(route.name as never);
+    navigation.jumpTo(route.name, route.params);
   };
 
   return (
