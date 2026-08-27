@@ -48,26 +48,57 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      native_ready: ${{ steps.native-preflight.outputs.native_ready }}
     steps:
+      - name: Native CI credential preflight
+        id: native-preflight
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        shell: bash
+        run: |
+          missing=()
+          [[ -z "$EXPO_TOKEN" ]] && missing+=(EXPO_TOKEN)
+          [[ -z "$SUPABASE_URL" ]] && missing+=(SUPABASE_URL)
+          [[ -z "$SUPABASE_ANON_KEY" ]] && missing+=(SUPABASE_ANON_KEY)
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "native_ready=false" >> "$GITHUB_OUTPUT"
+            echo "### Native verification pending" >> "$GITHUB_STEP_SUMMARY"
+            echo "The application CI gate passed, but the iOS EAS build was intentionally skipped because these GitHub Actions secrets are not configured: **${missing[*]}**." >> "$GITHUB_STEP_SUMMARY"
+            echo "Add the missing repository secrets to enable automatic iOS build verification on the next main-branch push." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "native_ready=true" >> "$GITHUB_OUTPUT"
+            echo "Native CI credentials are configured; continuing with the iOS EAS build." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.native-preflight.outputs.native_ready == 'true'
 
       - uses: actions/setup-node@v7
+        if: steps.native-preflight.outputs.native_ready == 'true'
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
+        if: steps.native-preflight.outputs.native_ready == 'true'
         run: npm ci
 
       - name: Set up EAS
+        if: steps.native-preflight.outputs.native_ready == 'true'
         uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build
+        if: steps.native-preflight.outputs.native_ready == 'true'
         run: eas build --platform ios --profile preview --non-interactive --wait
         env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
 
@@ -75,49 +106,84 @@ jobs:
     name: Maestro E2E
     runs-on: macos-latest
     needs: build-preview
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-preview.outputs.native_ready == 'true'
     steps:
+      - name: E2E credential preflight
+        id: e2e-preflight
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TRAINER_EMAIL: ${{ secrets.E2E_TRAINER_EMAIL }}
+          E2E_CLIENT_EMAIL: ${{ secrets.E2E_CLIENT_EMAIL }}
+        shell: bash
+        run: |
+          missing=()
+          [[ -z "$SUPABASE_URL" ]] && missing+=(SUPABASE_URL)
+          [[ -z "$SUPABASE_SERVICE_ROLE_KEY" ]] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+          [[ -z "$E2E_TRAINER_EMAIL" ]] && missing+=(E2E_TRAINER_EMAIL)
+          [[ -z "$E2E_CLIENT_EMAIL" ]] && missing+=(E2E_CLIENT_EMAIL)
+
+          if (( ${#missing[@]} > 0 )); then
+            echo "e2e_ready=false" >> "$GITHUB_OUTPUT"
+            echo "### Maestro verification pending" >> "$GITHUB_STEP_SUMMARY"
+            echo "The iOS build can run, but Maestro was intentionally skipped because these E2E secrets are not configured: **${missing[*]}**." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "e2e_ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v7
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
 
       - uses: actions/setup-node@v7
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         run: npm ci
 
       - name: Install Maestro
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         run: curl -Ls "https://get.maestro.mobile.dev" | bash
 
       - name: Boot iOS simulator
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         run: |
           xcrun simctl boot "iPhone 16" || true
           xcrun simctl bootstatus "iPhone 16"
 
       - name: Install app on simulator
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         run: |
           npx expo run:ios --no-bundler --simulator "iPhone 16"
 
       - name: Seed OTP via Supabase Admin
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         id: seed-otp
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_TRAINER_EMAIL: ${{ secrets.E2E_TRAINER_EMAIL }}
         run: |
           curl -s -X POST \
-            "${{ secrets.SUPABASE_URL }}/auth/v1/otp" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "$SUPABASE_URL/auth/v1/otp" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"email\":\"${{ secrets.E2E_TRAINER_EMAIL }}\"}" >/dev/null
+            -d "{\"email\":\"$E2E_TRAINER_EMAIL\"}" >/dev/null
           OTP_CODE=$(curl -s -X POST \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/get_otp_for_email" \
-            -H "apikey: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "$SUPABASE_URL/rest/v1/rpc/get_otp_for_email" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
             -H "Content-Type: application/json" \
-            -d "{\"p_email\":\"${{ secrets.E2E_TRAINER_EMAIL }}\"}" \
+            -d "{\"p_email\":\"$E2E_TRAINER_EMAIL\"}" \
             | jq -r '.')
           test -n "$OTP_CODE" && test "$OTP_CODE" != "null"
           echo "otp=$OTP_CODE" >> "$GITHUB_OUTPUT"
 
       - name: Run Maestro flow
+        if: steps.e2e-preflight.outputs.e2e_ready == 'true'
         env:
           TRAINER_EMAIL: ${{ secrets.E2E_TRAINER_EMAIL }}
           MAESTRO_OTP: ${{ steps.seed-otp.outputs.otp }}
@@ -125,7 +191,7 @@ jobs:
         run: ~/.maestro/bin/maestro test .maestro/sign-in-create-client.yml
 
       - name: Upload Maestro artifacts
-        if: always()
+        if: always() && steps.e2e-preflight.outputs.e2e_ready == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: maestro-results
