@@ -141,7 +141,7 @@ export default function ProfileDashboard() {
                   : upcomingSessions === 0 ? 'Browse trainers and put the next session on your calendar.' : 'Show up, complete the session, and move your progress bar forward.'}
               </Text>
             </View>
-            <SpringPress onPress={() => router.push(isTrainer ? '/(tabs)/availability' : '/(tabs)/browse')}>
+            <SpringPress onPress={() => router.navigate(isTrainer ? '/(tabs)/availability' : '/(tabs)/browse')}>
               <View style={styles.goButton}>
                 <Ionicons name="arrow-forward" size={18} color="#fff" />
               </View>
