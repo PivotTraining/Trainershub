@@ -35,8 +35,9 @@ export default function TabsLayout() {
         tabBarPosition: useSidebar ? 'left' : 'bottom',
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
-        sceneStyle: { backgroundColor: colors.background },
+        sceneStyle: { backgroundColor: colors.background, overflow: 'hidden' },
         freezeOnBlur: true,
+        animation: 'none',
         tabBarStyle: useSidebar
           ? { backgroundColor: colors.surface, borderRightColor: colors.border, borderRightWidth: 1, borderTopWidth: 0, width: 236 }
           : { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: 1 },
