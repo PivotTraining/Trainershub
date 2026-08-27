@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EnergyHero } from '@/components/EnergyHero';
+import { trackEvent } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth';
 import { registerPushToken } from '@/lib/notifications';
 import { useUpdateProfile } from '@/lib/queries/profile';
@@ -138,6 +139,14 @@ export default function Onboarding() {
         location_lng: coords?.lng ?? null,
         liability_accepted_at: new Date().toISOString(),
       });
+
+      void trackEvent('onboarding_completed', { role, location_city: city.trim() });
+
+      if (role === 'trainer') {
+        // Operational email failure must never block the trainer from entering the app.
+        await supabase.functions.invoke('notify-trainer-signup', { body: {} }).catch(() => null);
+      }
+
       await registerPushToken(session.user.id, { promptIfNeeded: true }).catch(() => null);
       router.replace('/(tabs)');
     } catch (error: unknown) {
