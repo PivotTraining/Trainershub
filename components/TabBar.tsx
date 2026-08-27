@@ -1,6 +1,7 @@
 /** Responsive TrainerHub navigation with official brand treatment. */
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { TabActions } from '@react-navigation/native';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -27,7 +28,7 @@ export function TabBar({ state, navigation, visibleRouteNames, sidebar = false }
       navigation.reset({ index: 0, routes: [{ name: route.name, params: route.params }] });
       return;
     }
-    navigation.navigate(route.name as never);
+    navigation.dispatch(TabActions.jumpTo(route.name, route.params));
   };
 
   return (
