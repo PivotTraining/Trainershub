@@ -52,16 +52,11 @@ Deno.serve(async (req) => {
     return json({ delivered: false, reason: 'onboarding_incomplete' }, 409);
   }
 
-  const { data: claimed, error: claimError } = await admin
-    .schema('private')
-    .from('trainer_signup_admin_notifications')
-    .insert({ user_id: user.id })
-    .select('user_id')
-    .maybeSingle();
-
-  if (claimError?.code === '23505') return json({ delivered: false, reason: 'already_notified' });
+  const { data: claimed, error: claimError } = await admin.rpc('claim_trainer_signup_admin_notification', {
+    p_user_id: user.id,
+  });
   if (claimError) return json({ error: claimError.message }, 500);
-  if (!claimed) return json({ delivered: false, reason: 'already_notified' });
+  if (claimed !== true) return json({ delivered: false, reason: 'already_notified' });
 
   try {
     const [apiKeyResult, recipientResult, fromResult] = await Promise.all([
@@ -123,25 +118,16 @@ Deno.serve(async (req) => {
       throw new Error(resendBody?.message || `Resend request failed (${resendResponse.status})`);
     }
 
-    await admin
-      .schema('private')
-      .from('trainer_signup_admin_notifications')
-      .update({
-        sent_at: new Date().toISOString(),
-        resend_email_id: String(resendBody.id),
-        last_error: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
+    const { error: completeError } = await admin.rpc('complete_trainer_signup_admin_notification', {
+      p_user_id: user.id,
+      p_resend_email_id: String(resendBody.id),
+    });
+    if (completeError) throw new Error(completeError.message);
 
     return json({ delivered: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Signup notification failed';
-    await admin
-      .schema('private')
-      .from('trainer_signup_admin_notifications')
-      .delete()
-      .eq('user_id', user.id);
+    await admin.rpc('release_trainer_signup_admin_notification', { p_user_id: user.id }).catch(() => null);
     return json({ error: message }, 500);
   }
 });
