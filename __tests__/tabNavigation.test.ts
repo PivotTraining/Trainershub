@@ -10,9 +10,9 @@ describe('native tab navigation hardening', () => {
     expect(tabsLayout).toContain('freezeOnBlur: false');
   });
 
-  it('switches mobile tabs with jumpTo rather than navigate', () => {
+  it('switches mobile tabs with a tab jump action rather than generic navigate', () => {
     const tabBar = fs.readFileSync(path.join(repoRoot, 'components/TabBar.tsx'), 'utf8');
-    expect(tabBar).toContain('navigation.jumpTo(route.name, route.params)');
+    expect(tabBar).toContain('navigation.dispatch(TabActions.jumpTo(route.name, route.params))');
     expect(tabBar).not.toContain('navigation.navigate(route.name as never)');
   });
 });
