@@ -50,7 +50,7 @@ export function ClientHomeExperience() {
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={styles.topRow}>
           <BrandLockup compact dark={false} />
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/profile-dashboard')}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.navigate('/(tabs)/profile-dashboard')}>
             <Ionicons name="notifications-outline" size={20} color={BRAND.navy} />
           </TouchableOpacity>
         </View>
@@ -58,7 +58,7 @@ export function ClientHomeExperience() {
         <Text style={styles.greeting}>Good morning, {firstName} 👋</Text>
         <Text style={styles.heroTitle}>Who are we{`\n`}training with{`\n`}<Text style={styles.heroAccent}>today?</Text></Text>
 
-        <TouchableOpacity style={styles.findCard} onPress={() => router.push('/(tabs)/browse')} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.findCard} onPress={() => router.navigate('/(tabs)/browse')} activeOpacity={0.9}>
           <View>
             <Text style={styles.findTitle}>Find a Trainer</Text>
             <Text style={styles.findSub}>Search by name, skill, goal, or location</Text>
@@ -68,14 +68,14 @@ export function ClientHomeExperience() {
 
         <View style={styles.sectionTop}>
           <Text style={styles.sectionTitle}>Popular Categories</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/browse')}><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.navigate('/(tabs)/browse')}><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
         </View>
         <View style={styles.categoryGrid}>
           {CATEGORIES.map((item) => (
             <TouchableOpacity
               key={item.label}
               style={styles.category}
-              onPress={() => router.push({ pathname: '/(tabs)/browse', params: 'sessionType' in item ? { sessionType: item.sessionType } : { specialty: item.specialty } })}
+              onPress={() => router.navigate({ pathname: '/(tabs)/browse', params: 'sessionType' in item ? { sessionType: item.sessionType } : { specialty: item.specialty } })}
             >
               <Ionicons name={item.icon} size={16} color="#FFFFFF" />
               <Text style={styles.categoryText}>{item.label}</Text>
@@ -85,7 +85,7 @@ export function ClientHomeExperience() {
 
         <View style={styles.sectionTop}>
           <Text style={styles.sectionTitle}>Top Trainers</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/browse')}><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.navigate('/(tabs)/browse')}><Text style={styles.viewAll}>View all</Text></TouchableOpacity>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trainerRail}>
           {featured.map((trainer) => <FeaturedTrainer key={trainer.user_id} trainer={trainer} onPress={() => router.push({ pathname: '/(tabs)/browse/[trainerId]', params: { trainerId: trainer.user_id } })} />)}
@@ -106,7 +106,7 @@ export function ClientHomeExperience() {
             </TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity style={styles.nextSession} onPress={() => router.push('/(tabs)/browse')}>
+          <TouchableOpacity style={styles.nextSession} onPress={() => router.navigate('/(tabs)/browse')}>
             <View style={styles.nextIcon}><Ionicons name="flash" size={19} color="#FFFFFF" /></View>
             <View style={{ flex: 1 }}><Text style={styles.nextKicker}>YOUR NEXT MOVE</Text><Text style={styles.nextTime}>Book your first session</Text><Text style={styles.nextMeta}>Find a trainer who fits how you want to grow.</Text></View>
             <View style={styles.nextArrow}><Ionicons name="arrow-forward" size={19} color="#FFFFFF" /></View>
@@ -115,7 +115,7 @@ export function ClientHomeExperience() {
 
         {program ? (
           <>
-            <View style={[styles.sectionTop, { marginTop: 24 }]}><Text style={styles.sectionTitle}>Continue Your Program</Text><TouchableOpacity onPress={() => router.push('/(tabs)/profile-dashboard')}><Text style={styles.viewAll}>View program</Text></TouchableOpacity></View>
+            <View style={[styles.sectionTop, { marginTop: 24 }]}><Text style={styles.sectionTitle}>Continue Your Program</Text><TouchableOpacity onPress={() => router.navigate('/(tabs)/profile-dashboard')}><Text style={styles.viewAll}>View program</Text></TouchableOpacity></View>
             <View style={styles.programCard}>
               <View style={styles.programIcon}><Ionicons name="layers" size={22} color="#FFFFFF" /></View>
               <View style={{ flex: 1 }}>

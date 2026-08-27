@@ -60,7 +60,7 @@ export function FindMatchCard() {
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: BRAND.navy }]}
-          onPress={() => router.push('/(tabs)/browse')}
+          onPress={() => router.navigate('/(tabs)/browse')}
           activeOpacity={0.86}
         >
           <Text style={styles.primaryBtnText}>Browse trainers</Text>
