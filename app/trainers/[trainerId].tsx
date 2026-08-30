@@ -11,6 +11,41 @@ import { usePublicTrainerProfile, useTrainerPackagesPublic, useTrainerReviewsPub
 import { BRAND } from '@/lib/theme';
 import { useTheme } from '@/lib/useTheme';
 
+export async function generateStaticParams(): Promise<Array<{ trainerId: string }>> {
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+  // CI can intentionally use placeholder credentials to validate the bundle.
+  // Production Vercel builds have the real public Supabase credentials and
+  // generate one static HTML route per verified marketplace trainer.
+  if (!supabaseUrl || !anonKey || supabaseUrl.includes('example.supabase.co')) return [];
+
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/get_public_trainer_directory`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_trainer_id: null }),
+    });
+
+    if (!response.ok) {
+      console.warn(`[static-trainers] directory request failed: ${response.status}`);
+      return [];
+    }
+
+    const trainers = await response.json() as Array<{ user_id?: string; is_verified?: boolean }>;
+    return trainers
+      .filter((trainer) => trainer.is_verified === true && typeof trainer.user_id === 'string')
+      .map((trainer) => ({ trainerId: trainer.user_id! }));
+  } catch (error) {
+    console.warn('[static-trainers] unable to generate trainer routes:', error);
+    return [];
+  }
+}
+
 export default function PublicTrainerProfile() {
   const { trainerId } = useLocalSearchParams<{ trainerId: string }>();
   const router = useRouter();
