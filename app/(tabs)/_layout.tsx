@@ -29,7 +29,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      detachInactiveScreens={false}
+      detachInactiveScreens
       backBehavior="history"
       tabBar={(props) => <TabBar {...props} visibleRouteNames={visibleRouteNames} sidebar={useSidebar} />}
       screenOptions={{
@@ -39,7 +39,12 @@ export default function TabsLayout() {
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: colors.muted,
         sceneStyle: { flex: 1, backgroundColor: colors.background, overflow: 'hidden' },
-        freezeOnBlur: false,
+        // Inactive tabs must be detached from the view tree and frozen. With
+        // both disabled every visited tab stayed mounted and painted, so
+        // Home showed through Discover once you switched tabs. Tab switching
+        // still uses TabActions.jumpTo (see components/TabBar.tsx), which is
+        // what actually fixes the ghosting these flags were flipped for.
+        freezeOnBlur: true,
         animation: 'none',
         tabBarStyle: useSidebar
           ? { backgroundColor: colors.surface, borderRightColor: colors.border, borderRightWidth: 1, borderTopWidth: 0, width: 236 }

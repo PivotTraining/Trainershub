@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+import { enableScreens } from 'react-native-screens';
 
 import { AppCanvas } from '@/components/AppCanvas';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -15,6 +16,15 @@ import { AuthProvider, useAuth } from '@/lib/auth';
 import { PreferencesProvider } from '@/lib/preferences';
 import { StripeProvider } from '@/lib/stripe';
 import { useTheme } from '@/lib/useTheme';
+
+// react-native-screens defaults ENABLE_SCREENS to false on web (it is gated on
+// isNativePlatformSupported). While it is off, @react-navigation's MaybeScreen
+// falls back to a plain <View> that ignores `enabled` and `activityState`, so
+// inactive tab scenes are never hidden — every visited tab stays painted in the
+// same absoluteFill box and screens bleed through each other. enableScreens()
+// assigns before its own platform early-return, so this does take effect on web
+// and lets Screen.web.tsx apply `display: none` to inactive scenes.
+enableScreens(true);
 
 SplashScreen.preventAutoHideAsync().catch(() => null);
 

@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TrainerHub — Privacy Policy</title>
+<meta name="description" content="How TrainerHub collects, uses, stores, and deletes your personal data." />
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --text: #e8ecf1;
+    --muted: #9aa3ad;
+    --accent: #4f8cff;
+    --border: #232830;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+  header { margin-bottom: 32px; }
+  h1 { font-size: 32px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 20px; margin: 32px 0 12px; letter-spacing: -0.01em; }
+  h3 { font-size: 16px; margin: 20px 0 8px; }
+  p { margin: 0 0 12px; color: var(--text); }
+  .lede { color: var(--muted); font-size: 17px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin: 16px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .pill { display: inline-block; padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); font-size: 13px; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--border); padding-top: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>TrainerHub Privacy Policy</h1>
+      <p class="lede">How we collect, use, store, and delete your personal data.</p>
+      <div class="row">
+        <span class="pill">Effective August 2026</span>
+        <span class="pill">iOS &amp; Web</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <p style="margin:0">TrainerHub is a marketplace connecting personal trainers with clients. We collect only what the app needs to work. <strong>We do not sell your personal data.</strong></p>
+    </section>
+
+    <h2>What we collect</h2>
+
+    <table>
+      <tr><th>Category</th><th>Examples</th><th>Why</th></tr>
+      <tr>
+        <td>Account</td>
+        <td>Email address, name, role (trainer or client), password (stored hashed, never in plain text)</td>
+        <td>To create and secure your account</td>
+      </tr>
+      <tr>
+        <td>Profile</td>
+        <td>Display name, avatar, bio, specialties, languages, hourly rate, phone number, city, date of birth</td>
+        <td>To show your profile and match trainers with clients</td>
+      </tr>
+      <tr>
+        <td>Location</td>
+        <td>City, and approximate coordinates if you provide them</td>
+        <td>To show trainers near you. We do not track continuous or background location.</td>
+      </tr>
+      <tr>
+        <td>Training content</td>
+        <td>Sessions, bookings, availability, programs, packages, session notes, client goals</td>
+        <td>To deliver the core scheduling and coaching features</td>
+      </tr>
+      <tr>
+        <td>Journal</td>
+        <td>Entries and mood you record yourself</td>
+        <td>Visible only to you unless you share it</td>
+      </tr>
+      <tr>
+        <td>Reviews</td>
+        <td>Ratings and review text you submit</td>
+        <td>Shown publicly on trainer profiles</td>
+      </tr>
+      <tr>
+        <td>Payments</td>
+        <td>Handled entirely by Stripe. We store only a Stripe account/customer reference and payment status.</td>
+        <td>To process bookings and trainer payouts</td>
+      </tr>
+      <tr>
+        <td>Notifications</td>
+        <td>Device push token, if you enable notifications</td>
+        <td>To notify you about bookings and requests</td>
+      </tr>
+      <tr>
+        <td>Usage</td>
+        <td>In-app events such as screens viewed and sign-in completion, tied to your account ID</td>
+        <td>To understand and improve how the app is used</td>
+      </tr>
+    </table>
+
+    <p><strong>We never collect or store your full card number or bank details.</strong> Card data goes directly to Stripe and never touches our servers.</p>
+
+    <h2>Who we share it with</h2>
+    <div class="panel">
+      <ul>
+        <li><strong>Other users, by design.</strong> If you're a trainer, your public profile, specialties, rate, and reviews are visible to clients. If you're a client, your name, goals, and session notes are visible to the trainer you book with.</li>
+        <li><strong>Supabase</strong> — our database and authentication provider, which stores the data above on our behalf.</li>
+        <li><strong>Stripe</strong> — payment processing and trainer payouts.</li>
+        <li><strong>Corporate accounts</strong> — if you join via an employer invitation, that account's administrators can see your membership status and utilization, not your journal or session notes.</li>
+        <li><strong>Legal requirements</strong> — if we're required by law to disclose information.</li>
+      </ul>
+      <p style="margin-bottom:0">We do not sell your data, and we do not share it with advertisers.</p>
+    </div>
+
+    <h2>How we protect it</h2>
+    <p>All traffic is encrypted in transit over HTTPS. Data is stored in Supabase with row-level security so accounts can only read the records they're entitled to. Passwords are stored as salted hashes and are never readable by us or anyone else.</p>
+
+    <h2>Your choices and rights</h2>
+    <div class="panel">
+      <h3 style="margin-top:0">Delete your account</h3>
+      <p>Open the app and go to <strong>Profile → Settings → Delete Account</strong>. This permanently removes your profile, sessions, bookings, journal entries, and associated data. You can also email us and we'll do it for you.</p>
+      <h3>Access or correct your data</h3>
+      <p>Most of your data is editable directly in the app from your Profile. For anything else, email us and we'll provide a copy or make corrections.</p>
+      <h3>Notifications</h3>
+      <p>Push notifications are opt-in. You can turn them off any time in iOS Settings or in the app.</p>
+      <h3>Retention</h3>
+      <p>We keep your data while your account is active. When you delete your account, we remove it promptly, except where we're legally required to retain transaction records (Stripe retains payment records per its own obligations).</p>
+    </div>
+
+    <h2>Children</h2>
+    <p>TrainerHub is not directed at children under 13, and we do not knowingly collect their personal data. If you believe a child has created an account, contact us and we'll remove it.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If we make material changes, we'll update the effective date above and, where appropriate, notify you in the app.</p>
+
+    <h2>Contact</h2>
+    <div class="panel">
+      <p style="margin:0"><strong>Email:</strong> <a href="mailto:support@trainerhub.app">support@trainerhub.app</a></p>
+    </div>
+
+    <footer>
+      TrainerHub · <a href="support.html">Support</a> · &copy; 2026 TrainerHub. All rights reserved.
+    </footer>
+  </div>
+</body>
+</html>
