@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   sectionNumber: { fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
   sectionTitle: { fontSize: 19, fontWeight: '900' },
   sectionBeam: { flex: 1, height: 1, backgroundColor: BRAND.blue, opacity: 0.2, marginBottom: 5 },
-  label: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8, marginTop: 13, marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: '900', letterSpacing: 0.8, marginTop: 13, marginBottom: 6 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 13, fontSize: 16 },
   dateInput: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   webDateTextInput: { flex: 1, padding: 0, fontSize: 16, outlineStyle: 'none' as never },
