@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   modalRoot: { flex: 1, padding: 24 },
   modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: '900' },
-  formLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.9, marginBottom: 6, marginTop: 16 },
+  formLabel: { fontSize: 11, fontWeight: '900', letterSpacing: 0.9, marginBottom: 6, marginTop: 16 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 12, fontSize: 15 },
   inviteInput: { height: 120, textAlignVertical: 'top' },
 });

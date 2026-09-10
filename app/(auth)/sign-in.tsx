@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   roleOption: { position: 'relative', flex: 1, alignItems: 'center', paddingVertical: 12 },
   roleRail: { position: 'absolute', left: 0, right: 0, bottom: -1, height: 2 },
   roleLabel: { fontSize: 13, fontWeight: '800' },
-  label: { fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 7, marginTop: 12 },
+  label: { fontSize: 11, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 7, marginTop: 12 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 10, paddingHorizontal: 13 },
   input: { flex: 1, fontSize: 16, paddingVertical: 13 },
   codeInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, fontSize: 24, textAlign: 'center', letterSpacing: 8, fontWeight: '800', marginTop: 12 },
