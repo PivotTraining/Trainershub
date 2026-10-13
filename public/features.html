@@ -269,30 +269,72 @@ footer{background:#07172B;color:#7F91A3;border-top:1px solid rgba(255,255,255,.0
   .hero .sub{font-size:17px}
   .hero .actions{margin-top:24px}
   .btn{min-height:48px;padding:0 20px}
-  .stage{border-radius:30px;height:720px;min-height:720px;margin-top:38px}
-  .stage::after{background:linear-gradient(0deg,rgba(7,23,43,.96) 0%,rgba(7,23,43,.84) 31%,rgba(7,23,43,.18) 68%,rgba(7,23,43,.08) 100%)}
-  .stagecopy{left:24px;right:24px;bottom:28px}
+
+  /* Mobile: keep the product mockup in the content flow instead of floating over the story. */
+  .stage{
+    height:auto;
+    min-height:0;
+    margin-top:38px;
+    padding:285px 24px 30px;
+    border-radius:30px;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:24px;
+  }
+  .stage-photo{object-position:60% center}
+  .stage::after{
+    z-index:1;
+    background:linear-gradient(180deg,rgba(7,23,43,.04) 0%,rgba(7,23,43,.14) 28%,rgba(7,23,43,.92) 49%,rgba(7,23,43,.98) 100%);
+  }
+  .stagecopy{
+    position:relative;
+    z-index:3;
+    left:auto;
+    right:auto;
+    top:auto;
+    bottom:auto;
+    transform:none;
+    width:100%;
+    order:1;
+  }
   .stagecopy .tag{font-size:9px;letter-spacing:.14em}
-  .stagecopy h2{font-size:37px;line-height:.98;margin:8px 0 12px;max-width:310px}
+  .stagecopy h2{font-size:37px;line-height:.98;margin:8px 0 12px;max-width:300px}
   .stagecopy p{font-size:15.5px;line-height:1.45;max-width:315px}
-  .phone{width:198px;border-width:7px;border-radius:32px}
-  .phone::before{width:68px;height:19px}
-  .screen{min-height:404px;padding:26px 10px 12px}
-  .phone-hero{top:30%;right:50%;transform:translate(50%,-50%) rotate(4deg)}
-  .ui-title{font-size:20px}
-  .ui-card{padding:10px;margin-top:9px;border-radius:15px}
-  .ui-photo{width:38px;height:38px;border-radius:11px}
-  .ui-name{font-size:11px}
-  .ui-small{font-size:7.5px}
-  .ui-chip{font-size:7px;padding:4px 6px}
-  .ui-time{display:grid;grid-template-columns:1fr auto;gap:8px;padding:9px 10px}
+  .phone{
+    width:172px;
+    border-width:6px;
+    border-radius:29px;
+  }
+  .phone::before{width:60px;height:17px;border-radius:0 0 11px 11px}
+  .screen{min-height:350px;padding:23px 9px 11px}
+  .phone-hero{
+    position:relative;
+    z-index:3;
+    top:auto;
+    right:auto;
+    transform:none;
+    width:172px;
+    margin:0 auto;
+    order:2;
+  }
+  .ui-title{font-size:17px}
+  .ui-card{padding:9px;margin-top:8px;border-radius:13px}
+  .ui-row{gap:7px}
+  .ui-photo{width:33px;height:33px;border-radius:9px}
+  .ui-name{font-size:9.5px}
+  .ui-small{font-size:6.7px}
+  .ui-chip{font-size:6.4px;padding:3px 5px}
+  .ui-time{display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px 9px;border-radius:10px}
   .ui-time strong,.ui-time span{display:block}
-  .ui-time strong{font-size:9px}
-  .ui-time span{font-size:7.5px;margin-top:2px}
-  .ui-time b{font-size:14px;align-self:center}
-  .metric{padding:9px}
-  .metric b{font-size:15px}
-  .metric span{font-size:7px}
+  .ui-time strong{font-size:8px}
+  .ui-time span{font-size:6.5px;margin-top:2px}
+  .ui-time b{font-size:12px;align-self:center}
+  .ui-grid{gap:6px;margin-top:8px}
+  .metric{padding:8px;border-radius:11px}
+  .metric b{font-size:13px}
+  .metric span{font-size:6.5px}
+
   .section{padding:92px 0}
   .section h2{font-size:47px}
   .split{margin-top:50px}
