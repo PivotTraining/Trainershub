@@ -34,17 +34,43 @@ export default function InviteScreen() {
     acceptCorporateInvite({ token });
   }, [acceptCorporateInvite, router, session, token]);
 
-  const isPending = acceptInvite.isPending;
   const isSuccess = acceptInvite.isSuccess;
   const isError   = acceptInvite.isError;
+  // No token at all (someone opened /invite directly, or the link was
+  // truncated). Without this branch nothing below matches and the screen
+  // renders completely blank with no way out.
+  const isMissingToken = !token;
+  // Anything that is not a terminal state gets the spinner: redirecting to
+  // sign-in, the frame before the mutation starts, and the request itself.
+  // Enumerating only isPending left those frames rendering nothing.
+  const isWorking = !isMissingToken && !isSuccess && !isError;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {isPending && (
+      {isMissingToken && (
+        <>
+          <Text style={styles.errorIcon}>✕</Text>
+          <Text style={[styles.title, { color: colors.ink, fontSize: typography.lg }]}>
+            Invite link incomplete
+          </Text>
+          <Text style={[styles.sub, { color: colors.muted, fontSize: typography.sm }]}>
+            This link is missing its invite code. Open the full link from your
+            invitation email, or ask your team admin to send a new one.
+          </Text>
+          <TouchableOpacity
+            style={[styles.btn, { backgroundColor: accent, borderRadius: radius.lg }]}
+            onPress={() => router.replace('/(tabs)')}
+          >
+            <Text style={[styles.btnText, { fontSize: typography.md }]}>Go to Home</Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {isWorking && (
         <>
           <ActivityIndicator size="large" color={accent} />
           <Text style={[styles.title, { color: colors.ink, fontSize: typography.lg }]}>
-            Joining your team…
+            {session ? 'Joining your team…' : 'Taking you to sign in…'}
           </Text>
         </>
       )}

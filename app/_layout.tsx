@@ -4,7 +4,7 @@ import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { enableScreens } from 'react-native-screens';
 
@@ -59,6 +59,51 @@ function AnalyticsTracker() {
   return null;
 }
 
+const SITE_NAME = 'TrainerHub';
+const TITLE_BY_PATH: Record<string, string> = {
+  '/': 'Home',
+  '/browse': 'Discover trainers',
+  '/bookings': 'Bookings',
+  '/journal': 'Journal',
+  '/clients': 'Clients',
+  '/requests': 'Requests',
+  '/schedule': 'Schedule',
+  '/availability': 'Availability',
+  '/programs': 'Programs',
+  '/packages': 'Packages',
+  '/corporate': 'Corporate',
+  '/integrations': 'Integrations',
+  '/profile': 'Account & Settings',
+  '/profile-dashboard': 'Profile',
+  '/personalize': 'Personalize',
+  '/sign-in': 'Sign in',
+  '/sign-up': 'Create account',
+  '/welcome': 'Welcome',
+  '/onboarding': 'Set up your profile',
+  '/reset-password': 'Reset password',
+  '/invite': 'Join your team',
+};
+
+/**
+ * expo-router turns off React Navigation's documentTitle handling and manages
+ * <title> through react-helmet instead. No route declares a Head, so helmet
+ * renders an empty <title data-rh="true"></title> and blanks document.title on
+ * every route — browser tabs, bookmarks and shared links all show nothing.
+ * Setting it from the pathname restores a real title. Web-only; on native the
+ * document object does not exist.
+ */
+function DocumentTitle() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const leaf = TITLE_BY_PATH[pathname];
+    document.title = leaf ? `${leaf} · ${SITE_NAME}` : `${SITE_NAME} | Find, Book & Train`;
+  }, [pathname]);
+
+  return null;
+}
+
 function ThemedStack() {
   const { colors } = useTheme();
   const navigationTheme = {
@@ -77,6 +122,7 @@ function ThemedStack() {
       <AppCanvas />
       <ThemeProvider value={navigationTheme}>
         <AnalyticsTracker />
+        <DocumentTitle />
         <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background } }}>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
