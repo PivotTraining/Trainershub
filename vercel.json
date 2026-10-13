@@ -1,11 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "buildCommand": "npx expo export --platform web && cp public/features.html dist/index.html",
+  "outputDirectory": "dist",
   "rewrites": [
-    {
-      "source": "/",
-      "destination": "/features.html"
-    },
     {
       "source": "/trainers/:trainerId",
       "destination": "/index.html"
