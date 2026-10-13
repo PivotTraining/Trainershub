@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>TrainerHub — Find. Book. Train.</title>
+<meta name="description" content="TrainerHub brings trainer discovery, booking, programs, client management, scheduling, session history, payments and progress into one connected experience." />
+<meta name="theme-color" content="#07172B" />
+<meta property="og:title" content="TrainerHub — Find. Book. Train." />
+<meta property="og:description" content="One platform for trainers and clients to connect, book, train, track progress and run the business behind the work." />
+<meta property="og:type" content="website" />
+<link rel="canonical" href="https://trainershub.app/features" />
+<link rel="icon" href="/trainerhub-icon.svg" type="image/svg+xml" />
+<style>
+:root{
+  --ink:#07172B;
+  --ink2:#0E2742;
+  --purple:#8B24FF;
+  --purple2:#B72CFF;
+  --blue:#168BFF;
+  --aqua:#05BFEA;
+  --cream:#F7F7FA;
+  --line:#E7E9EF;
+  --muted:#677384;
+  --white:#FFFFFF;
+  --shadow:0 30px 80px rgba(7,23,43,.14);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  color:var(--ink);
+  background:#fff;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit;text-decoration:none}
+button,a{ -webkit-tap-highlight-color:transparent }
+img{display:block;max-width:100%}
+.shell{width:min(1180px,calc(100% - 40px));margin:0 auto}
+.nav{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:saturate(180%) blur(22px);
+  -webkit-backdrop-filter:saturate(180%) blur(22px);
+  background:rgba(255,255,255,.82);
+  border-bottom:1px solid rgba(7,23,43,.08);
+}
+.navin{height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.03em}
+.mark{
+  width:29px;height:29px;border-radius:9px;
+  display:grid;place-items:center;color:#fff;font-size:11px;font-weight:900;
+  background:linear-gradient(145deg,var(--purple),var(--blue));
+  box-shadow:0 7px 22px rgba(139,36,255,.24);
+}
+.navlinks{display:flex;align-items:center;gap:26px;font-size:13px;font-weight:700;color:#5C6877}
+.navlinks a:hover{color:var(--ink)}
+.navcta{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:0 17px;border-radius:999px;
+  background:var(--ink);color:#fff!important;font-weight:800
+}
+.hero{
+  position:relative;padding:82px 0 60px;
+  background:
+    radial-gradient(circle at 74% 18%,rgba(139,36,255,.13),transparent 28%),
+    radial-gradient(circle at 90% 48%,rgba(22,139,255,.10),transparent 27%),
+    linear-gradient(#fff,#fbfbfd);
+}
+.eyebrow{
+  color:var(--purple);font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase
+}
+.hero h1{
+  margin:14px auto 0;max-width:920px;text-align:center;
+  font-size:clamp(52px,8.2vw,102px);line-height:.92;letter-spacing:-.065em;font-weight:900;
+}
+.hero .sub{
+  max-width:750px;margin:28px auto 0;text-align:center;
+  font-size:clamp(19px,2.2vw,27px);line-height:1.34;letter-spacing:-.025em;color:#576476;font-weight:600
+}
+.hero .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:30px}
+.btn{
+  min-height:50px;padding:0 22px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-weight:850;font-size:15px;transition:.2s ease;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--purple);color:#fff;box-shadow:0 16px 36px rgba(139,36,255,.25)}
+.btn-secondary{background:#fff;border:1px solid #dfe3ea;box-shadow:0 8px 30px rgba(7,23,43,.06)}
+.stage{
+  width:min(1180px,calc(100% - 30px));height:min(690px,72vw);
+  min-height:520px;margin:64px auto 0;position:relative;border-radius:46px;overflow:hidden;
+  background:var(--ink);box-shadow:var(--shadow);
+}
+.stage-photo{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  filter:saturate(.88) contrast(1.03);
+}
+.stage::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(7,23,43,.86) 0%,rgba(7,23,43,.56) 32%,rgba(7,23,43,.14) 62%,rgba(7,23,43,.08));
+}
+.stagecopy{position:absolute;z-index:3;left:6.3%;top:50%;transform:translateY(-50%);width:min(430px,40%)}
+.stagecopy .tag{font-size:11px;font-weight:900;letter-spacing:.16em;color:#9EDCFF;text-transform:uppercase}
+.stagecopy h2{font-size:clamp(38px,4.9vw,67px);line-height:.98;letter-spacing:-.055em;color:#fff;margin:11px 0 15px}
+.stagecopy p{color:#CFD9E6;font-size:17px;line-height:1.5;margin:0}
+.phone{
+  width:278px;border-radius:44px;background:#0B1420;border:8px solid #111A25;
+  box-shadow:0 40px 90px rgba(0,0,0,.36),inset 0 0 0 1px rgba(255,255,255,.06);
+  overflow:hidden;position:relative;
+}
+.phone::before{
+  content:"";display:block;width:84px;height:23px;border-radius:0 0 15px 15px;background:#0B1420;
+  position:absolute;z-index:5;top:0;left:50%;transform:translateX(-50%);
+}
+.screen{background:#F8F9FC;min-height:560px;padding:32px 16px 18px}
+.phone-hero{
+  position:absolute;z-index:4;right:8%;top:50%;transform:translateY(-50%) rotate(6deg);
+}
+.ui-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.ui-avatar{width:35px;height:35px;border-radius:12px;background:linear-gradient(145deg,#D9E7F5,#B5C9E1)}
+.ui-bell{width:31px;height:31px;border-radius:50%;display:grid;place-items:center;background:#fff;border:1px solid #E3E7ED;font-size:14px}
+.ui-kicker{font-size:9px;font-weight:900;letter-spacing:.13em;color:#8B24FF;text-transform:uppercase}
+.ui-title{font-size:24px;line-height:1.03;letter-spacing:-.045em;font-weight:900;margin-top:5px}
+.ui-card{background:#fff;border:1px solid #E8EBF0;border-radius:18px;padding:14px;margin-top:12px;box-shadow:0 8px 24px rgba(7,23,43,.05)}
+.ui-row{display:flex;align-items:center;gap:10px}
+.ui-photo{width:47px;height:47px;border-radius:13px;background:linear-gradient(145deg,#152F4E,#8B24FF)}
+.ui-small{font-size:9px;color:#8A93A0;margin-top:3px}
+.ui-name{font-size:13px;font-weight:850}
+.ui-chip{font-size:8px;font-weight:850;padding:5px 8px;border-radius:999px;background:#F0E7FF;color:#7319DA;margin-left:auto}
+.ui-time{
+  margin-top:10px;border-radius:12px;background:#07172B;color:#fff;padding:10px 12px;
+  display:flex;justify-content:space-between;align-items:center
+}
+.ui-time strong{font-size:11px}.ui-time span{font-size:9px;color:#B4C2D0}
+.ui-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.metric{border-radius:14px;padding:11px;background:#fff;border:1px solid #E7EAF0}
+.metric b{font-size:18px;display:block}.metric span{font-size:8px;color:#7D8794}
+.section{padding:128px 0}
+.center{text-align:center}
+.section h2{
+  font-size:clamp(44px,6vw,78px);line-height:.98;letter-spacing:-.058em;margin:12px auto 0;max-width:980px
+}
+.section .lead{font-size:clamp(18px,2vw,24px);line-height:1.45;color:#647082;max-width:760px;margin:24px auto 0;font-weight:600}
+.pillnav{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:30px}
+.pillnav span{font-size:12px;font-weight:800;border-radius:999px;border:1px solid #E3E6EC;padding:9px 13px;background:#fff}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:38px;align-items:center;margin-top:70px}
+.feature-copy{padding:20px 0}
+.feature-copy .num{font-size:12px;font-weight:900;color:var(--purple);letter-spacing:.14em}
+.feature-copy h3{font-size:clamp(36px,4.5vw,60px);line-height:1;letter-spacing:-.055em;margin:12px 0 16px}
+.feature-copy p{font-size:18px;line-height:1.55;color:#637082;margin:0;max-width:520px}
+.benefits{display:grid;gap:13px;margin-top:25px}
+.benefit{display:flex;gap:12px;align-items:flex-start;font-size:15px;font-weight:750;color:#28394D}
+.tick{width:23px;height:23px;border-radius:50%;background:#EEE6FF;color:var(--purple);display:grid;place-items:center;flex:0 0 auto;font-size:12px;font-weight:900}
+.mock-panel{
+  min-height:660px;border-radius:40px;background:
+  radial-gradient(circle at 75% 15%,rgba(139,36,255,.19),transparent 26%),
+  linear-gradient(145deg,#F7F7FB,#EEF2F8);
+  border:1px solid #E3E7EE;display:grid;place-items:center;overflow:hidden;position:relative
+}
+.hand-shape{
+  position:absolute;width:420px;height:210px;border-radius:55% 25% 45% 55%;
+  background:linear-gradient(145deg,#B77855,#81513A);bottom:-76px;right:-110px;transform:rotate(-15deg);
+  box-shadow:inset 0 20px 35px rgba(255,255,255,.13);
+}
+.phone-client{transform:rotate(-4deg);z-index:2}
+.dark{background:var(--ink);color:#fff}
+.dark .lead{color:#AAB9C9}
+.dark .eyebrow{color:#75D9FF}
+.dark-split{margin-top:70px;display:grid;grid-template-columns:1.12fr .88fr;gap:44px;align-items:center}
+.dashboard{
+  min-height:560px;border-radius:34px;padding:28px;background:
+    radial-gradient(circle at 85% 10%,rgba(139,36,255,.24),transparent 28%),
+    linear-gradient(145deg,#0D223A,#0A1B2E);
+  border:1px solid rgba(255,255,255,.08);box-shadow:0 38px 90px rgba(0,0,0,.26)
+}
+.dashbar{display:flex;align-items:center;justify-content:space-between}
+.dashbrand{font-weight:900;font-size:16px}.dashbrand span{color:#B72CFF}
+.dashbadge{font-size:9px;color:#9FB0C1;border:1px solid rgba(255,255,255,.12);padding:7px 10px;border-radius:999px}
+.dashhello{font-size:33px;font-weight:900;letter-spacing:-.04em;margin-top:36px}
+.dashsub{font-size:12px;color:#98A9BA;margin-top:6px}
+.dashmetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-top:24px}
+.dmetric{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:17px;padding:14px}
+.dmetric span{font-size:9px;color:#90A2B4}.dmetric b{font-size:23px;display:block;margin-top:7px}
+.chart{height:155px;margin-top:14px;border-radius:18px;background:rgba(255,255,255,.04);position:relative;overflow:hidden}
+.chart svg{position:absolute;inset:0;width:100%;height:100%}
+.sessions{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:13px}
+.sessioncard{border-radius:16px;background:#fff;color:var(--ink);padding:13px}
+.sessioncard .label{font-size:8px;color:#8C96A3;text-transform:uppercase;font-weight:900;letter-spacing:.1em}
+.sessioncard b{display:block;margin-top:6px;font-size:12px}.sessioncard small{display:block;margin-top:3px;color:#778291}
+.darkcopy h3{font-size:clamp(42px,5vw,70px);line-height:.97;letter-spacing:-.06em;margin:12px 0 18px}
+.darkcopy p{color:#B1C0CF;font-size:18px;line-height:1.55}
+.darkcopy .benefit{color:#E6EDF5}.darkcopy .tick{background:rgba(183,44,255,.18);color:#DC8EFF}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:62px}
+.step{
+  border-radius:30px;padding:28px;background:#F7F8FB;border:1px solid #E7EAF0;min-height:290px;
+  display:flex;flex-direction:column;justify-content:space-between
+}
+.step .icon{width:51px;height:51px;border-radius:15px;display:grid;place-items:center;background:#07172B;color:#fff;font-size:23px}
+.step h3{font-size:28px;line-height:1;letter-spacing:-.04em;margin:40px 0 10px}.step p{font-size:15px;line-height:1.5;color:#697587;margin:0}
+.photo-band{
+  width:min(1320px,calc(100% - 30px));margin:0 auto 128px;border-radius:46px;overflow:hidden;position:relative;height:650px;background:#07172B
+}
+.photo-band img{width:100%;height:100%;object-fit:cover;object-position:center}
+.photo-band::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,23,43,.88),rgba(7,23,43,.58) 44%,rgba(7,23,43,.1))}
+.photo-copy{position:absolute;z-index:2;left:6%;top:50%;transform:translateY(-50%);max-width:520px;color:#fff}
+.photo-copy .eyebrow{color:#83D9FF}
+.photo-copy h2{font-size:clamp(46px,5.7vw,78px);line-height:.98;letter-spacing:-.06em;margin:12px 0 17px}
+.photo-copy p{font-size:18px;line-height:1.55;color:#D3DDE8}
+.bento{display:grid;grid-template-columns:1.25fr .75fr;gap:18px;margin-top:62px}
+.bento-col{display:grid;gap:18px}
+.bcard{border-radius:30px;border:1px solid #E5E8EF;background:#F8F9FC;padding:28px;overflow:hidden;position:relative}
+.bcard.big{min-height:500px;background:
+  radial-gradient(circle at 80% 10%,rgba(139,36,255,.18),transparent 30%),
+  linear-gradient(150deg,#FBFAFF,#F0F5FC)}
+.bcard.small{min-height:241px}
+.bcard .badge{font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--purple)}
+.bcard h3{font-size:30px;line-height:1.03;letter-spacing:-.045em;margin:9px 0 9px}
+.bcard p{font-size:14px;line-height:1.5;color:#6A7585;margin:0;max-width:480px}
+.calendar{position:absolute;right:26px;bottom:25px;width:56%;background:#fff;border-radius:25px;box-shadow:0 22px 55px rgba(7,23,43,.12);padding:18px;border:1px solid #E8EAF0}
+.calhead{display:flex;justify-content:space-between;font-weight:850;font-size:12px}.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.day{aspect-ratio:1;display:grid;place-items:center;font-size:9px;border-radius:8px;color:#7A8593;background:#F5F6F8}
+.day.on{background:#8B24FF;color:white;font-weight:900}
+.progress-ring{width:95px;height:95px;border-radius:50%;background:conic-gradient(var(--purple) 0 76%,#E5E8EF 76%);display:grid;place-items:center;margin-top:27px}
+.progress-ring::after{content:"76%";width:67px;height:67px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:900}
+.pay{display:flex;align-items:center;justify-content:space-between;margin-top:30px;background:#fff;border-radius:18px;border:1px solid #E6E9EF;padding:15px}
+.pay strong{font-size:18px}.pay span{font-size:10px;color:#778291}
+.shield{width:50px;height:50px;border-radius:16px;background:#E9F6FF;display:grid;place-items:center;color:#168BFF;font-size:22px}
+.trust{padding:90px 0;background:#F7F8FA;border-top:1px solid #ECEEF2;border-bottom:1px solid #ECEEF2}
+.trustgrid{display:grid;grid-template-columns:1fr 1fr;gap:55px;align-items:center}
+.trust h2{font-size:clamp(39px,5vw,62px);line-height:1;letter-spacing:-.055em;margin:0}
+.trust p{font-size:17px;line-height:1.55;color:#667282;margin:0}
+.trustmarks{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.trustmark{border-radius:999px;background:#fff;border:1px solid #E0E4EA;padding:10px 13px;font-size:12px;font-weight:850}
+.final{padding:130px 0 110px;background:
+ radial-gradient(circle at 50% 0%,rgba(139,36,255,.24),transparent 35%),#07172B;color:#fff;text-align:center}
+.final h2{font-size:clamp(54px,7.5vw,94px);line-height:.94;letter-spacing:-.065em;margin:0 auto;max-width:960px}
+.final p{font-size:20px;line-height:1.45;color:#B9C7D5;max-width:680px;margin:24px auto 0}
+.final .actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:28px}
+.final .btn-secondary{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14);color:#fff}
+footer{background:#07172B;color:#7F91A3;border-top:1px solid rgba(255,255,255,.08);padding:26px 0 38px;font-size:12px}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.foot a{color:#AFC0D0}.footlinks{display:flex;gap:16px;flex-wrap:wrap}
+.credit{margin-top:14px;font-size:10px;color:#66798C}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}.reveal.in{opacity:1;transform:none}
+
+@media(max-width:900px){
+  .navlinks a:not(.navcta){display:none}
+  .hero{padding-top:60px}
+  .stage{height:760px;min-height:760px}
+  .stage::after{background:linear-gradient(0deg,rgba(7,23,43,.92),rgba(7,23,43,.12) 68%)}
+  .stagecopy{left:28px;right:28px;bottom:34px;top:auto;transform:none;width:auto}
+  .phone-hero{right:50%;top:42%;transform:translate(50%,-50%) rotate(4deg);width:250px}
+  .split,.dark-split,.trustgrid{grid-template-columns:1fr}
+  .dark-split{gap:22px}
+  .steps{grid-template-columns:1fr}
+  .bento{grid-template-columns:1fr}
+  .photo-band{height:720px}
+  .photo-band::after{background:linear-gradient(0deg,rgba(7,23,43,.9),rgba(7,23,43,.18) 70%)}
+  .photo-copy{left:28px;right:28px;top:auto;bottom:34px;transform:none}
+}
+@media(max-width:620px){
+  .shell{width:min(100% - 28px,1180px)}
+  .navin{height:58px}
+  .hero{padding:48px 0 45px}
+  .hero h1{font-size:55px}
+  .hero .sub{font-size:18px}
+  .stage{border-radius:30px;height:680px;min-height:680px;margin-top:42px}
+  .stagecopy h2{font-size:43px}
+  .phone{width:230px;border-radius:36px}
+  .screen{min-height:470px;padding:30px 13px 14px}
+  .phone-hero{top:39%}
+  .section{padding:92px 0}
+  .section h2{font-size:47px}
+  .split{margin-top:50px}
+  .mock-panel{min-height:555px;border-radius:30px}
+  .feature-copy h3{font-size:44px}
+  .dashboard{padding:20px;border-radius:26px;min-height:500px}
+  .dashmetrics{grid-template-columns:1fr 1fr}
+  .dashmetrics .dmetric:last-child{grid-column:1/-1}
+  .sessions{grid-template-columns:1fr}
+  .photo-band{height:680px;border-radius:30px;margin-bottom:92px}
+  .photo-copy h2{font-size:48px}
+  .bcard{border-radius:25px}
+  .bcard.big{min-height:570px}
+  .calendar{width:78%;right:18px}
+  .trust{padding:72px 0}
+  .final{padding:100px 0 88px}
+  .final h2{font-size:56px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}.btn{transition:none}
+}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="shell navin">
+    <a class="brand" href="/features" aria-label="TrainerHub home">
+      <span class="mark">TH</span>
+      <span>TrainerHub</span>
+    </a>
+    <nav class="navlinks" aria-label="Marketing">
+      <a href="#clients">For clients</a>
+      <a href="#trainers">For trainers</a>
+      <a href="#features">Features</a>
+      <a href="/sign-in">Sign in</a>
+      <a class="navcta" href="/sign-up">Get started</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="shell center">
+    <div class="eyebrow">Find · Book · Train</div>
+    <h1>Training, without the friction.</h1>
+    <p class="sub">TrainerHub connects the people, schedule, programs, sessions, payments and progress behind great coaching — in one place.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/sign-up">Create your account <span>→</span></a>
+      <a class="btn btn-secondary" href="/sign-in">Open TrainerHub</a>
+    </div>
+  </div>
+
+  <div class="stage reveal">
+    <img class="stage-photo" src="https://images.pexels.com/photos/8555324/pexels-photo-8555324.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="A trainer and client reviewing a smartphone together in a gym" />
+    <div class="stagecopy">
+      <div class="tag">One connected experience</div>
+      <h2>Less admin. More coaching.</h2>
+      <p>Discover the right trainer, book the work, follow the plan, and keep every session moving forward.</p>
+    </div>
+    <div class="phone phone-hero" aria-hidden="true">
+      <div class="screen">
+        <div class="ui-top"><div><div class="ui-kicker">TrainerHub</div><div class="ui-title">Good morning.</div></div><div class="ui-bell">●</div></div>
+        <div class="ui-card">
+          <div class="ui-row"><div class="ui-photo"></div><div><div class="ui-name">Jordan Reed</div><div class="ui-small">Strength · Atlanta</div></div><span class="ui-chip">4.9 ★</span></div>
+          <div class="ui-time"><div><strong>Next session</strong><span>Today · 5:30 PM</span></div><b>45m</b></div>
+        </div>
+        <div class="ui-grid">
+          <div class="metric"><b>12</b><span>sessions completed</span></div>
+          <div class="metric"><b>3</b><span>programs active</span></div>
+        </div>
+        <div class="ui-card">
+          <div class="ui-kicker">This week</div>
+          <div style="height:8px"></div>
+          <div style="height:10px;border-radius:7px;background:#E9EDF2;margin:7px 0"></div>
+          <div style="height:10px;border-radius:7px;background:linear-gradient(90deg,#8B24FF 68%,#E9EDF2 68%)"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:9px;color:#7D8794"><span>Consistency</span><strong style="color:#07172B">68%</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="clients" class="section">
+  <div class="shell">
+    <div class="center reveal">
+      <div class="eyebrow">For clients</div>
+      <h2>Find the trainer who fits the way you want to grow.</h2>
+      <p class="lead">Browse by specialty, location, coaching style, session type, ratings and price. Then book from live availability and keep your plan, schedule and history in reach.</p>
+      <div class="pillnav"><span>Trainer discovery</span><span>Live availability</span><span>Custom programs</span><span>Session history</span></div>
+    </div>
+
+    <div class="split">
+      <div class="feature-copy reveal">
+        <div class="num">01 · DISCOVER</div>
+        <h3>Choose with more confidence.</h3>
+        <p>Profiles bring the information that matters together before you book: specialties, rates, reviews, location, packages and coaching details.</p>
+        <div class="benefits">
+          <div class="benefit"><span class="tick">✓</span><span>Compare trainers by what matters to your goals.</span></div>
+          <div class="benefit"><span class="tick">✓</span><span>See packages and session options before committing.</span></div>
+          <div class="benefit"><span class="tick">✓</span><span>Move directly from profile to booking.</span></div>
+        </div>
+      </div>
+      <div class="mock-panel reveal">
+        <div class="hand-shape" aria-hidden="true"></div>
+        <div class="phone phone-client" aria-hidden="true">
+          <div class="screen">
+            <div class="ui-kicker">Find your trainer</div>
+            <div class="ui-title">People built for your goals.</div>
+            <div class="ui-card">
+              <div class="ui-row"><div class="ui-photo" style="background:linear-gradient(145deg,#0E2D4C,#05BFEA)"></div><div><div class="ui-name">Alex Morgan</div><div class="ui-small">Mobility · Strength</div></div><span class="ui-chip">4.8 ★</span></div>
+              <div style="display:flex;gap:6px;margin-top:12px"><span class="ui-chip" style="margin:0;background:#EDF7FF;color:#1477C5">In-person</span><span class="ui-chip" style="margin:0">From $70</span></div>
+            </div>
+            <div class="ui-card">
+              <div class="ui-row"><div class="ui-photo" style="background:linear-gradient(145deg,#3F1E60,#B72CFF)"></div><div><div class="ui-name">Maya Carter</div><div class="ui-small">Performance · Speed</div></div><span class="ui-chip">5.0 ★</span></div>
+              <div style="display:flex;gap:6px;margin-top:12px"><span class="ui-chip" style="margin:0;background:#EDF7FF;color:#1477C5">Virtual</span><span class="ui-chip" style="margin:0">From $85</span></div>
+            </div>
+            <div class="ui-card">
+              <div class="ui-kicker">Book this week</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:12px">
+                <div class="day">M</div><div class="day on">T</div><div class="day">W</div><div class="day on">T</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="trainers" class="section dark">
+  <div class="shell">
+    <div class="center reveal">
+      <div class="eyebrow">For trainers</div>
+      <h2>Run the business without losing the human part.</h2>
+      <p class="lead">Clients, availability, sessions, programs, notes, revenue and payouts live together so the operational work stops competing with the coaching.</p>
+    </div>
+
+    <div class="dark-split">
+      <div class="dashboard reveal" aria-label="Trainer dashboard concept">
+        <div class="dashbar"><div class="dashbrand">TRAINER<span>HUB</span></div><div class="dashbadge">TRAINER VIEW</div></div>
+        <div class="dashhello">Your business. At a glance.</div>
+        <div class="dashsub">Upcoming work, client momentum and money — without hunting through separate tools.</div>
+        <div class="dashmetrics">
+          <div class="dmetric"><span>MONTHLY REVENUE</span><b>$4,860</b></div>
+          <div class="dmetric"><span>SESSIONS</span><b>42</b></div>
+          <div class="dmetric"><span>ACTIVE CLIENTS</span><b>18</b></div>
+        </div>
+        <div class="chart">
+          <svg viewBox="0 0 500 160" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B72CFF" stop-opacity=".38"/><stop offset="1" stop-color="#B72CFF" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,134 C75,110 86,126 139,99 S225,83 275,72 S360,50 500,25 L500,160 L0,160Z" fill="url(#g)"/>
+            <path d="M0,134 C75,110 86,126 139,99 S225,83 275,72 S360,50 500,25" fill="none" stroke="#C45AFF" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="sessions">
+          <div class="sessioncard"><span class="label">NEXT UP</span><b>Camille · Strength</b><small>4:30 PM · 60 min</small></div>
+          <div class="sessioncard"><span class="label">PROGRAM</span><b>Speed Block 02</b><small>8 athletes assigned</small></div>
+        </div>
+      </div>
+      <div class="darkcopy reveal">
+        <div class="eyebrow">Built to operate</div>
+        <h3>Every rep counts. So does every detail.</h3>
+        <p>Keep the client record, the program, the session, the payment and the next appointment tied to the same relationship.</p>
+        <div class="benefits">
+          <div class="benefit"><span class="tick">✓</span><span>Client profiles, goals and session notes in one organized view.</span></div>
+          <div class="benefit"><span class="tick">✓</span><span>Create availability windows and receive booking requests.</span></div>
+          <div class="benefit"><span class="tick">✓</span><span>Build reusable programs and assign them to clients.</span></div>
+          <div class="benefit"><span class="tick">✓</span><span>See earnings and session trends, with Stripe-powered payouts.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="shell center reveal">
+    <div class="eyebrow">Simple by design</div>
+    <h2>Book. Train. Progress.</h2>
+    <p class="lead">The workflow is intentionally straightforward. The app keeps the details connected so people can focus on the work itself.</p>
+    <div class="steps">
+      <div class="step"><div class="icon">⌕</div><div><h3>Find</h3><p>Browse trainer profiles by specialty, location, coaching style, session type, ratings and price.</p></div></div>
+      <div class="step"><div class="icon">◷</div><div><h3>Book</h3><p>Choose from real availability, request a session and keep the upcoming schedule visible.</p></div></div>
+      <div class="step"><div class="icon">↗</div><div><h3>Train</h3><p>Follow assigned programs, complete sessions and keep the history of the work in one place.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="photo-band reveal">
+  <img src="https://images.pexels.com/photos/3912952/pexels-photo-3912952.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="A trainer coaching a boxing session while a smartphone tracks the workout" />
+  <div class="photo-copy">
+    <div class="eyebrow">Technology in the background</div>
+    <h2>The relationship stays at the center.</h2>
+    <p>TrainerHub is not trying to replace the coach. It organizes the work around the coach-client relationship — booking, programs, history, progress and business operations.</p>
+  </div>
+</section>
+
+<section id="features" class="section" style="padding-top:0">
+  <div class="shell">
+    <div class="center reveal">
+      <div class="eyebrow">What’s inside</div>
+      <h2>One platform. Two sides. A cleaner system.</h2>
+      <p class="lead">Built for the reality of personal training: clients need clarity and momentum; trainers need an operating system that does not get in the way.</p>
+    </div>
+
+    <div class="bento">
+      <div class="bcard big reveal">
+        <div class="badge">Smart scheduling</div>
+        <h3>Availability that turns into actual bookings.</h3>
+        <p>Trainers create availability windows. Clients request sessions from that live schedule, keeping fewer conversations trapped in texts and DMs.</p>
+        <div class="calendar" aria-hidden="true">
+          <div class="calhead"><span>October</span><span style="color:#8B24FF">Availability</span></div>
+          <div class="days">
+            <div class="day">12</div><div class="day on">13</div><div class="day">14</div><div class="day on">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div>
+            <div class="day on">19</div><div class="day">20</div><div class="day on">21</div><div class="day">22</div><div class="day on">23</div><div class="day">24</div><div class="day">25</div>
+          </div>
+        </div>
+      </div>
+      <div class="bento-col">
+        <div class="bcard small reveal">
+          <div class="badge">Programs + progress</div>
+          <h3>Keep the plan attached to the person.</h3>
+          <p>Build reusable training programs, assign them directly to clients, and keep session history available for context.</p>
+          <div class="progress-ring" aria-hidden="true"></div>
+        </div>
+        <div class="bcard small reveal">
+          <div class="badge">Payments</div>
+          <h3>From completed work to payout.</h3>
+          <p>TrainerHub uses Stripe infrastructure for payment processing and trainer payouts.</p>
+          <div class="pay"><div><span>THIS MONTH</span><strong>$4,860</strong></div><div class="shield">✓</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bento" style="grid-template-columns:.8fr 1.2fr;margin-top:18px">
+      <div class="bento-col">
+        <div class="bcard small reveal">
+          <div class="badge">Client management</div>
+          <h3>Goals, sessions and notes stay together.</h3>
+          <p>Trainer records are organized around the client relationship, not a pile of disconnected documents.</p>
+        </div>
+        <div class="bcard small reveal">
+          <div class="badge">Private journal</div>
+          <h3>A place to reflect on the work.</h3>
+          <p>Clients can record journal entries and mood, with their journal private unless they choose to share it.</p>
+        </div>
+      </div>
+      <div class="bcard big reveal" style="background:#07172B;color:#fff">
+        <div class="badge" style="color:#75D9FF">Teams + organizations</div>
+        <h3 style="max-width:560px">A path for company-sponsored training.</h3>
+        <p style="color:#A9B9C9;max-width:560px">Corporate membership support lets organizations invite people into a company-backed TrainerHub experience while keeping personal journal content and session notes private.</p>
+        <div style="position:absolute;right:34px;bottom:30px;left:34px;border-radius:23px;padding:20px;background:linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.12)">
+          <div style="font-size:10px;font-weight:900;letter-spacing:.14em;color:#89DFFF">TEAM ACCESS</div>
+          <div style="font-size:29px;font-weight:900;letter-spacing:-.04em;margin-top:7px">Give people a better way to train.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px"><span class="trustmark" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#fff">Invitations</span><span class="trustmark" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#fff">Membership status</span><span class="trustmark" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12);color:#fff">Utilization view</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="trust">
+  <div class="shell trustgrid">
+    <div class="reveal">
+      <div class="eyebrow">Secure by default</div>
+      <h2>Your training data should feel personal, not exposed.</h2>
+    </div>
+    <div class="reveal">
+      <p>TrainerHub uses Supabase for authentication and data infrastructure, Stripe for payment processing and payouts, encrypted HTTPS traffic, and row-level access controls so users only reach the records they are entitled to.</p>
+      <div class="trustmarks"><span class="trustmark">Secure authentication</span><span class="trustmark">HTTPS encrypted</span><span class="trustmark">Stripe payments</span><span class="trustmark">Row-level access controls</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="shell reveal">
+    <h2>Good training deserves a better operating system.</h2>
+    <p>Whether you are looking for the right trainer or building the training business people rely on, TrainerHub keeps the work connected.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/sign-up">Get started <span>→</span></a>
+      <a class="btn btn-secondary" href="/sign-in">Sign in</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="shell">
+    <div class="foot">
+      <div>© 2026 TrainerHub. Find · Book · Train.</div>
+      <div class="footlinks"><a href="/support">Support</a><a href="/privacy">Privacy</a><a href="/sign-in">Sign in</a></div>
+    </div>
+    <div class="credit">Photography used on this page: Pexels / Liliana Drew and ThisIsEngineering. Product screens are illustrative representations of current TrainerHub capabilities.</div>
+  </div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach((entry)=>{
+    if(entry.isIntersecting){ entry.target.classList.add('in'); observer.unobserve(entry.target); }
+  });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>
